@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Info, Save, Settings2, ShieldCheck } from "lucide-react";
+import { Info, Save, Settings2, ShieldCheck } from "lucide-react";
 import { getEntityConfigurationStatus } from "@/lib/settings-status";
+import { DateTextInput } from "@/components/date-text-input";
+import type { DateOnly } from "@/lib/time/melbourne";
 
 type Entity = {
   id: string;
   name: string;
   type: string;
   acn: string | null;
-  incorporationDate: string | null;
-  asicReviewDate: string | null;
+  incorporationDate: DateOnly | null;
+  asicReviewDate: DateOnly | null;
   gstRegistered: boolean;
   active: boolean;
   basCycle: string;
@@ -21,7 +23,7 @@ type Licence = {
   holder: string;
   type: string;
   licenceNumber: string | null;
-  anniversaryDate: string | null;
+  anniversaryDate: DateOnly | null;
   regulator: string;
   portalUrl: string;
   lodgementWindowWeeks: number;
@@ -169,15 +171,11 @@ export function SettingsForm({ initialSnapshot }: Props) {
                         </td>
                         <td data-label="ASIC 周年日">
                           {isCompany ? (
-                            <label className="date-input">
-                              <input
-                                aria-label="ASIC 周年日"
-                                type="date"
-                                value={entity.asicReviewDate ?? ""}
-                                onChange={(event) => updateEntity(entity.id, { asicReviewDate: event.target.value || null })}
-                              />
-                              <CalendarDays size={16} aria-hidden="true" />
-                            </label>
+                            <DateTextInput
+                              ariaLabel="ASIC 周年日"
+                              value={entity.asicReviewDate}
+                              onChange={(value) => updateEntity(entity.id, { asicReviewDate: value })}
+                            />
                           ) : <span className="not-applicable">不适用</span>}
                         </td>
                         <td data-label="GST 已注册">
@@ -224,10 +222,10 @@ export function SettingsForm({ initialSnapshot }: Props) {
                 </label>
                 <label>
                   <span>牌照周年日</span>
-                  <input
-                    type="date"
-                    value={licence.anniversaryDate ?? ""}
-                    onChange={(event) => { setLicence({ ...licence, anniversaryDate: event.target.value || null }); setSaveState("idle"); }}
+                  <DateTextInput
+                    ariaLabel="牌照周年日"
+                    value={licence.anniversaryDate}
+                    onChange={(value) => { setLicence({ ...licence, anniversaryDate: value }); setSaveState("idle"); }}
                   />
                 </label>
                 <div className="licence-meta">

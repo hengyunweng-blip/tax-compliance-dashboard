@@ -44,6 +44,22 @@ test("obligations keep income year separate from deadline fiscal year", () => {
   ]));
 });
 
+test("obligation rules keep a forward or backward adjustment direction", () => {
+  runMigrations();
+  const columns = getRawDb()
+    .prepare("PRAGMA table_info(obligation_rules)")
+    .all() as Array<{ name: string; type: string; notnull: number }>;
+
+  expect(columns.find((column) => column.name === "adjustment_direction")).toMatchObject({
+    type: "TEXT",
+    notnull: 1,
+  });
+  expect(columns.find((column) => column.name === "required_fields")).toMatchObject({
+    type: "TEXT",
+    notnull: 1,
+  });
+});
+
 test("BAS worksheets keep a nullable integer PAYG instalment field", () => {
   runMigrations();
   const columns = getRawDb()

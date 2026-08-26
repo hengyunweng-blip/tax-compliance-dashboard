@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getRawDb } from "@/lib/db/client";
+import type { DateOnly } from "@/lib/time/melbourne";
 
 const entityConfigurationSchema = z.object({
   entityId: z.string().min(1),
@@ -24,8 +25,8 @@ export type SettingsEntity = {
   name: string;
   type: string;
   acn: string | null;
-  incorporationDate: string | null;
-  asicReviewDate: string | null;
+  incorporationDate: DateOnly | null;
+  asicReviewDate: DateOnly | null;
   gstRegistered: boolean;
   active: boolean;
   basCycle: string;
@@ -36,7 +37,7 @@ export type SettingsLicence = {
   holder: string;
   type: string;
   licenceNumber: string | null;
-  anniversaryDate: string | null;
+  anniversaryDate: DateOnly | null;
   regulator: string;
   portalUrl: string;
   lodgementWindowWeeks: number;
@@ -187,8 +188,8 @@ export function getSettingsSnapshot(): SettingsSnapshot {
     name: string;
     type: string;
     acn: string | null;
-    incorporation_date: string | null;
-    asic_review_date: string | null;
+    incorporation_date: DateOnly | null;
+    asic_review_date: DateOnly | null;
     gst_registered: number;
     active: number;
     bas_cycle: string;
@@ -203,7 +204,7 @@ export function getSettingsSnapshot(): SettingsSnapshot {
     holder: string;
     type: string;
     licence_number: string | null;
-    anniversary_date: string | null;
+    anniversary_date: DateOnly | null;
     regulator: string;
     portal_url: string;
     lodgement_window_weeks: number;

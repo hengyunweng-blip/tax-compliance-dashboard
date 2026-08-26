@@ -10,6 +10,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "company", gstRegistered: true },
     frequency: "quarterly",
     dueCalc: "bas_online_self_lodge",
+    adjustmentDirection: "forward",
+    requiredFields: [],
     reminderOffsets: [-30, -10, -3, 0],
     portalUrl: "https://www.ato.gov.au/online-services/businesses-and-organisations",
     checklist: ["整理本季度已确认交易", "生成 BAS 底稿", "登录 ATO Online services for business 手动填写 G1、1A、1B", "保存回执号"],
@@ -20,6 +22,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "company" },
     frequency: "annual",
     dueCalc: "company_tax_return",
+    adjustmentDirection: "forward",
+    requiredFields: [],
     reminderOffsets: [-30, -10, -3, 0],
     portalUrl: "https://www.ato.gov.au/online-services/businesses-and-organisations",
     checklist: ["生成年度损益汇总", "补充折旧、亏损、franking account 和 Div 7A", "手动在 ATO 完成公司税表"],
@@ -30,6 +34,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "trust" },
     frequency: "annual",
     dueCalc: "trust_tax_return",
+    adjustmentDirection: "forward",
+    requiredFields: [],
     reminderOffsets: [-30, -10, -3, 0],
     portalUrl: "https://www.ato.gov.au/online-services/businesses-and-organisations",
     checklist: ["汇总信托收入", "完成分配决议草稿", "手动在 ATO 完成信托税表"],
@@ -40,6 +46,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "individual" },
     frequency: "annual",
     dueCalc: "individual_tax_return",
+    adjustmentDirection: "forward",
+    requiredFields: [],
     reminderOffsets: [-30, -10, -3, 0],
     portalUrl: "https://my.gov.au/",
     checklist: ["汇总信托分配、分红和 franking credit", "检查可抵扣供款通知", "手动在 myTax 完成个人税表"],
@@ -50,6 +58,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "trust" },
     frequency: "annual",
     dueCalc: "before_june_30",
+    adjustmentDirection: "backward",
+    requiredFields: [],
     reminderOffsets: [-60, -30, -10, -3],
     portalUrl: "",
     checklist: ["确认受益人和分配额", "生成决议文本模板", "签署并留存"],
@@ -60,6 +70,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "company" },
     frequency: "annual",
     dueCalc: "asic_review_plus_two_months",
+    adjustmentDirection: "forward",
+    requiredFields: ["asic_review_date"],
     reminderOffsets: [-14, -3, 0],
     portalUrl: "https://asic.gov.au/for-business/changes-to-your-company/annual-statements/",
     checklist: ["核对公司资料", "检查 ASIC 年检费参考值", "手动在 ASIC 完成确认/付款"],
@@ -70,6 +82,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { licenceType: "estate_agent" },
     frequency: "annual",
     dueCalc: "licence_anniversary_minus_six_weeks",
+    adjustmentDirection: "backward",
+    requiredFields: ["anniversary_date"],
     reminderOffsets: [0, 7, 14, 21],
     portalUrl: "https://my.consumer.vic.gov.au",
     checklist: ["进入牌照窗口", "手动完成年度声明", "保存确认记录"],
@@ -80,6 +94,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "individual" },
     frequency: "annual",
     dueCalc: "june_30_before",
+    adjustmentDirection: "backward",
+    requiredFields: [],
     reminderOffsets: [-45, -30, -10, -3],
     portalUrl: "",
     checklist: ["确认供款到账", "检查 concessional cap", "保存付款记录"],
@@ -90,6 +106,8 @@ const OBLIGATION_RULE_SEEDS = [
     appliesTo: { type: "individual" },
     frequency: "one_off",
     dueCalc: "after_contribution_before_tax_return",
+    adjustmentDirection: "forward",
+    requiredFields: [],
     reminderOffsets: [0],
     portalUrl: "",
     checklist: ["提交抵扣意向通知", "保存基金确认"],
@@ -148,9 +166,12 @@ export function seedDatabase() {
     }
 
     const insertRule = db.prepare(`
-      INSERT OR IGNORE INTO obligation_rules
-        (id, label, applies_to, frequency, due_calc, reminder_offsets, portal_url, checklist)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO obligation_rules
+        (id, label, applies_to, frequency, due_calc, adjustment_direction, required_fields, reminder_offsets, portal_url, checklist)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        adjustment_direction = excluded.adjustment_direction,
+        required_fields = excluded.required_fields
     `);
     for (const rule of OBLIGATION_RULE_SEEDS) {
       insertRule.run(
@@ -159,6 +180,8 @@ export function seedDatabase() {
         JSON.stringify(rule.appliesTo),
         rule.frequency,
         rule.dueCalc,
+        rule.adjustmentDirection,
+        JSON.stringify(rule.requiredFields),
         JSON.stringify(rule.reminderOffsets),
         rule.portalUrl,
         JSON.stringify(rule.checklist),

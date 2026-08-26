@@ -1,0 +1,1 @@
+ALTER TABLE `obligation_rules` ADD `required_fields` text DEFAULT '[]' NOT NULL;

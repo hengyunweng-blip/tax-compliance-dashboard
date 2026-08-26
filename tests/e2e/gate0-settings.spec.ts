@@ -8,13 +8,13 @@ test("renders six entities and persists Boyun ACN and ASIC date", async ({ page 
 
   const row = page.getByTestId("entity-row-boyun_co");
   await row.getByLabel("ACN").fill("123456789");
-  await row.getByLabel("ASIC 周年日").fill("2026-07-15");
+  await row.getByLabel("ASIC 周年日").fill("15/07/2026");
   await page.getByRole("button", { name: "保存设置" }).click();
   await expect(page.getByText("设置已保存")).toBeVisible();
 
   await page.reload();
   await expect(page.getByTestId("entity-row-boyun_co").getByLabel("ACN")).toHaveValue("123456789");
-  await expect(page.getByTestId("entity-row-boyun_co").getByLabel("ASIC 周年日")).toHaveValue("2026-07-15");
+  await expect(page.getByTestId("entity-row-boyun_co").getByLabel("ASIC 周年日")).toHaveValue("15/07/2026");
 });
 
 test("settings layout has no viewport overflow at a narrow width", async ({ page }) => {
