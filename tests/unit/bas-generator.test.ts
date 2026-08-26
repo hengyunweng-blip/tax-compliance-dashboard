@@ -1,0 +1,74 @@
+import { beforeEach, expect, test } from "vitest";
+import { getRawDb } from "@/lib/db/client";
+import { seedDatabase } from "@/lib/db/seed";
+import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
+import { generateBasWorksheet, markBasLodged, updateBasPaygInstalment } from "@/lib/domain/bas/generator";
+import { createTransaction } from "@/lib/ingest/transactions";
+
+beforeEach(() => {
+  seedDatabase();
+  const db = getRawDb();
+  db.exec("DELETE FROM bas_worksheets; DELETE FROM reminders; DELETE FROM obligations; DELETE FROM audit_log; DELETE FROM transactions; DELETE FROM documents;");
+  expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
+});
+
+function q1ObligationId() {
+  return (getRawDb().prepare("SELECT id FROM obligations WHERE entity_id = 'boyun_co' AND rule_id = 'bas_quarterly' AND period_label LIKE '% Q1'").get() as { id: number }).id;
+}
+
+function accountId() {
+  return (getRawDb().prepare("SELECT id FROM accounts WHERE entity_id = 'boyun_co' ORDER BY id LIMIT 1").get() as { id: number }).id;
+}
+
+function createQ1Transaction(reviewFlag: boolean) {
+  return createTransaction({
+    entityId: "boyun_co",
+    date: "2026-07-04",
+    description: reviewFlag ? "Pending BAS row" : "Confirmed BAS row",
+    accountId: accountId(),
+    gstCode: "GST_EXPENSE",
+    amountCents: -55000,
+    gstCents: -5000,
+    reviewFlag,
+    source: "bas-generator-test",
+  });
+}
+
+test("generates a worksheet, snapshots eligible IDs and locks them atomically", () => {
+  const transaction = createQ1Transaction(false);
+  const result = generateBasWorksheet(q1ObligationId());
+
+  expect(result.worksheet.snapshotJson).toContain(String(transaction.id));
+  expect(result.lockedTransactionIds).toEqual([transaction.id]);
+  expect(getRawDb().prepare("SELECT locked FROM transactions WHERE id = ?").get(transaction.id)).toEqual({ locked: 1 });
+  expect(result.worksheet).toMatchObject({ g11Cents: 55000, b1Cents: 5000, gstNetCents: -5000, statementTotalCents: null });
+});
+
+test("rolls back worksheet and locks when validation finds unconfirmed rows", () => {
+  const transaction = createQ1Transaction(true);
+
+  expect(() => generateBasWorksheet(q1ObligationId())).toThrow(/待确认/);
+  expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM bas_worksheets").get()).toEqual({ count: 0 });
+  expect(getRawDb().prepare("SELECT locked FROM transactions WHERE id = ?").get(transaction.id)).toEqual({ locked: 0 });
+});
+
+test("keeps PAYG manual, resolves statement total, and compares lodged amount to it", () => {
+  const obligationId = q1ObligationId();
+  const generated = generateBasWorksheet(obligationId);
+  expect(generated.worksheet.statementTotalCents).toBeNull();
+
+  const updated = updateBasPaygInstalment(obligationId, 2500);
+  expect(updated).toMatchObject({ paygInstalmentCents: 2500, gstNetCents: 0, statementTotalCents: 2500 });
+  expect(() => markBasLodged(obligationId, "ATO-RECEIPT-1", 0)).toThrow(/2500/);
+  expect(markBasLodged(obligationId, "ATO-RECEIPT-1", 2500)).toMatchObject({ id: obligationId, status: "lodged" });
+  expect(getRawDb().prepare("SELECT to_status, reason FROM audit_log WHERE target_id = ? ORDER BY id DESC LIMIT 1").get(String(obligationId))).toMatchObject({
+    to_status: "lodged",
+  });
+});
+
+test("creates a zero nil BAS worksheet when no confirmed rows exist", () => {
+  const result = generateBasWorksheet(q1ObligationId());
+
+  expect(result.worksheet).toMatchObject({ g1Cents: 0, a1Cents: 0, b1Cents: 0, g10Cents: 0, g11Cents: 0, isNil: true });
+  expect(result.worksheet.snapshotJson).toContain("nil BAS");
+});

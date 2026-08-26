@@ -1,6 +1,6 @@
 # 澳洲多主体税务合规看板系统设计
 
-**状态：** Gate 0、Gate 1 已验收通过；Gate 2 修订已完成，准备合并并进入 Gate 3
+**状态：** Gate 0、Gate 1、Gate 2 已验收通过并已本地合并；Gate 3 已实现并完成运行验证，等待用户验收
 
 **需求来源：** `/Users/neilweng/Downloads/tax-compliance-system-spec.md`
 

@@ -688,7 +688,7 @@ Report that desktop flows and narrow-screen layout were checked. State explicitl
 
 ## Gate 3 — BAS 底稿、锁定、nil BAS 与导出
 
-Start only after Gate 2 acceptance. This Gate contains the mandatory GST-to-BAS unit test before the generator implementation.
+Start only after Gate 2 acceptance. This Gate contains the mandatory GST-to-BAS unit test before the generator implementation. Implementation and runtime verification are complete; stop here and wait for Gate 3 acceptance.
 
 ### Task 3.1: Implement GST mapping and BAS integer aggregation with TDD
 
@@ -701,7 +701,7 @@ Start only after Gate 2 acceptance. This Gate contains the mandatory GST-to-BAS 
 - `mapTransactionToBas(tx): BasLineContribution` returns integer deltas for `g1Cents`, `a1Cents`, `b1Cents`, `g10Cents`, and `g11Cents`.
 - `summarizeBas(transactions, paygInstalmentCents): BasSummary` returns all labels, `gstNetCents = a1Cents - b1Cents`, and `statementTotalCents = gstNetCents + paygInstalmentCents` only after the manual PAYG value is present. `paygInstalmentCents` remains nullable at the database boundary.
 
-- [ ] **Step 1: Write the complete failing GST mapping test matrix**
+- [x] **Step 1: Write the complete failing GST mapping test matrix**
 
 ```ts
 test.each([
@@ -717,21 +717,21 @@ test.each([
 });
 ```
 
-- [ ] **Step 2: Run the focused test to verify it fails**
+- [x] **Step 2: Run the focused test to verify it fails**
 
 Run: `npm test -- tests/unit/gst-bas-mapping.test.ts`
 
 Expected: FAIL because the GST mapping function is absent.
 
-- [ ] **Step 3: Implement the mapping as a total pure function**
+- [x] **Step 3: Implement the mapping as a total pure function**
 
 Treat expenses as negative in the ledger and use integer absolute values for G11/G10/1B. Reject fractional amounts and unknown GST codes. Exclude `PRIVATE` and `NO_GST` completely. Do not calculate any money with `parseFloat`.
 
-- [ ] **Step 4: Add summary, Simpler BAS and PAYG tests**
+- [x] **Step 4: Add summary, Simpler BAS and PAYG tests**
 
 Test `gstNetCents`, `statementTotalCents` with a manually entered PAYG value, the unresolved/null PAYG state, zero nil BAS, and that `review_flag = true`, missing account, missing entity or missing GST code yields a warning rather than an included contribution. Assert that G10/G11 remain available in the internal summary but are not part of the external instructions model.
 
-- [ ] **Step 5: Run the mandatory GST unit test**
+- [x] **Step 5: Run the mandatory GST unit test**
 
 Run: `npm test -- tests/unit/gst-bas-mapping.test.ts`
 
@@ -756,7 +756,7 @@ Expected: PASS with every row in the matrix.
 - `updateBasPaygInstalment(obligationId, paygInstalmentCents: number): BasWorksheet` records the user's integer-cent 5A/5B value and never calculates it.
 - `markBasLodged(obligationId, receiptNumber, lodgedAmountCents): Obligation` requires a resolved `statementTotalCents`, compares the submitted amount to it, writes audit log and moves to `lodged`.
 
-- [ ] **Step 1: Write the atomicity and traceability tests**
+- [x] **Step 1: Write the atomicity and traceability tests**
 
 ```ts
 test("generates a worksheet, snapshots eligible IDs and locks them atomically", async () => {
@@ -772,29 +772,29 @@ test("rolls back worksheet and locks when validation fails", async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/unit/bas-generator.test.ts`
 
 Expected: FAIL because the generator is absent.
 
-- [ ] **Step 3: Implement the transaction and worksheet transaction**
+- [x] **Step 3: Implement the transaction and worksheet transaction**
 
 Select only the obligation’s entity/FY/quarter, `locked = false`, confirmed rows. Before writing, query and list all pending rows. If pending rows exist, return a structured warning and do not lock or create the worksheet. For an empty eligible set, create a zero worksheet with `nil BAS` instructions.
 
-- [ ] **Step 4: Render Simpler BAS operation instructions, PAYG entry and receipt flow**
+- [x] **Step 4: Render Simpler BAS operation instructions, PAYG entry and receipt flow**
 
 Show ATO Online services for business → select company → Lodgments → Activity statements → enter G1, 1A and 1B → review any manual 5A/5B PAYG prefill → submit → record receipt. The instruction card must not contain G10 or G11. The worksheet summary may show G10/G11 in a separate section labelled “内部核算用，不填入 ATO 表单”. The user manually enters the ATO prefilled PAYG instalment in integer cents; until entered, `statementTotalCents` and the “已递交金额” comparison are blocked. The nil path explicitly says to lodge a nil activity statement. The “已递交” action requires receipt number and actual integer amount, then compares against `statementTotalCents` and uses the audited state transition.
 
-- [ ] **Step 5: Add CSV/PDF exports and browser verification**
+- [x] **Step 5: Add CSV/PDF exports and browser verification**
 
 Use the PDF skill’s render-and-verify workflow for the PDF output. The browser test creates Q1 worksheets for three companies, asserts the dormant company is zero/nil, expands line items, verifies each amount is traceable to a transaction ID, asserts the `data-testid="bas-instructions"` region contains G1/1A/1B but not G10/G11, and asserts the internal summary labels G10/G11 include “内部核算用，不填入 ATO 表单”. It also enters a PAYG value and verifies the lodged-amount comparison uses `statementTotalCents`.
 
-- [ ] **Step 6: Run Gate 3 verification and stop**
+- [x] **Step 6: Run Gate 3 verification and stop**
 
 Run: `npm test -- tests/unit/gst-bas-mapping.test.ts tests/unit/bas-generator.test.ts && npm run build && npm run test:e2e -- tests/e2e/gate3-bas.spec.ts`
 
-Report worksheet IDs, nil BAS result, integer totals, snapshot IDs, lock results, PDF render check, and any warning count. Wait for Gate 3 acceptance before Gate 4.
+Report worksheet IDs, nil BAS result, integer totals, snapshot IDs, lock results, PDF render check, and any warning count. Gate 3 verification is complete; wait for Gate 3 acceptance before Gate 4.
 
 ## Gate 4 — AI 适配层、缓存、脱敏和资讯模块
 
