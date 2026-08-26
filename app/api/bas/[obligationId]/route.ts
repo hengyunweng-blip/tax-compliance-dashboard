@@ -1,5 +1,5 @@
 import { exportBasCsv, exportBasPdf } from "@/lib/domain/bas/export";
-import { BasGenerationError, generateBasWorksheet, getBasWorksheetByObligation, markBasLodged, updateBasPaygInstalment } from "@/lib/domain/bas/generator";
+import { BasGenerationError, generateBasWorksheet, getBasWorksheetByObligation, markBasLodged, updateBasPaygInstalment, updateBasPaygInstalments } from "@/lib/domain/bas/generator";
 import { getObligationById } from "@/lib/domain/obligations/repository";
 import { runMigrations } from "@/lib/db/migrate";
 
@@ -40,6 +40,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ obl
     const obligationId = parseObligationId((await params).obligationId);
     const body = await request.json() as {
       action?: "generate" | "payg" | "lodge";
+      payg5aCents?: number | null;
+      payg5bCents?: number | null;
       paygInstalmentCents?: number | null;
       receiptNumber?: string;
       lodgedAmountCents?: number;
@@ -49,6 +51,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ obl
       return Response.json({ obligation: getObligationById(obligationId), ...result }, { status: 201 });
     }
     if (body.action === "payg") {
+      const hasSplitPayg = body.payg5aCents !== undefined || body.payg5bCents !== undefined;
+      if (hasSplitPayg) {
+        const payg5aCents = body.payg5aCents;
+        const payg5bCents = body.payg5bCents;
+        if ((payg5aCents === null) !== (payg5bCents === null) || (payg5aCents !== null && !Number.isSafeInteger(payg5aCents)) || (payg5bCents !== null && !Number.isSafeInteger(payg5bCents))) {
+          throw new Error("PAYG 5A 和 5B 必须是整数分，且同时填写或同时为空");
+        }
+        const worksheet = updateBasPaygInstalments(obligationId, { payg5aCents: payg5aCents ?? null, payg5bCents: payg5bCents ?? null });
+        return Response.json({ obligation: getObligationById(obligationId), worksheet });
+      }
       if (body.paygInstalmentCents !== null && !Number.isSafeInteger(body.paygInstalmentCents)) {
         throw new Error("PAYG instalment must be integer cents");
       }

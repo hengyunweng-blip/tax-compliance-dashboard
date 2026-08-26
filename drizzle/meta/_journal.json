@@ -22,6 +22,13 @@
       "when": 1787737864511,
       "tag": "0002_simple_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787751211428,
+      "tag": "0003_split-payg-5a-5b",
+      "breakpoints": true
     }
   ]
 }

@@ -34,14 +34,16 @@ test("generates three Q1 BAS worksheets with traceable lines, Simpler BAS instru
   expect(instructionText).not.toContain("G11");
   await expect(page.getByTestId("bas-internal-summary")).toContainText("G10（内部核算用，不填入 ATO 表单）");
   await expect(page.getByTestId("bas-internal-summary")).toContainText("G11（内部核算用，不填入 ATO 表单）");
-  await page.screenshot({ path: "docs/evidence/gate3/bas-summary.png", fullPage: true });
-  await page.getByLabel("paygInstalmentCents").fill("2500");
+  await page.getByLabel("payg5aCents").fill("2500");
+  await page.getByLabel("payg5bCents").fill("0");
   await page.getByRole("button", { name: "保存 PAYG" }).click();
   await expect(page.getByText("已重新计算 statementTotalCents", { exact: false })).toBeVisible();
   await page.getByLabel("ATO 回执号").fill("ATO-GATE3-1");
   await expect(page.getByLabel("已递交金额（整数分）")).toHaveValue("12500");
   await page.getByRole("button", { name: "标记已递交" }).click();
-  await expect(page.getByText("已记录 ATO 回执", { exact: false })).toBeVisible();
+  await expect(page.getByText("已记录 ATO 回执，金额已按 statementTotalCents 校验", { exact: true })).toBeVisible();
+  await expect(page.getByText("lodged", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "docs/evidence/gate3/bas-summary.png", fullPage: true });
 
   await page.goto(`/bas/${q1.get("yeeliving_co")?.id}`);
   await page.getByRole("button", { name: "生成 BAS 底稿" }).click();
@@ -51,6 +53,13 @@ test("generates three Q1 BAS worksheets with traceable lines, Simpler BAS instru
   await page.getByRole("button", { name: "生成 BAS 底稿" }).click();
   await expect(page.getByText("nil BAS", { exact: false })).toBeVisible();
   await expect(page.getByText("nil activity statement", { exact: false })).toBeVisible();
+  await page.getByLabel("本期无 PAYG 分期").check();
+  await page.getByRole("button", { name: "保存 PAYG" }).click();
+  await expect(page.getByText("应缴", { exact: false })).toBeVisible();
+  await page.getByLabel("ATO 回执号").fill("ATO-NIL-GATE3-1");
+  await expect(page.getByLabel("已递交金额（整数分）")).toHaveValue("0");
+  await page.getByRole("button", { name: "标记已递交" }).click();
+  await expect(page.getByText("已记录 ATO 回执，金额已按 statementTotalCents 校验", { exact: true })).toBeVisible();
 
   const boyunWorksheet = await page.request.get(`/api/bas/${q1.get("boyun_co")?.id}`);
   const worksheetPayload = await boyunWorksheet.json() as { worksheet: { id: number; statementTotalCents: number | null } };

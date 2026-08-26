@@ -69,3 +69,13 @@ test("BAS worksheets keep a nullable integer PAYG instalment field", () => {
 
   expect(paygColumn).toMatchObject({ type: "INTEGER", notnull: 0 });
 });
+
+test("BAS worksheets keep nullable integer PAYG 5A and 5B fields", () => {
+  runMigrations();
+  const columns = getRawDb()
+    .prepare("PRAGMA table_info(bas_worksheets)")
+    .all() as Array<{ name: string; type: string; notnull: number }>;
+
+  expect(columns.find((column) => column.name === "payg_5a_cents")).toMatchObject({ type: "INTEGER", notnull: 0 });
+  expect(columns.find((column) => column.name === "payg_5b_cents")).toMatchObject({ type: "INTEGER", notnull: 0 });
+});

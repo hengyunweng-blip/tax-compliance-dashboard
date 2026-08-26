@@ -7,11 +7,11 @@ import { transitionObligation } from "@/lib/domain/obligations/state-machine";
 beforeEach(() => {
   seedDatabase();
   const db = getRawDb();
-  db.exec("DELETE FROM reminders; DELETE FROM audit_log; DELETE FROM obligations;");
+  db.exec("DELETE FROM bas_worksheets; DELETE FROM reminders; DELETE FROM audit_log; DELETE FROM obligations;");
 });
 
 afterEach(() => {
-  getRawDb().exec("DELETE FROM reminders; DELETE FROM audit_log; DELETE FROM obligations;");
+  getRawDb().exec("DELETE FROM bas_worksheets; DELETE FROM reminders; DELETE FROM audit_log; DELETE FROM obligations;");
 });
 
 test("transitions one obligation and writes one audit row in the same transaction", () => {

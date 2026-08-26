@@ -1,7 +1,7 @@
 import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { getSimplerBasInstructionSteps } from "@/lib/domain/bas/instructions";
-import { mapTransactionToBas, summarizeBas, type BasLineContribution, type BasTransactionInput } from "@/lib/domain/bas/gst-mapping";
+import { mapTransactionToBas, summarizeBas, type BasLineContribution, type BasPaygInput, type BasStatementType, type BasTransactionInput } from "@/lib/domain/bas/gst-mapping";
 import { assertIntegerCents } from "@/lib/money";
 import { formatMelbourneDateTime, type DateOnly } from "@/lib/time/melbourne";
 
@@ -41,10 +41,13 @@ export type BasWorksheetRecord = {
   b1Cents: number;
   g10Cents: number;
   g11Cents: number;
+  payg5aCents: number | null;
+  payg5bCents: number | null;
   paygInstalmentCents: number | null;
   gstNetCents: number;
   netCents: number;
   statementTotalCents: number | null;
+  statementType: BasStatementType;
   snapshotJson: string;
   generatedAt: string;
   exportPath: string | null;
@@ -78,6 +81,8 @@ type BasWorksheetRow = {
   b1_cents: number;
   g10_cents: number;
   g11_cents: number;
+  payg_5a_cents: number | null;
+  payg_5b_cents: number | null;
   payg_instalment_cents: number | null;
   net_cents: number;
   statement_total_cents: number | null;
@@ -105,6 +110,8 @@ function readSnapshot(value: string): BasSnapshot {
 
 function mapWorksheetRow(row: BasWorksheetRow): BasWorksheetRecord {
   const snapshot = readSnapshot(row.snapshot_json);
+  const payg5aCents = row.payg_5a_cents ?? (row.payg_5b_cents === null ? row.payg_instalment_cents : null);
+  const payg5bCents = row.payg_5b_cents ?? (row.payg_5a_cents === null ? (row.payg_instalment_cents === null ? null : 0) : null);
   return {
     id: row.id,
     obligationId: row.obligation_id,
@@ -113,10 +120,13 @@ function mapWorksheetRow(row: BasWorksheetRow): BasWorksheetRecord {
     b1Cents: row.b1_cents,
     g10Cents: row.g10_cents,
     g11Cents: row.g11_cents,
+    payg5aCents,
+    payg5bCents,
     paygInstalmentCents: row.payg_instalment_cents,
     gstNetCents: row.net_cents,
     netCents: row.net_cents,
     statementTotalCents: row.statement_total_cents,
+    statementType: row.statement_total_cents === null ? null : row.statement_total_cents < 0 ? "refund" : "payable",
     snapshotJson: row.snapshot_json,
     generatedAt: row.generated_at,
     exportPath: row.export_path,
@@ -247,8 +257,8 @@ export function generateBasWorksheet(obligationId: number): BasGenerationResult 
     const inserted = db.prepare(`
       INSERT INTO bas_worksheets (
         obligation_id, g1_cents, a1_cents, b1_cents, g10_cents, g11_cents,
-        payg_instalment_cents, net_cents, statement_total_cents, snapshot_json, generated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)
+        payg_5a_cents, payg_5b_cents, payg_instalment_cents, net_cents, statement_total_cents, snapshot_json, generated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, NULL, ?, ?)
     `).run(
       obligationId,
       summary.g1Cents,
@@ -292,21 +302,44 @@ export function generateBasWorksheet(obligationId: number): BasGenerationResult 
   return { worksheet, warnings: generated.summary.warnings, lockedTransactionIds: generated.transactionIds };
 }
 
-export function updateBasPaygInstalment(obligationId: number, paygInstalmentCents: number | null): BasWorksheetRecord {
+export type BasPaygValues = {
+  payg5aCents: number | null;
+  payg5bCents: number | null;
+};
+
+function normalizePaygValues(payg: BasPaygValues): BasPaygInput | null {
+  if (payg.payg5aCents === null && payg.payg5bCents === null) return null;
+  if (payg.payg5aCents === null || payg.payg5bCents === null) throw new BasGenerationError("PAYG 5A 和 5B 必须同时填写，或同时选择未发生");
+  assertIntegerCents(payg.payg5aCents);
+  assertIntegerCents(payg.payg5bCents);
+  return payg as BasPaygInput;
+}
+
+export function updateBasPaygInstalments(obligationId: number, payg: BasPaygValues): BasWorksheetRecord {
   runMigrations();
-  if (paygInstalmentCents !== null) assertIntegerCents(paygInstalmentCents);
+  const normalizedPayg = normalizePaygValues(payg);
   const db = getRawDb();
   const worksheet = getWorksheetRowByObligation(obligationId);
   if (!worksheet) throw new BasGenerationError("请先生成 BAS 底稿");
-  const statementTotalCents = paygInstalmentCents === null ? null : worksheet.net_cents + paygInstalmentCents;
+  const payg5aCents = normalizedPayg?.payg5aCents ?? null;
+  const payg5bCents = normalizedPayg?.payg5bCents ?? null;
+  const paygInstalmentCents = normalizedPayg === null ? null : normalizedPayg.payg5aCents - normalizedPayg.payg5bCents;
+  const statementTotalCents = normalizedPayg === null ? null : worksheet.net_cents + normalizedPayg.payg5aCents - normalizedPayg.payg5bCents;
   db.prepare(`
     UPDATE bas_worksheets
-    SET payg_instalment_cents = ?, statement_total_cents = ?, updated_at = datetime('now')
+    SET payg_5a_cents = ?, payg_5b_cents = ?, payg_instalment_cents = ?, statement_total_cents = ?, updated_at = datetime('now')
     WHERE obligation_id = ?
-  `).run(paygInstalmentCents, statementTotalCents, obligationId);
+  `).run(payg5aCents, payg5bCents, paygInstalmentCents, statementTotalCents, obligationId);
   const updated = getWorksheetRowByObligation(obligationId);
   if (!updated) throw new BasGenerationError("BAS 底稿不存在");
   return mapWorksheetRow(updated);
+}
+
+/** Backward-compatible adapter for callers that only have the former net PAYG value. */
+export function updateBasPaygInstalment(obligationId: number, paygInstalmentCents: number | null): BasWorksheetRecord {
+  return updateBasPaygInstalments(obligationId, paygInstalmentCents === null
+    ? { payg5aCents: null, payg5bCents: null }
+    : { payg5aCents: paygInstalmentCents, payg5bCents: 0 });
 }
 
 export function markBasLodged(obligationId: number, receiptNumber: string, lodgedAmountCents: number) {

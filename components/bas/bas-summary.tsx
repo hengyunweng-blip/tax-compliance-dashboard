@@ -43,9 +43,12 @@ function LineItem({ line }: { line: BasLineItem }) {
 
 export function BasSummary({ obligation, initialWorksheet }: Props) {
   const [worksheet, setWorksheet] = useState(initialWorksheet);
+  const [status, setStatus] = useState(obligation.status);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [paygInput, setPaygInput] = useState(initialWorksheet?.paygInstalmentCents === null || initialWorksheet?.paygInstalmentCents === undefined ? "" : String(initialWorksheet.paygInstalmentCents));
+  const [noPayg, setNoPayg] = useState(initialWorksheet?.payg5aCents === 0 && initialWorksheet?.payg5bCents === 0);
+  const [payg5aInput, setPayg5aInput] = useState(initialWorksheet?.payg5aCents === null || initialWorksheet?.payg5aCents === undefined ? "" : String(initialWorksheet.payg5aCents));
+  const [payg5bInput, setPayg5bInput] = useState(initialWorksheet?.payg5bCents === null || initialWorksheet?.payg5bCents === undefined ? "" : String(initialWorksheet.payg5bCents));
   const [receiptNumber, setReceiptNumber] = useState("");
   const [lodgedInput, setLodgedInput] = useState(initialWorksheet?.statementTotalCents === null || initialWorksheet?.statementTotalCents === undefined ? "" : String(initialWorksheet.statementTotalCents));
 
@@ -65,6 +68,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
     }
     const nextWorksheet = payload.worksheet ?? payload.result?.worksheet ?? null;
     if (nextWorksheet) setWorksheet(nextWorksheet);
+    if (payload.obligation?.status) setStatus(payload.obligation.status);
     return payload;
   }
 
@@ -77,14 +81,28 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
   }
 
   async function savePayg() {
-    if (!/^[-+]?\d+$/.test(paygInput.trim())) {
-      setMessage("PAYG instalment 必须填写整数分");
+    if (!noPayg && !/^[-+]?\d+$/.test(payg5aInput.trim())) {
+      setMessage("PAYG 5A 必须填写整数分；若本期没有 PAYG，请勾选无 PAYG 分期");
       return;
     }
-    const payload = await callApi({ action: "payg", paygInstalmentCents: Number(paygInput) });
+    if (!noPayg && payg5bInput.trim() && !/^[-+]?\d+$/.test(payg5bInput.trim())) {
+      setMessage("PAYG 5B 必须填写整数分");
+      return;
+    }
+    const payg5aCents = noPayg ? 0 : Number(payg5aInput);
+    const payg5bCents = noPayg || !payg5bInput.trim() ? 0 : Number(payg5bInput);
+    if (!Number.isSafeInteger(payg5aCents) || !Number.isSafeInteger(payg5bCents)) {
+      setMessage("PAYG 5A/5B 必须是安全范围内的整数分");
+      return;
+    }
+    const payload = await callApi({ action: "payg", payg5aCents, payg5bCents });
     if (payload) {
-      setLodgedInput(String((payload.worksheet as BasWorksheetRecord).statementTotalCents ?? ""));
-      setMessage("ATO 预填 PAYG 已保存，已重新计算 statementTotalCents");
+      const saved = payload.worksheet as BasWorksheetRecord;
+      setPayg5aInput(String(saved.payg5aCents ?? ""));
+      setPayg5bInput(String(saved.payg5bCents ?? ""));
+      setNoPayg(saved.payg5aCents === 0 && saved.payg5bCents === 0);
+      setLodgedInput(String(saved.statementTotalCents ?? ""));
+      setMessage(noPayg ? "已确认本期无 PAYG 分期，已重新计算 statementTotalCents" : "ATO 预填 PAYG 5A/5B 已保存，已重新计算 statementTotalCents");
     }
   }
 
@@ -101,7 +119,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
     <main className="bas-shell" data-testid="bas-page">
       <header className="bas-header">
         <a className="back-link" href="/">← 返回看板</a>
-        <span className="detail-status">{obligation.status}</span>
+        <span className="detail-status">{status}</span>
       </header>
       <section className="bas-panel">
         <p className="page-kicker">{obligation.entityName} · {obligation.periodLabel}</p>
@@ -129,13 +147,15 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
               </div>
             </section>
             <section className="bas-payg-panel" aria-label="PAYG 分期预缴">
-              <h2>PAYG instalment（ATO 预填，整数分）</h2>
-              <p>系统不推算 5A/5B；请根据 ATO 预填数字手动录入。已录入后才会产生 statementTotalCents。</p>
+              <h2>PAYG instalment（5A/5B，ATO 预填，整数分）</h2>
+              <p>系统不推算 PAYG；请根据 ATO 预填数字手动录入。若本期没有 PAYG 分期，勾选下方选项，系统会写入 5A=0、5B=0。</p>
+              <label className="bas-checkbox"><input aria-label="本期无 PAYG 分期" type="checkbox" checked={noPayg} onChange={(event) => setNoPayg(event.target.checked)} /><span>本期无 PAYG 分期（5A=0，5B=0）</span></label>
               <div className="bas-action-row">
-                <label><span>paygInstalmentCents</span><input aria-label="paygInstalmentCents" inputMode="numeric" value={paygInput} onChange={(event) => setPaygInput(event.target.value)} /></label>
+                <label><span>payg5aCents（5A 应缴）</span><input aria-label="payg5aCents" inputMode="numeric" disabled={noPayg} value={payg5aInput} onChange={(event) => setPayg5aInput(event.target.value)} /></label>
+                <label><span>payg5bCents（5B 贷记）</span><input aria-label="payg5bCents" inputMode="numeric" disabled={noPayg} value={payg5bInput} onChange={(event) => setPayg5bInput(event.target.value)} /></label>
                 <button type="button" className="secondary-button" onClick={() => void savePayg()} disabled={busy}>保存 PAYG</button>
               </div>
-              <div className="bas-total-row"><span>statementTotalCents = gstNetCents + paygInstalmentCents</span><strong>{worksheet.statementTotalCents === null ? "待录入 PAYG" : formatCents(worksheet.statementTotalCents)}</strong></div>
+              <div className="bas-total-row"><span>statementTotalCents = gstNetCents + payg5aCents - payg5bCents</span><strong>{worksheet.statementTotalCents === null ? "待确认 PAYG" : `${worksheet.statementType === "refund" ? "退税" : "应缴"} ${formatCents(worksheet.statementTotalCents)}`}</strong></div>
             </section>
             <BasInstructions isNil={worksheet.isNil} />
             <details className="bas-lines" open>
@@ -144,7 +164,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
             </details>
             <section className="bas-lodge-panel" aria-label="记录已递交">
               <h2>记录已递交</h2>
-              {worksheet.statementTotalCents === null ? <p>先录入 PAYG，系统才会开放已递交金额校验。</p> : <div className="bas-action-row"><label><span>ATO 回执号</span><input aria-label="ATO 回执号" value={receiptNumber} onChange={(event) => setReceiptNumber(event.target.value)} /></label><label><span>已递交金额（整数分）</span><input aria-label="已递交金额（整数分）" inputMode="numeric" value={lodgedInput} onChange={(event) => setLodgedInput(event.target.value)} /></label><button type="button" className="primary-button" onClick={() => void lodge()} disabled={busy}>标记已递交</button></div>}
+              {worksheet.statementTotalCents === null ? <p>请录入 5A/5B，或确认本期无 PAYG 分期，系统才会开放已递交金额校验。</p> : status === "lodged" || status === "paid" ? <p>已记录 ATO 回执，当前状态：{status}。</p> : <div className="bas-action-row"><label><span>ATO 回执号</span><input aria-label="ATO 回执号" value={receiptNumber} onChange={(event) => setReceiptNumber(event.target.value)} /></label><label><span>已递交金额（整数分）</span><input aria-label="已递交金额（整数分）" inputMode="numeric" value={lodgedInput} onChange={(event) => setLodgedInput(event.target.value)} /></label><button type="button" className="primary-button" onClick={() => void lodge()} disabled={busy}>标记已递交</button></div>}
             </section>
             <div className="bas-export-links"><a href={`/api/bas/${obligation.id}?format=csv`}>导出 CSV</a><a href={`/api/bas/${obligation.id}?format=pdf`}>导出 PDF</a></div>
           </>

@@ -17,7 +17,7 @@ test("separates GST net from the manually entered PAYG statement total", () => {
   const summary = summarizeBas([
     { id: 1, entityId: "boyun_co", accountId: 1, reviewFlag: false, gstCode: "GST_INCOME", amountCents: 110000, gstCents: 10000 },
     { id: 2, entityId: "boyun_co", accountId: 2, reviewFlag: false, gstCode: "GST_EXPENSE", amountCents: -55000, gstCents: -5000 },
-  ], 2500);
+  ], { payg5aCents: 2500, payg5bCents: 0 });
 
   expect(summary).toMatchObject({
     g1Cents: 110000,
@@ -25,9 +25,12 @@ test("separates GST net from the manually entered PAYG statement total", () => {
     b1Cents: 5000,
     g10Cents: 0,
     g11Cents: 55000,
+    payg5aCents: 2500,
+    payg5bCents: 0,
     paygInstalmentCents: 2500,
     gstNetCents: 5000,
     statementTotalCents: 7500,
+    statementType: "payable",
   });
 });
 
@@ -40,9 +43,26 @@ test("keeps the statement total unresolved until PAYG is manually entered", () =
     b1Cents: 0,
     g10Cents: 0,
     g11Cents: 0,
+    payg5aCents: null,
+    payg5bCents: null,
     paygInstalmentCents: null,
     gstNetCents: 0,
     statementTotalCents: null,
+    statementType: null,
+  });
+});
+
+test("subtracts PAYG 5B credits and labels a negative statement as a refund", () => {
+  const summary = summarizeBas([
+    { id: 1, entityId: "boyun_co", accountId: 1, reviewFlag: false, gstCode: "GST_EXPENSE", amountCents: -55000, gstCents: -5000 },
+  ], { payg5aCents: 0, payg5bCents: 1000 });
+
+  expect(summary).toMatchObject({
+    gstNetCents: -5000,
+    payg5aCents: 0,
+    payg5bCents: 1000,
+    statementTotalCents: -6000,
+    statementType: "refund",
   });
 });
 

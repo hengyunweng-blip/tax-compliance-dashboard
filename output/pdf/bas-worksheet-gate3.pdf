@@ -12,7 +12,7 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 5 0 obj
-<< /Length 749 >>
+<< /Length 869 >>
 stream
 BT
 /F1 10 Tf
@@ -25,12 +25,14 @@ BT
 1 0 0 1 48 688 Tm (G10 internal only: $0.00) Tj
 1 0 0 1 48 671 Tm (G11 internal only: $0.00) Tj
 1 0 0 1 48 654 Tm (GST net: $100.00) Tj
-1 0 0 1 48 637 Tm (PAYG instalment: $25.00) Tj
-1 0 0 1 48 620 Tm (Statement total: $125.00) Tj
-1 0 0 1 48 603 Tm () Tj
-1 0 0 1 48 586 Tm (Simpler BAS instructions: enter G1, 1A and 1B only.) Tj
-1 0 0 1 48 569 Tm (Traceable transaction lines: 1) Tj
-1 0 0 1 48 552 Tm (Transaction #16 04 Jul 2026 GST_INCOME $1,100.00) Tj
+1 0 0 1 48 637 Tm (PAYG 5A payable: $25.00) Tj
+1 0 0 1 48 620 Tm (PAYG 5B credit: $0.00) Tj
+1 0 0 1 48 603 Tm (PAYG instalment net \(5A - 5B\): $25.00) Tj
+1 0 0 1 48 586 Tm (Statement total \(payable\): $125.00) Tj
+1 0 0 1 48 569 Tm () Tj
+1 0 0 1 48 552 Tm (Simpler BAS instructions: enter G1, 1A and 1B only.) Tj
+1 0 0 1 48 535 Tm (Traceable transaction lines: 1) Tj
+1 0 0 1 48 518 Tm (Transaction #22 04 Jul 2026 GST_INCOME $1,100.00) Tj
 ET
 endstream
 endobj
@@ -45,5 +47,5 @@ xref
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-1111
+1231
 %%EOF

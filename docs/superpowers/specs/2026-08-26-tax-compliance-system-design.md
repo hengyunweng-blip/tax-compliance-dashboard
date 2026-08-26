@@ -104,7 +104,7 @@ Next.js App Router
 
 所有表都有 `created_at` / `updated_at`，SQLite 布尔值在 domain 层映射为 boolean。金额列包括 `amount_cents`、`gst_cents`、BAS 标签、Div 7A 本金/还款、供款和上限，均为整数。
 
-`obligations` 额外保存 `income_year`（所属所得年度）和 `deadline_fy`（`effective_due` 所在财年）。配置缺失而必须保留义务卡片时，`statutory_due` 与 `effective_due` 可为空，状态必须为 `blocked`。`obligation_rules.adjustment_direction` 为 `forward`（默认）或 `backward`，`required_fields` 保存该规则自己的配置依赖字段 JSON。`blocked` 只由当前规则声明的依赖字段缺失触发，不能从主体级别扩散到其他义务；BAS 与公司税表的 `required_fields` 均为空。`bas_worksheets` 保留 `payg_instalment_cents`，为整数分且可空；它只能由用户根据 ATO 预填的 5A/5B 数字手动录入，系统不得自行推算。
+`obligations` 额外保存 `income_year`（所属所得年度）和 `deadline_fy`（`effective_due` 所在财年）。配置缺失而必须保留义务卡片时，`statutory_due` 与 `effective_due` 可为空，状态必须为 `blocked`。`obligation_rules.adjustment_direction` 为 `forward`（默认）或 `backward`，`required_fields` 保存该规则自己的配置依赖字段 JSON。`blocked` 只由当前规则声明的依赖字段缺失触发，不能从主体级别扩散到其他义务；BAS 与公司税表的 `required_fields` 均为空。`bas_worksheets` 保留 `payg_instalment_cents` 兼容字段，并增加可空整数分的 `payg_5a_cents` 与 `payg_5b_cents` 权威字段；三者只能由用户根据 ATO 预填的 5A/5B 数字手动录入，系统不得自行推算。
 
 ### 4.3 主体种子
 
@@ -216,7 +216,7 @@ GST 归位由纯函数实现并单测：
 
 三家公司营业额低于 $10m，按 Simpler BAS 处理。BAS 底稿的「操作指引卡」只能列出 G1、1A、1B；G10/G11 仍在内部汇总和 worksheet 中保存，并在 UI 明确标注「内部核算用，不填入 ATO 表单」。G10/G11 供年度模块区分资本与非资本采购，不得出现在指引卡的 ATO 填表步骤中。
 
-`BasSummary` 明确区分三个值：
+`BasSummary` 明确区分 GST 净额、PAYG 5A/5B 和活动申报表总额：
 
 ```ts
 type BasSummary = {
@@ -225,13 +225,16 @@ type BasSummary = {
   b1Cents: number;
   g10Cents: number; // 内部核算用
   g11Cents: number; // 内部核算用
-  paygInstalmentCents: number | null; // 用户手动录入 ATO 预填 5A/5B
+  payg5aCents: number | null; // 用户手动录入 ATO 预填 5A 应缴
+  payg5bCents: number | null; // 用户手动录入 ATO 预填 5B 贷记
+  paygInstalmentCents: number | null; // 兼容字段，等于 5A - 5B
   gstNetCents: number; // a1Cents - b1Cents
-  statementTotalCents: number | null; // 输入 PAYG 后为 gstNetCents + paygInstalmentCents
+  statementTotalCents: number | null; // gstNetCents + payg5aCents - payg5bCents
+  statementType: "payable" | "refund" | null;
 };
 ```
 
-系统不得根据收入、利润或历史数据推算 PAYG instalment。`paygInstalmentCents` 未录入时，`statementTotalCents` 保持待录入状态；录入后才计算总额。已递交金额校验必须对比 `statementTotalCents`，不能只对比 `gstNetCents`。BAS 快照保存交易 ID，锁定纳入交易，nil BAS 仍生成全零底稿和仅包含 G1/1A/1B 的操作指引。
+系统不得根据收入、利润或历史数据推算 PAYG instalment。5A 与 5B 必须由用户根据 ATO 预填值分别手动录入；`payg5aCents` 与 `payg5bCents` 均未录入时，`statementTotalCents` 保持待录入状态。用户显式确认「本期无 PAYG 分期」时写入 5A=0、5B=0，表示本期没有该项义务并开放递交记录。总额公式为 `gstNetCents + payg5aCents - payg5bCents`，允许为负值；负值在界面标为「退税」，非负值标为「应缴」。已递交金额校验必须对比 `statementTotalCents`，不能只对比 `gstNetCents`。BAS 快照保存交易 ID，锁定纳入交易，nil BAS 仍生成全零底稿和仅包含 G1/1A/1B 的操作指引；G1 指引还必须明确选择「该金额是否含 GST」为「是」。
 
 ## 8. AI、资讯和脱敏
 

@@ -19,10 +19,20 @@ export type BasTransactionInput = {
   gstCents: number;
 };
 
+export type BasPaygInput = {
+  payg5aCents: number;
+  payg5bCents: number;
+};
+
+export type BasStatementType = "payable" | "refund" | null;
+
 export type BasSummary = BasLineContribution & {
+  payg5aCents: number | null;
+  payg5bCents: number | null;
   paygInstalmentCents: number | null;
   gstNetCents: number;
   statementTotalCents: number | null;
+  statementType: BasStatementType;
   warnings: string[];
 };
 
@@ -67,17 +77,31 @@ export function basTransactionWarning(transaction: BasTransactionInput): string 
   return null;
 }
 
-export function summarizeBas(transactions: BasTransactionInput[], paygInstalmentCents: number | null = null): BasSummary {
-  if (paygInstalmentCents !== null) assertIntegerCents(paygInstalmentCents);
+function normalizePaygInput(payg: BasPaygInput | number | null): BasPaygInput | null {
+  if (payg === null) return null;
+  if (typeof payg === "number") {
+    assertIntegerCents(payg);
+    return { payg5aCents: payg, payg5bCents: 0 };
+  }
+  assertIntegerCents(payg.payg5aCents);
+  assertIntegerCents(payg.payg5bCents);
+  return payg;
+}
+
+export function summarizeBas(transactions: BasTransactionInput[], payg: BasPaygInput | number | null = null): BasSummary {
+  const normalizedPayg = normalizePaygInput(payg);
   const summary: BasSummary = {
     g1Cents: 0,
     a1Cents: 0,
     b1Cents: 0,
     g10Cents: 0,
     g11Cents: 0,
-    paygInstalmentCents,
+    payg5aCents: normalizedPayg?.payg5aCents ?? null,
+    payg5bCents: normalizedPayg?.payg5bCents ?? null,
+    paygInstalmentCents: normalizedPayg ? normalizedPayg.payg5aCents - normalizedPayg.payg5bCents : null,
     gstNetCents: 0,
     statementTotalCents: null,
+    statementType: null,
     warnings: [],
   };
 
@@ -100,7 +124,10 @@ export function summarizeBas(transactions: BasTransactionInput[], paygInstalment
   }
 
   summary.gstNetCents = summary.a1Cents - summary.b1Cents;
-  summary.statementTotalCents = paygInstalmentCents === null ? null : summary.gstNetCents + paygInstalmentCents;
+  summary.statementTotalCents = normalizedPayg === null
+    ? null
+    : summary.gstNetCents + normalizedPayg.payg5aCents - normalizedPayg.payg5bCents;
+  summary.statementType = summary.statementTotalCents === null ? null : summary.statementTotalCents < 0 ? "refund" : "payable";
   assertIntegerCents(summary.g1Cents);
   assertIntegerCents(summary.a1Cents);
   assertIntegerCents(summary.b1Cents);

@@ -18,7 +18,7 @@
 - 必须实现 `POST /api/ingest/email`，支持 multipart 与 base64，并使用 `.env.local` 的 `INGEST_TOKEN` 校验。
 - 必须实现 `audit_log` 和 `ai_cache`；AI 缓存键为脱敏 canonical input 的 SHA-256，缓存不得保存未脱敏秘密。
 - 三家公司按 Simpler BAS 处理：ATO 操作指引只列 G1、1A、1B；G10/G11 可内部计算和存储，但 UI 必须标注“内部核算用，不填入 ATO 表单”。
-- `bas_worksheets.payg_instalment_cents` 是整数分、可空、只接受用户从 ATO 预填 5A/5B 手动录入；系统不推算 PAYG。`BasSummary` 必须区分 `gstNetCents` 和 `statementTotalCents`，已递交金额校验使用后者。
+- `bas_worksheets.payg_instalment_cents` 保留为整数分兼容字段；权威输入拆为可空整数分 `payg_5a_cents` 与 `payg_5b_cents`，只接受用户从 ATO 预填的 5A/5B 手动录入，系统不推算 PAYG。`BasSummary` 必须区分 `gstNetCents`、`payg5aCents`、`payg5bCents` 和 `statementTotalCents`，公式为 `gstNetCents + payg5aCents - payg5bCents`，已递交金额校验使用后者；显式确认「本期无 PAYG 分期」写入 5A=0、5B=0。
 - `obligations.income_year` 与 `deadline_fy` 独立保存；卡片和底稿标题显示所属所得年度，截止日所在财年不作为所属年度。
 - 必须为义务日期、GST 到 BAS 标签、Div 7A 最低还款额编写单元测试，并在对应 Gate 报告中单独列出。
 - 不做 ATO/ASIC 自动申报，不保存 TFN，不做多用户、权限、云端、STP、工资单或信托账户管理。
@@ -199,7 +199,7 @@ Expected: FAIL because schema and table metadata are not defined.
 
 - [ ] **Step 3: Define all tables, indexes, foreign keys, and uniqueness constraints**
 
-Implement the logical schema from the requirements. Use text primary keys for fixed entity/rule IDs, integer primary keys for event rows, date-only strings for business dates, and integer columns for every money field. Add `obligations.income_year` for the obligation's income year and `obligations.deadline_fy` for the fiscal year containing `effective_due`; they are required for every expanded obligation, including BAS. Add `bas_worksheets.payg_instalment_cents` as a nullable integer cents column. Add unique constraints for `documents.sha256`, `(rule_id, entity_id, period_label)`, `(method, input_sha256)`, and bank mapping identity. `ai_cache.redacted_input_json` must never contain the original payload.
+Implement the logical schema from the requirements. Use text primary keys for fixed entity/rule IDs, integer primary keys for event rows, date-only strings for business dates, and integer columns for every money field. Add `obligations.income_year` for the obligation's income year and `obligations.deadline_fy` for the fiscal year containing `effective_due`; they are required for every expanded obligation, including BAS. Keep `bas_worksheets.payg_instalment_cents` as a nullable integer compatibility column and add nullable integer-cent `payg_5a_cents` / `payg_5b_cents` columns for the authoritative split input. Add unique constraints for `documents.sha256`, `(rule_id, entity_id, period_label)`, `(method, input_sha256)`, and bank mapping identity. `ai_cache.redacted_input_json` must never contain the original payload.
 
 - [ ] **Step 4: Implement database pragmas and migrations**
 
@@ -699,7 +699,7 @@ Start only after Gate 2 acceptance. This Gate contains the mandatory GST-to-BAS 
 
 **Interfaces:**
 - `mapTransactionToBas(tx): BasLineContribution` returns integer deltas for `g1Cents`, `a1Cents`, `b1Cents`, `g10Cents`, and `g11Cents`.
-- `summarizeBas(transactions, paygInstalmentCents): BasSummary` returns all labels, `gstNetCents = a1Cents - b1Cents`, and `statementTotalCents = gstNetCents + paygInstalmentCents` only after the manual PAYG value is present. `paygInstalmentCents` remains nullable at the database boundary.
+- `summarizeBas(transactions, { payg5aCents, payg5bCents }): BasSummary` returns all labels, `gstNetCents = a1Cents - b1Cents`, and `statementTotalCents = gstNetCents + payg5aCents - payg5bCents` only after both manual PAYG values are resolved. `paygInstalmentCents` remains as a nullable compatibility field equal to 5A - 5B; a negative statement total is a refund.
 
 - [x] **Step 1: Write the complete failing GST mapping test matrix**
 
@@ -729,7 +729,7 @@ Treat expenses as negative in the ledger and use integer absolute values for G11
 
 - [x] **Step 4: Add summary, Simpler BAS and PAYG tests**
 
-Test `gstNetCents`, `statementTotalCents` with a manually entered PAYG value, the unresolved/null PAYG state, zero nil BAS, and that `review_flag = true`, missing account, missing entity or missing GST code yields a warning rather than an included contribution. Assert that G10/G11 remain available in the internal summary but are not part of the external instructions model.
+Test `gstNetCents`, split 5A/5B `statementTotalCents`, negative refund labeling, the unresolved/null PAYG state, explicit no-PAYG zero nil BAS, and that `review_flag = true`, missing account, missing entity or missing GST code yields a warning rather than an included contribution. Assert that G10/G11 remain available in the internal summary but are not part of the external instructions model, and that the G1 instruction selects 「该金额是否含 GST」为「是」。
 
 - [x] **Step 5: Run the mandatory GST unit test**
 
@@ -753,7 +753,7 @@ Expected: PASS with every row in the matrix.
 - `generateBasWorksheet(obligationId): { worksheet, warnings, lockedTransactionIds }` runs as one SQLite transaction.
 - `exportBasCsv(worksheetId): Response` exports traceable transaction lines.
 - `exportBasPdf(worksheetId): Response` exports the one-page worksheet and instructions.
-- `updateBasPaygInstalment(obligationId, paygInstalmentCents: number): BasWorksheet` records the user's integer-cent 5A/5B value and never calculates it.
+- `updateBasPaygInstalments(obligationId, { payg5aCents, payg5bCents }): BasWorksheet` records the user's integer-cent 5A/5B values and never calculates them; the explicit no-PAYG option sends 0/0.
 - `markBasLodged(obligationId, receiptNumber, lodgedAmountCents): Obligation` requires a resolved `statementTotalCents`, compares the submitted amount to it, writes audit log and moves to `lodged`.
 
 - [x] **Step 1: Write the atomicity and traceability tests**
@@ -784,11 +784,11 @@ Select only the obligation’s entity/FY/quarter, `locked = false`, confirmed ro
 
 - [x] **Step 4: Render Simpler BAS operation instructions, PAYG entry and receipt flow**
 
-Show ATO Online services for business → select company → Lodgments → Activity statements → enter G1, 1A and 1B → review any manual 5A/5B PAYG prefill → submit → record receipt. The instruction card must not contain G10 or G11. The worksheet summary may show G10/G11 in a separate section labelled “内部核算用，不填入 ATO 表单”. The user manually enters the ATO prefilled PAYG instalment in integer cents; until entered, `statementTotalCents` and the “已递交金额” comparison are blocked. The nil path explicitly says to lodge a nil activity statement. The “已递交” action requires receipt number and actual integer amount, then compares against `statementTotalCents` and uses the audited state transition.
+Show ATO Online services for business → select company → Lodgments → Activity statements → enter G1, 1A and 1B → for G1 select 「该金额是否含 GST」=「是」 → review any manual 5A payable / 5B credit prefill → submit → record receipt. The instruction card must not contain G10 or G11. The worksheet summary may show G10/G11 in a separate section labelled “内部核算用，不填入 ATO 表单”. The user manually enters the ATO prefilled PAYG 5A/5B amounts in integer cents; until both are resolved, `statementTotalCents` and the “已递交金额” comparison are blocked. An explicit “本期无 PAYG 分期” choice writes 5A=0 and 5B=0, including for a nil BAS, and opens the lodgement flow. The UI labels a negative statement total as “退税” and all other resolved totals as “应缴”. The nil path explicitly says to lodge a nil activity statement. The “已递交” action requires receipt number and actual integer amount, then compares against `statementTotalCents` and uses the audited state transition.
 
 - [x] **Step 5: Add CSV/PDF exports and browser verification**
 
-Use the PDF skill’s render-and-verify workflow for the PDF output. The browser test creates Q1 worksheets for three companies, asserts the dormant company is zero/nil, expands line items, verifies each amount is traceable to a transaction ID, asserts the `data-testid="bas-instructions"` region contains G1/1A/1B but not G10/G11, and asserts the internal summary labels G10/G11 include “内部核算用，不填入 ATO 表单”. It also enters a PAYG value and verifies the lodged-amount comparison uses `statementTotalCents`.
+Use the PDF skill’s render-and-verify workflow for the PDF output. The browser test creates Q1 worksheets for three companies, asserts the dormant company is zero/nil, expands line items, verifies each amount is traceable to a transaction ID, asserts the `data-testid="bas-instructions"` region contains G1/1A/1B but not G10/G11, and asserts the internal summary labels G10/G11 include “内部核算用，不填入 ATO 表单”. It also verifies the G1 含 GST instruction, enters separate 5A/5B values, checks the payable total, completes a nil BAS after the explicit no-PAYG choice, and verifies the lodged-amount comparison uses `statementTotalCents`.
 
 - [x] **Step 6: Run Gate 3 verification and stop**
 

@@ -1,15 +1,20 @@
-import { beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import { getRawDb } from "@/lib/db/client";
 import { seedDatabase } from "@/lib/db/seed";
 import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
-import { generateBasWorksheet, markBasLodged, updateBasPaygInstalment } from "@/lib/domain/bas/generator";
+import { generateBasWorksheet, markBasLodged, updateBasPaygInstalments } from "@/lib/domain/bas/generator";
 import { createTransaction } from "@/lib/ingest/transactions";
+import { transitionObligation } from "@/lib/domain/obligations/state-machine";
 
 beforeEach(() => {
   seedDatabase();
   const db = getRawDb();
   db.exec("DELETE FROM bas_worksheets; DELETE FROM reminders; DELETE FROM obligations; DELETE FROM audit_log; DELETE FROM transactions; DELETE FROM documents;");
   expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
+});
+
+afterEach(() => {
+  getRawDb().exec("DELETE FROM bas_worksheets; DELETE FROM reminders; DELETE FROM audit_log; DELETE FROM obligations; DELETE FROM transactions; DELETE FROM documents;");
 });
 
 function q1ObligationId() {
@@ -57,8 +62,8 @@ test("keeps PAYG manual, resolves statement total, and compares lodged amount to
   const generated = generateBasWorksheet(obligationId);
   expect(generated.worksheet.statementTotalCents).toBeNull();
 
-  const updated = updateBasPaygInstalment(obligationId, 2500);
-  expect(updated).toMatchObject({ paygInstalmentCents: 2500, gstNetCents: 0, statementTotalCents: 2500 });
+  const updated = updateBasPaygInstalments(obligationId, { payg5aCents: 2500, payg5bCents: 0 });
+  expect(updated).toMatchObject({ payg5aCents: 2500, payg5bCents: 0, paygInstalmentCents: 2500, gstNetCents: 0, statementTotalCents: 2500, statementType: "payable" });
   expect(() => markBasLodged(obligationId, "ATO-RECEIPT-1", 0)).toThrow(/2500/);
   expect(markBasLodged(obligationId, "ATO-RECEIPT-1", 2500)).toMatchObject({ id: obligationId, status: "lodged" });
   expect(getRawDb().prepare("SELECT to_status, reason FROM audit_log WHERE target_id = ? ORDER BY id DESC LIMIT 1").get(String(obligationId))).toMatchObject({
@@ -71,4 +76,15 @@ test("creates a zero nil BAS worksheet when no confirmed rows exist", () => {
 
   expect(result.worksheet).toMatchObject({ g1Cents: 0, a1Cents: 0, b1Cents: 0, g10Cents: 0, g11Cents: 0, isNil: true });
   expect(result.worksheet.snapshotJson).toContain("nil BAS");
+});
+
+test("allows a nil BAS with no PAYG to be lodged and paid", () => {
+  const obligationId = q1ObligationId();
+  const generated = generateBasWorksheet(obligationId);
+  const updated = updateBasPaygInstalments(obligationId, { payg5aCents: 0, payg5bCents: 0 });
+
+  expect(generated.worksheet.isNil).toBe(true);
+  expect(updated).toMatchObject({ payg5aCents: 0, payg5bCents: 0, statementTotalCents: 0 });
+  expect(markBasLodged(obligationId, "ATO-NIL-1", 0)).toMatchObject({ status: "lodged" });
+  expect(transitionObligation({ obligationId, to: "paid", reason: "Nil BAS paid" })).toMatchObject({ status: "paid" });
 });
