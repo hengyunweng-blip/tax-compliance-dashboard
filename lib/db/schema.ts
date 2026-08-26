@@ -92,12 +92,16 @@ export const transactions = sqliteTable("transactions", {
   quarter: text("quarter").notNull(),
   locked: integer("locked", { mode: "boolean" }).notNull().default(false),
   reviewFlag: integer("review_flag", { mode: "boolean" }).notNull().default(false),
+  belongsToClosedPeriod: integer("belongs_to_closed_period", { mode: "boolean" }).notNull().default(false),
+  closedPeriodWorksheetId: integer("closed_period_worksheet_id"),
+  closedPeriodResolution: text("closed_period_resolution"),
   notes: text("notes"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (table) => ({
   periodIndex: index("transactions_entity_period_idx").on(table.entityId, table.fy, table.quarter),
   reviewIndex: index("transactions_review_idx").on(table.reviewFlag, table.locked),
+  closedPeriodIndex: index("transactions_closed_period_idx").on(table.belongsToClosedPeriod, table.closedPeriodResolution, table.locked),
 }));
 
 export const obligationRules = sqliteTable("obligation_rules", {
@@ -241,6 +245,17 @@ export const newsAnalyses = sqliteTable("news_analyses", {
   updatedAt: updatedAt(),
 });
 
+export const newsTodos = sqliteTable("news_todos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  newsAnalysisId: integer("news_analysis_id").notNull().unique().references(() => newsAnalyses.id),
+  title: text("title").notNull(),
+  details: text("details").notNull(),
+  status: text("status").notNull().default("todo"),
+  confirmedAt: text("confirmed_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -300,6 +315,7 @@ export const schema = {
   newsSources,
   newsItems,
   newsAnalyses,
+  newsTodos,
   settings,
   auditLog,
   aiCache,
@@ -321,6 +337,7 @@ export const tableNames = [
   "news_sources",
   "news_items",
   "news_analyses",
+  "news_todos",
   "settings",
   "audit_log",
   "ai_cache",

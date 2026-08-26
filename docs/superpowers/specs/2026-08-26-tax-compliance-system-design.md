@@ -1,6 +1,6 @@
 # 澳洲多主体税务合规看板系统设计
 
-**状态：** Gate 0、Gate 1、Gate 2 已验收通过并已本地合并；Gate 3 已实现并完成运行验证，等待用户验收
+**状态：** Gate 0、Gate 1、Gate 2、Gate 3 已验收通过并已本地合并；Gate 4 已实现并完成运行验证，等待用户验收
 
 **需求来源：** `/Users/neilweng/Downloads/tax-compliance-system-spec.md`
 
@@ -101,6 +101,7 @@ Next.js App Router
 - `audit_log`：`id`、`target_type`、`target_id`、`from_status`、`to_status`、`reason`、`metadata_json`、`changed_at`。
 - `ai_cache`：`id`、`method`、`input_sha256`、`redacted_input_json`、`output_json`、`model_used`、`created_at`。`(method, input_sha256)` 唯一，缓存中不保存未脱敏原文。
 - `csv_mapping_templates`：银行标识、列映射 JSON、最近使用时间。
+- `news_todos`：资讯分析生成的待办；必须先取得明确用户确认，不能直接写入 `transactions` 或 `obligations`。
 
 所有表都有 `created_at` / `updated_at`，SQLite 布尔值在 domain 层映射为 boolean。金额列包括 `amount_cents`、`gst_cents`、BAS 标签、Div 7A 本金/还款、供款和上限，均为整数。
 
@@ -236,15 +237,21 @@ type BasSummary = {
 
 系统不得根据收入、利润或历史数据推算 PAYG instalment。5A 与 5B 必须由用户根据 ATO 预填值分别手动录入；`payg5aCents` 与 `payg5bCents` 均未录入时，`statementTotalCents` 保持待录入状态。用户显式确认「本期无 PAYG 分期」时写入 5A=0、5B=0，表示本期没有该项义务并开放递交记录。总额公式为 `gstNetCents + payg5aCents - payg5bCents`，允许为负值；负值在界面标为「退税」，非负值标为「应缴」。已递交金额校验必须对比 `statementTotalCents`，不能只对比 `gstNetCents`。BAS 快照保存交易 ID，锁定纳入交易，nil BAS 仍生成全零底稿和仅包含 G1/1A/1B 的操作指引；G1 指引还必须明确选择「该金额是否含 GST」为「是」。
 
-## 8. AI、资讯和脱敏
+## 8. 已关账期间补录安全阀
+
+已递交或已缴款的 BAS worksheet 是不可静默重算的关账边界。`transactions` 增加 `belongs_to_closed_period`（整数布尔值，默认 0）、`closed_period_worksheet_id`（原已递交/已缴款 worksheet ID，可空外键）和 `closed_period_resolution`（可空的 `included_current`、`revision_required` 或 `excluded`）。录入交易时，以主体和本地 `date` 查询是否存在 `lodged`/`paid` 的季度 BAS worksheet 覆盖该日期；命中后立即写入标记和原 worksheet ID。手动、CSV 和后续邮箱/文档转交易都经过同一个 `createTransaction` 入口，因此不能绕过该判断。
+
+关账期补录在 Inbox 使用独立队列，不能与普通待确认交易混排。原 worksheet 的快照、金额、状态和锁定交易永远不被修改。生成后续季度 BAS 时，如果发现尚未处理的关账期交易，生成操作先返回数量、原 worksheet 和交易明细，必须由用户选择：`include_current`（并入本期作为更正）、`revision_required`（标为待修订）或 `excluded`（排除且填写原因）。选择和原因按交易写入 `audit_log`；只有 `include_current` 的交易进入新 worksheet 并锁定，另外两种选择不进入新 worksheet。没有选择前不得生成下一期 worksheet，也不得生成一个把这些交易静默漏掉的 nil BAS。
+
+## 9. AI、资讯和脱敏
 
 AI 配置从 `config/ai.json` 读取，密钥只从环境变量读取。四个适配方法统一经过：输入校验 → TFN/银行账号/完整地址脱敏 → canonical JSON → SHA-256 → `ai_cache` 查找 → 可选 provider 调用 → 结果缓存。
 
 失败或关闭时：发票进入人工队列、交易使用关键词分类、资讯只显示来源信息、义务使用静态 checklist。任何 AI 结果都不会直接调用状态或金额写入服务。
 
-资讯抓取启动后异步运行，24 小时缓存，单源错误写回 `news_sources.last_error`，不阻塞首屏。关键词预筛命中后才分析，页面必须显示来源、发布日期和原文链接。
+资讯抓取启动后异步运行，24 小时缓存，单源错误只写回对应 `news_sources.last_error`，不阻塞首屏。关键词预筛命中后才分析，页面必须显示来源、发布日期和原文链接。资讯分析只有在用户二次确认后才写入独立的 `news_todos`；确认操作写审计记录，绝不直接改变交易金额、交易记录或法定义务。
 
-## 9. 页面与验证
+## 10. 页面与验证
 
 页面路由严格覆盖需求文档的 `/`、`/inbox`、`/entities/[id]`、`/obligations/[id]`、`/bas/[obligationId]`、`/annual`、`/div7a`、`/super`、`/news`、`/settings`、`/import`，并实现 `/api/calendar/export`、`/api/ingest/email`、`/api/backup` 与还原接口。
 
@@ -257,7 +264,7 @@ AI 配置从 `config/ai.json` 读取，密钥只从环境变量读取。四个�
 - Playwright：每个已完成 Gate 的用户可见流程；Gate 2 只做桌面和窄屏响应式检查。
 - 每次 Gate 结束前执行 production build，并运行对应 Gate 的真实 API/页面流程。
 
-## 10. 验收协议
+## 11. 验收协议
 
 每个 Gate 的交付报告固定包含：完成文件、测试命令和结果、浏览器验证路径、已知边界、未进入的下一 Gate。报告末尾只询问当前 Gate 是否验收通过。
 

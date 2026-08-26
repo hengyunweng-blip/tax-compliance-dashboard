@@ -1,0 +1,45 @@
+Database: ./data/gate4-browser-final-2.db
+Generated after the Gate 4 closed-period Playwright flow.
+
+SELECT id, entity_id, period_label, status, worksheet_id, statutory_due, effective_due
+FROM obligations
+WHERE entity_id = 'boyun_co' AND rule_id = 'bas_quarterly'
+  AND period_label IN ('FY2026-27 Q1', 'FY2026-27 Q2')
+ORDER BY period_label;
+
+id  entity_id  period_label  status       worksheet_id  statutory_due  effective_due
+--  ---------  ------------  -----------  ------------  --------------  -------------
+7   boyun_co   FY2026-27 Q1  lodged       1             2026-10-28      2026-11-11
+8   boyun_co   FY2026-27 Q2  draft_ready  2             2027-02-28      2027-03-01
+
+SELECT w.id AS worksheet_id, o.entity_id, o.period_label, o.status,
+  w.g1_cents, w.a1_cents, w.b1_cents, w.net_cents,
+  w.payg_5a_cents, w.payg_5b_cents, w.statement_total_cents
+FROM bas_worksheets w
+JOIN obligations o ON o.id = w.obligation_id
+WHERE o.entity_id = 'boyun_co'
+ORDER BY w.id;
+
+worksheet_id  entity_id  period_label  status       g1_cents  a1_cents  b1_cents  net_cents  payg_5a_cents  payg_5b_cents  statement_total_cents
+------------  ---------  ------------  -----------  --------  --------  ---------  ---------  -------------  -------------  ---------------------
+1             boyun_co   FY2026-27 Q1  lodged       0         0         0         0          0              0              0
+2             boyun_co   FY2026-27 Q2  draft_ready  110000    10000     0         10000      NULL           NULL           NULL
+
+SELECT id, entity_id, date, description, belongs_to_closed_period,
+  closed_period_worksheet_id, closed_period_resolution, locked
+FROM transactions
+WHERE entity_id = 'boyun_co'
+ORDER BY id;
+
+id  entity_id  date        description                  belongs_to_closed_period  closed_period_worksheet_id  closed_period_resolution  locked
+--  ---------  ----------  ---------------------------  ------------------------  --------------------------  ------------------------  ------
+1   boyun_co   2026-07-05  Gate4 late Q1 1787784387686  1                         1                           included_current          1
+
+SELECT id, target_type, target_id, reason, metadata_json
+FROM audit_log
+WHERE target_type = 'transaction'
+ORDER BY id DESC LIMIT 1;
+
+id  target_type  target_id  reason                            metadata_json
+--  -----------  ---------  --------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------
+3   transaction  1          将已关账期间交易并入本期作为更正  {"originalWorksheetId":1,"originalPeriodLabel":"FY2026-27 Q1","targetObligationId":8,"decision":"include_current","reason":null}

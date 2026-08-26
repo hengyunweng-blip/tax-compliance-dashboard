@@ -16,6 +16,7 @@ export default function UploadPage() {
           <a className="nav-item active" href="/upload">上传</a>
           <a className="nav-item" href="/import">CSV 导入</a>
           <a className="nav-item" href="/inbox">Inbox</a>
+          <a className="nav-item" href="/news">资讯</a>
           <a className="nav-item" href="/settings">设置</a>
         </nav>
       </aside>

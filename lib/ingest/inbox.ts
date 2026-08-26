@@ -1,7 +1,7 @@
 import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { GST_CODES, type GstCode } from "@/lib/constants/gst";
-import { listTransactions, type Transaction } from "@/lib/ingest/transactions";
+import { listTransactions, type ClosedPeriodResolution, type Transaction } from "@/lib/ingest/transactions";
 
 export type DocumentInboxItem = {
   kind: "document";
@@ -26,7 +26,15 @@ export type TransactionInboxItem = {
   reviewFlag: boolean;
 };
 
-export type InboxItem = DocumentInboxItem | TransactionInboxItem;
+export type ClosedPeriodInboxItem = Omit<TransactionInboxItem, "kind" | "reviewFlag"> & {
+  kind: "closed_period_transaction";
+  reviewFlag: boolean;
+  originalWorksheetId: number;
+  originalPeriodLabel: string;
+  closedPeriodResolution: ClosedPeriodResolution | null;
+};
+
+export type InboxItem = DocumentInboxItem | TransactionInboxItem | ClosedPeriodInboxItem;
 
 export async function listInboxItems(): Promise<InboxItem[]> {
   runMigrations();
@@ -44,12 +52,37 @@ export async function listInboxItems(): Promise<InboxItem[]> {
     source: string;
     status: string;
   }>;
+  const closedPeriodTransactions = db.prepare(`
+    SELECT t.id, t.entity_id, e.name AS entity_name, t.date, t.description,
+      t.amount_cents, t.gst_code, t.account_id, t.review_flag,
+      t.closed_period_worksheet_id, t.closed_period_resolution,
+      original.period_label AS original_period_label
+    FROM transactions t
+    INNER JOIN entities e ON e.id = t.entity_id
+    INNER JOIN bas_worksheets original_worksheet ON original_worksheet.id = t.closed_period_worksheet_id
+    INNER JOIN obligations original ON original.id = original_worksheet.obligation_id
+    WHERE t.belongs_to_closed_period = 1 AND t.locked = 0
+    ORDER BY t.date DESC, t.id DESC
+  `).all() as Array<{
+    id: number;
+    entity_id: string;
+    entity_name: string;
+    date: string;
+    description: string;
+    amount_cents: number;
+    gst_code: GstCode;
+    account_id: number;
+    review_flag: number;
+    closed_period_worksheet_id: number;
+    closed_period_resolution: ClosedPeriodResolution | null;
+    original_period_label: string;
+  }>;
   const transactions = db.prepare(`
     SELECT t.id, t.entity_id, e.name AS entity_name, t.date, t.description,
       t.amount_cents, t.gst_code, t.account_id, t.review_flag
     FROM transactions t
     INNER JOIN entities e ON e.id = t.entity_id
-    WHERE t.review_flag = 1 AND t.locked = 0
+    WHERE t.review_flag = 1 AND t.locked = 0 AND t.belongs_to_closed_period = 0
     ORDER BY t.date DESC, t.id DESC
   `).all() as Array<{
     id: number;
@@ -71,6 +104,21 @@ export async function listInboxItems(): Promise<InboxItem[]> {
       mime: document.mime,
       source: document.source,
       status: document.status,
+    })),
+    ...closedPeriodTransactions.map((transaction): ClosedPeriodInboxItem => ({
+      kind: "closed_period_transaction",
+      id: transaction.id,
+      entityId: transaction.entity_id,
+      entityName: transaction.entity_name,
+      date: transaction.date,
+      description: transaction.description,
+      amountCents: transaction.amount_cents,
+      gstCode: transaction.gst_code,
+      accountId: transaction.account_id,
+      reviewFlag: Boolean(transaction.review_flag),
+      originalWorksheetId: transaction.closed_period_worksheet_id,
+      originalPeriodLabel: transaction.original_period_label,
+      closedPeriodResolution: transaction.closed_period_resolution,
     })),
     ...transactions.map((transaction): TransactionInboxItem => ({
       kind: "transaction",
@@ -137,5 +185,15 @@ export function copyPreviousTransaction(id: number): DraftTransaction {
   const transaction = listTransactions().find((item) => item.id === id);
   if (!transaction) throw new Error(`Transaction not found: ${id}`);
   const { id: _id, ...draft } = transaction;
-  return { ...draft, source: "manual", documentId: null, locked: false, reviewFlag: true, notes: null };
+  return {
+    ...draft,
+    source: "manual",
+    documentId: null,
+    locked: false,
+    reviewFlag: true,
+    belongsToClosedPeriod: false,
+    closedPeriodWorksheetId: null,
+    closedPeriodResolution: null,
+    notes: null,
+  };
 }

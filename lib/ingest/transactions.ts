@@ -4,6 +4,8 @@ import { GST_CODES, type GstCode } from "@/lib/constants/gst";
 import { assertIntegerCents } from "@/lib/money";
 import { assertDateOnly, formatDateOnly, parseMelbourneDate, type DateOnly } from "@/lib/time/melbourne";
 
+export type ClosedPeriodResolution = "included_current" | "revision_required" | "excluded";
+
 export type Transaction = {
   id: number;
   entityId: string;
@@ -20,6 +22,9 @@ export type Transaction = {
   quarter: string;
   locked: boolean;
   reviewFlag: boolean;
+  belongsToClosedPeriod: boolean;
+  closedPeriodWorksheetId: number | null;
+  closedPeriodResolution: ClosedPeriodResolution | null;
   notes: string | null;
 };
 
@@ -55,6 +60,9 @@ type TransactionRow = {
   quarter: string;
   locked: number;
   review_flag: number;
+  belongs_to_closed_period: number;
+  closed_period_worksheet_id: number | null;
+  closed_period_resolution: ClosedPeriodResolution | null;
   notes: string | null;
 };
 
@@ -75,6 +83,9 @@ function mapTransaction(row: TransactionRow): Transaction {
     quarter: row.quarter,
     locked: Boolean(row.locked),
     reviewFlag: Boolean(row.review_flag),
+    belongsToClosedPeriod: Boolean(row.belongs_to_closed_period),
+    closedPeriodWorksheetId: row.closed_period_worksheet_id,
+    closedPeriodResolution: row.closed_period_resolution,
     notes: row.notes,
   };
 }
@@ -150,30 +161,52 @@ export function createTransaction(input: CreateTransactionInput): Transaction {
   if (!account) throw new Error("Account does not belong to the selected entity");
   const period = deriveFiscalPeriod(date);
 
-  const result = db.prepare(`
-    INSERT INTO transactions (
-      entity_id, date, description, counterparty, amount_cents, gst_cents,
-      account_id, gst_code, source, document_id, fy, quarter, locked, review_flag, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-  `).run(
-    input.entityId,
-    date,
-    description,
-    input.counterparty?.trim() || null,
-    input.amountCents,
-    gstCents,
-    accountId,
-    input.gstCode,
-    input.source?.trim() || "manual",
-    input.documentId ?? null,
-    period.fy,
-    period.quarter,
-    Number(input.reviewFlag ?? false),
-    input.notes?.trim() || null,
-  );
+  const insertTransaction = db.transaction(() => {
+    const closedPeriod = db.prepare(`
+      SELECT w.id AS worksheet_id
+      FROM bas_worksheets w
+      INNER JOIN obligations o ON o.id = w.obligation_id
+      WHERE o.entity_id = ?
+        AND o.rule_id = 'bas_quarterly'
+        AND o.status IN ('lodged', 'paid')
+        AND o.period_start IS NOT NULL
+        AND o.period_end IS NOT NULL
+        AND o.period_start <= ?
+        AND o.period_end >= ?
+      ORDER BY o.period_start DESC, w.id DESC
+      LIMIT 1
+    `).get(input.entityId, date, date) as { worksheet_id: number } | undefined;
+    const belongsToClosedPeriod = Boolean(closedPeriod);
 
-  const row = db.prepare("SELECT * FROM transactions WHERE id = ?").get(Number(result.lastInsertRowid)) as TransactionRow;
-  return mapTransaction(row);
+    const result = db.prepare(`
+      INSERT INTO transactions (
+        entity_id, date, description, counterparty, amount_cents, gst_cents,
+        account_id, gst_code, source, document_id, fy, quarter, locked, review_flag,
+        belongs_to_closed_period, closed_period_worksheet_id, closed_period_resolution, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?)
+    `).run(
+      input.entityId,
+      date,
+      description,
+      input.counterparty?.trim() || null,
+      input.amountCents,
+      gstCents,
+      accountId,
+      input.gstCode,
+      input.source?.trim() || "manual",
+      input.documentId ?? null,
+      period.fy,
+      period.quarter,
+      Number(input.reviewFlag ?? false),
+      Number(belongsToClosedPeriod),
+      closedPeriod?.worksheet_id ?? null,
+      input.notes?.trim() || null,
+    );
+
+    return db.prepare("SELECT * FROM transactions WHERE id = ?").get(Number(result.lastInsertRowid)) as TransactionRow;
+  });
+
+  return mapTransaction(insertTransaction());
 }
 
 export function listTransactionsEligibleForBas(entityId: string, fy: string, quarter: string): Transaction[] {

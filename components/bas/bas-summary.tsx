@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatCents } from "@/lib/money";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
-import type { BasGenerationResult, BasLineItem, BasWorksheetRecord } from "@/lib/domain/bas/generator";
+import type { BasGenerationResult, BasLineItem, BasWorksheetRecord, ClosedPeriodDecision, ClosedPeriodTransaction } from "@/lib/domain/bas/generator";
 import { BasInstructions } from "@/components/bas/bas-instructions";
 
 type ObligationProps = {
@@ -51,6 +51,8 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
   const [payg5bInput, setPayg5bInput] = useState(initialWorksheet?.payg5bCents === null || initialWorksheet?.payg5bCents === undefined ? "" : String(initialWorksheet.payg5bCents));
   const [receiptNumber, setReceiptNumber] = useState("");
   const [lodgedInput, setLodgedInput] = useState(initialWorksheet?.statementTotalCents === null || initialWorksheet?.statementTotalCents === undefined ? "" : String(initialWorksheet.statementTotalCents));
+  const [closedPeriodTransactions, setClosedPeriodTransactions] = useState<ClosedPeriodTransaction[]>([]);
+  const [closedPeriodReason, setClosedPeriodReason] = useState("");
 
   async function callApi(body: Record<string, unknown>) {
     setBusy(true);
@@ -60,20 +62,22 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const payload = await response.json() as { worksheet?: BasWorksheetRecord; result?: BasGenerationResult; obligation?: { status: string }; error?: string; warnings?: string[] };
+    const payload = await response.json() as { worksheet?: BasWorksheetRecord; result?: BasGenerationResult; obligation?: { status: string }; error?: string; warnings?: string[]; closedPeriodTransactions?: ClosedPeriodTransaction[] };
     setBusy(false);
     if (!response.ok) {
+      setClosedPeriodTransactions(payload.closedPeriodTransactions ?? []);
       setMessage([payload.error, ...(payload.warnings ?? [])].filter(Boolean).join("；") || "BAS 操作失败");
       return null;
     }
+    setClosedPeriodTransactions([]);
     const nextWorksheet = payload.worksheet ?? payload.result?.worksheet ?? null;
     if (nextWorksheet) setWorksheet(nextWorksheet);
     if (payload.obligation?.status) setStatus(payload.obligation.status);
     return payload;
   }
 
-  async function generate() {
-    const payload = await callApi({ action: "generate" });
+  async function generate(decision?: ClosedPeriodDecision) {
+    const payload = await callApi({ action: "generate", ...(decision ? { closedPeriodDecision: decision } : {}) });
     if (payload) {
       setMessage("BAS 底稿已生成，纳入交易已锁定");
       window.history.replaceState(null, "", `/bas/${obligation.id}`);
@@ -129,7 +133,21 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
           <section className="bas-generate-card">
             <h2>生成本期底稿</h2>
             <p>系统只纳入已确认、未锁定且属于本主体/财年/季度的交易；待确认交易会阻止生成。</p>
-            <button type="button" className="primary-button" onClick={() => void generate()} disabled={busy}>{busy ? "生成中…" : "生成 BAS 底稿"}</button>
+            {closedPeriodTransactions.length ? (
+              <section className="closed-period-choice" data-testid="closed-period-choice" aria-label="已关账期间交易处理选择">
+                <h3>有 {closedPeriodTransactions.length} 笔属于已关账期间</h3>
+                <p>原已递交底稿不会自动修改。请为这些交易选择本期更正、待修订或排除。</p>
+                <ul>{closedPeriodTransactions.map((transaction) => <li key={transaction.id}>交易 #{transaction.id} · {formatDueDate(transaction.date)} · {transaction.description} · 原 worksheet #{transaction.originalWorksheetId}</li>)}</ul>
+                <div className="closed-period-choice-actions">
+                  <button type="button" className="primary-button" onClick={() => void generate({ action: "include_current" })} disabled={busy}>并入本期作为更正</button>
+                  <button type="button" className="secondary-button" onClick={() => void generate({ action: "revision_required" })} disabled={busy}>标为待修订</button>
+                </div>
+                <div className="closed-period-exclude">
+                  <label><span>排除原因（必填）</span><input aria-label="已关账交易排除原因" value={closedPeriodReason} onChange={(event) => setClosedPeriodReason(event.target.value)} placeholder="例如：重复发票，已在原底稿处理" /></label>
+                  <button type="button" className="secondary-button" onClick={() => void generate({ action: "excluded", reason: closedPeriodReason })} disabled={busy || !closedPeriodReason.trim()}>排除并记录原因</button>
+                </div>
+              </section>
+            ) : <button type="button" className="primary-button" onClick={() => void generate()} disabled={busy}>{busy ? "生成中…" : "生成 BAS 底稿"}</button>}
           </section>
         ) : (
           <>

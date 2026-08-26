@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { classifyTransaction } from "@/lib/rules/classification";
 import { formatCents } from "@/lib/money";
-import type { InboxItem, TransactionInboxItem } from "@/lib/ingest/inbox";
+import type { ClosedPeriodInboxItem, InboxItem, TransactionInboxItem } from "@/lib/ingest/inbox";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
 
 type Props = {
@@ -30,10 +30,13 @@ export function InboxRow({ item, entities, accounts, onUpdated }: Props) {
       </article>
     );
   }
+  if (item.kind === "closed_period_transaction") {
+    return <TransactionInboxRow item={item} entities={entities} accounts={accounts} onUpdated={onUpdated} closedPeriod />;
+  }
   return <TransactionInboxRow item={item} entities={entities} accounts={accounts} onUpdated={onUpdated} />;
 }
 
-function TransactionInboxRow({ item, entities, accounts, onUpdated }: { item: TransactionInboxItem; entities: Props["entities"]; accounts: Props["accounts"]; onUpdated: () => void }) {
+function TransactionInboxRow({ item, entities, accounts, onUpdated, closedPeriod = false }: { item: TransactionInboxItem | ClosedPeriodInboxItem; entities: Props["entities"]; accounts: Props["accounts"]; onUpdated: () => void; closedPeriod?: boolean }) {
   const [entityId, setEntityId] = useState(item.entityId);
   const [accountId, setAccountId] = useState(String(item.accountId));
   const [gstCode, setGstCode] = useState(item.gstCode);
@@ -61,7 +64,7 @@ function TransactionInboxRow({ item, entities, accounts, onUpdated }: { item: Tr
     <article
       className="inbox-row inbox-transaction-row"
       data-inbox-row
-      data-testid={`inbox-transaction-${item.id}`}
+      data-testid={`${closedPeriod ? "closed-period-transaction" : "inbox-transaction"}-${item.id}`}
       tabIndex={0}
       onKeyDown={(event) => {
         if (event.key === "ArrowDown") { event.preventDefault(); moveFocus(event.currentTarget, 1); }
@@ -73,7 +76,7 @@ function TransactionInboxRow({ item, entities, accounts, onUpdated }: { item: Tr
         if (event.key === "Enter" && event.target === event.currentTarget) { event.preventDefault(); void confirm(); }
       }}
     >
-      <div className="inbox-row-main"><span className="inbox-type">交易 · 待确认</span><strong>{item.description}</strong><small>{formatDueDate(item.date as DateOnly)} · {formatCents(item.amountCents)} · 建议：{suggestion.reason}</small></div>
+      <div className="inbox-row-main"><span className="inbox-type">{closedPeriod ? "已关账期间补录" : "交易 · 待确认"}</span><strong>{item.description}</strong><small>{formatDueDate(item.date as DateOnly)} · {formatCents(item.amountCents)} · 建议：{suggestion.reason}</small>{closedPeriod && item.kind === "closed_period_transaction" ? <small>原底稿：{item.originalPeriodLabel} · worksheet #{item.originalWorksheetId}{item.closedPeriodResolution ? ` · 已标记 ${item.closedPeriodResolution}` : " · 待选择处理方式"}</small> : null}</div>
       <div className="inbox-row-controls">
         <label><span>主体</span><select aria-label="Inbox 主体" value={entityId} onChange={(event) => { setEntityId(event.target.value); setAccountId(""); }}><option value="">请选择</option>{entities.map((entity) => <option key={entity.id} value={entity.id}>{entity.name}</option>)}</select></label>
         <label><span>科目（数字键 1–9）</span><select aria-label="Inbox 科目" value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">请选择</option>{entityAccounts.map((account) => <option key={account.id} value={account.id}>{account.code} · {account.name}</option>)}</select></label>

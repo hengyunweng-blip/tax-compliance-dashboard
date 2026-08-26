@@ -1,0 +1,18 @@
+{
+  "enabled": false,
+  "model": "tax-compliance-local",
+  "timeoutMs": 5000,
+  "keywords": [
+    "ato",
+    "gst",
+    "bas",
+    "payg",
+    "asic",
+    "tax",
+    "super",
+    "estate agent",
+    "licence",
+    "licensing",
+    "treasury"
+  ]
+}

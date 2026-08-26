@@ -62,11 +62,35 @@ export type BasGenerationResult = {
   lockedTransactionIds: number[];
 };
 
+export type ClosedPeriodDecisionAction = "include_current" | "revision_required" | "excluded";
+
+export type ClosedPeriodDecision = {
+  action: ClosedPeriodDecisionAction;
+  reason?: string;
+};
+
+export type ClosedPeriodTransaction = {
+  id: number;
+  entityId: string;
+  date: DateOnly;
+  description: string;
+  counterparty: string | null;
+  amountCents: number;
+  gstCents: number;
+  accountId: number;
+  gstCode: string;
+  reviewFlag: boolean;
+  originalWorksheetId: number;
+  originalPeriodLabel: string;
+  closedPeriodResolution: null;
+};
+
 export class BasGenerationError extends Error {
   constructor(
     message: string,
     public readonly warnings: string[] = [],
     public readonly pendingTransactionIds: number[] = [],
+    public readonly closedPeriodTransactions: ClosedPeriodTransaction[] = [],
   ) {
     super(message);
     this.name = "BasGenerationError";
@@ -183,7 +207,26 @@ function toLineItem(row: BasTransactionRow): BasLineItem {
   };
 }
 
-export function generateBasWorksheet(obligationId: number): BasGenerationResult {
+function mapClosedPeriodTransaction(row: ClosedPeriodTransaction): ClosedPeriodTransaction {
+  return {
+    ...row,
+    reviewFlag: Boolean(row.reviewFlag),
+    closedPeriodResolution: null,
+  };
+}
+
+function closedPeriodDecisionReason(decision: ClosedPeriodDecision) {
+  switch (decision.action) {
+    case "include_current":
+      return "将已关账期间交易并入本期作为更正";
+    case "revision_required":
+      return "将已关账期间交易标为待修订";
+    case "excluded":
+      return `排除已关账期间交易：${decision.reason?.trim() ?? ""}`;
+  }
+}
+
+export function generateBasWorksheet(obligationId: number, closedPeriodDecision?: ClosedPeriodDecision): BasGenerationResult {
   runMigrations();
   const db = getRawDb();
   const existing = getWorksheetRowByObligation(obligationId);
@@ -215,6 +258,48 @@ export function generateBasWorksheet(obligationId: number): BasGenerationResult 
     }
     if (obligation.status === "blocked") throw new BasGenerationError("BAS 义务尚未就绪");
 
+    const closedPeriodRows = db.prepare(`
+      SELECT t.id, t.entity_id AS entityId, t.date, t.description, t.counterparty,
+        t.amount_cents AS amountCents, t.gst_cents AS gstCents, t.account_id AS accountId,
+        t.gst_code AS gstCode, t.review_flag AS reviewFlag,
+        t.closed_period_worksheet_id AS originalWorksheetId,
+        original.period_label AS originalPeriodLabel
+      FROM transactions t
+      INNER JOIN bas_worksheets original_worksheet ON original_worksheet.id = t.closed_period_worksheet_id
+      INNER JOIN obligations original ON original.id = original_worksheet.obligation_id
+      WHERE t.entity_id = ?
+        AND t.belongs_to_closed_period = 1
+        AND t.closed_period_resolution IS NULL
+        AND t.locked = 0
+      ORDER BY t.date, t.id
+    `).all(obligation.entity_id) as ClosedPeriodTransaction[];
+    const closedPeriodTransactions = closedPeriodRows.map(mapClosedPeriodTransaction);
+    if (closedPeriodTransactions.length) {
+      if (!closedPeriodDecision) {
+        throw new BasGenerationError(
+          `有 ${closedPeriodTransactions.length} 笔属于已关账期间的交易，必须选择处理方式`,
+          [],
+          [],
+          closedPeriodTransactions,
+        );
+      }
+      if (!["include_current", "revision_required", "excluded"].includes(closedPeriodDecision.action)) {
+        throw new BasGenerationError("已关账期间交易处理方式无效", [], [], closedPeriodTransactions);
+      }
+      if (closedPeriodDecision.action === "excluded" && !closedPeriodDecision.reason?.trim()) {
+        throw new BasGenerationError("排除已关账期间交易时必须填写原因", [], [], closedPeriodTransactions);
+      }
+      const pendingClosedPeriodIds = closedPeriodTransactions.filter((row) => row.reviewFlag).map((row) => row.id);
+      if (pendingClosedPeriodIds.length) {
+        throw new BasGenerationError(
+          "存在待确认的已关账期间交易，确认后才能处理",
+          pendingClosedPeriodIds.map((id) => `交易 ${id} 待确认`),
+          pendingClosedPeriodIds,
+          closedPeriodTransactions,
+        );
+      }
+    }
+
     const fy = obligation.income_year.replace(/^FY/, "");
     const quarter = periodFromLabel(obligation.period_label);
     const pendingRows = db.prepare(`
@@ -236,11 +321,15 @@ export function generateBasWorksheet(obligationId: number): BasGenerationResult 
       WHERE entity_id = ? AND fy = ? AND quarter = ? AND locked = 0 AND review_flag = 0
       ORDER BY date, id
     `).all(obligation.entity_id, fy, quarter) as BasTransactionRow[];
-    const summary = summarizeBas(transactionRows.map(mapTransactionRow), null);
+    const includedClosedPeriodRows = closedPeriodDecision?.action === "include_current"
+      ? closedPeriodRows
+      : [];
+    const rowsForWorksheet = [...transactionRows, ...includedClosedPeriodRows].sort((left, right) => left.date.localeCompare(right.date) || left.id - right.id);
+    const summary = summarizeBas(rowsForWorksheet.map(mapTransactionRow), null);
     if (summary.warnings.length) {
       throw new BasGenerationError("存在无法归入 BAS 的交易，底稿未生成", summary.warnings);
     }
-    const lines = transactionRows.map(toLineItem);
+    const lines = rowsForWorksheet.map(toLineItem);
     const transactionIds = lines.map((line) => line.transactionId);
     const isNil = lines.length === 0;
     const generatedAt = formatMelbourneDateTime(new Date());
@@ -253,6 +342,40 @@ export function generateBasWorksheet(obligationId: number): BasGenerationResult 
       warnings: [],
       instructions: getSimplerBasInstructionSteps(),
     };
+
+    if (closedPeriodTransactions.length && closedPeriodDecision) {
+      const resolution = closedPeriodDecision.action === "include_current"
+        ? "included_current"
+        : closedPeriodDecision.action;
+      const resolutionReason = closedPeriodDecisionReason(closedPeriodDecision);
+      const updateResolution = db.prepare(`
+        UPDATE transactions
+        SET closed_period_resolution = ?, updated_at = datetime('now')
+        WHERE id = ? AND belongs_to_closed_period = 1 AND closed_period_resolution IS NULL
+      `);
+      const insertResolutionAudit = db.prepare(`
+        INSERT INTO audit_log (target_type, target_id, from_status, to_status, reason, metadata_json, changed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const row of closedPeriodTransactions) {
+        updateResolution.run(resolution, row.id);
+        insertResolutionAudit.run(
+          "transaction",
+          String(row.id),
+          null,
+          resolution,
+          resolutionReason,
+          JSON.stringify({
+            originalWorksheetId: row.originalWorksheetId,
+            originalPeriodLabel: row.originalPeriodLabel,
+            targetObligationId: obligationId,
+            decision: closedPeriodDecision.action,
+            reason: closedPeriodDecision.reason?.trim() || null,
+          }),
+          generatedAt,
+        );
+      }
+    }
 
     const inserted = db.prepare(`
       INSERT INTO bas_worksheets (

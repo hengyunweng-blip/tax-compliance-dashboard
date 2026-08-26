@@ -29,6 +29,20 @@
       "when": 1787751211428,
       "tag": "0003_split-payg-5a-5b",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787780000000,
+      "tag": "0004_closed-period-transactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787780001000,
+      "tag": "0005_news-todos",
+      "breakpoints": true
     }
   ]
 }

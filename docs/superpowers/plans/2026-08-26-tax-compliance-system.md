@@ -23,6 +23,8 @@
 - 必须为义务日期、GST 到 BAS 标签、Div 7A 最低还款额编写单元测试，并在对应 Gate 报告中单独列出。
 - 不做 ATO/ASIC 自动申报，不保存 TFN，不做多用户、权限、云端、STP、工资单或信托账户管理。
 - 自动化浏览器只验证桌面和窄屏响应式；不声称验证真实手机摄像头或真实手机拍照权限。
+- 已递交/已缴款 BAS 期间的新交易必须标记原 worksheet、进入 Inbox 独立队列，并在生成下一期 BAS 时要求选择并审计处理方式；不得自动修改已递交 worksheet。
+- 每个 Gate 的浏览器截图和运行报告只能写入自己的 `docs/evidence/gateN/` 目录；已验收 Gate 的证据不得覆盖或删除。
 - 每个 Gate 的停止点是硬门槛；未收到用户明确“验收通过”，不得开始下一 Gate。
 - 密钥只从环境变量读取，不出现在命令行参数、日志、临时文件或 git 中。
 
@@ -796,9 +798,72 @@ Run: `npm test -- tests/unit/gst-bas-mapping.test.ts tests/unit/bas-generator.te
 
 Report worksheet IDs, nil BAS result, integer totals, snapshot IDs, lock results, PDF render check, and any warning count. Gate 3 verification is complete; wait for Gate 3 acceptance before Gate 4.
 
-## Gate 4 — AI 适配层、缓存、脱敏和资讯模块
+## Gate 4 — 已关账期间补录、AI 适配层、缓存、脱敏和资讯模块
 
-Start only after Gate 3 acceptance. AI remains optional and cannot block the local ledger, BAS, or settings flows.
+Start only after Gate 3 acceptance. The closed-period safety valve is mandatory; AI remains optional and cannot block the local ledger, BAS, or settings flows.
+
+### Task 4.0: Protect lodged BAS periods from silent omissions
+
+**Files:**
+- Modify: `lib/db/schema.ts`
+- Create: `drizzle/0004_closed-period-transactions.sql`
+- Modify: `lib/ingest/transactions.ts`
+- Modify: `lib/ingest/inbox.ts`
+- Modify: `lib/domain/bas/generator.ts`
+- Modify: `app/api/bas/[obligationId]/route.ts`
+- Modify: `components/bas/bas-summary.tsx`
+- Modify: `components/ledger/inbox-client.tsx`
+- Modify: `components/ledger/inbox-row.tsx`
+- Create: `tests/unit/closed-period-transactions.test.ts`
+- Create: `tests/e2e/gate4-closed-period.spec.ts`
+
+**Interfaces:**
+- `createTransaction(input): Transaction` sets `belongsToClosedPeriod`, `closedPeriodWorksheetId`, and a null `closedPeriodResolution` when the date is covered by a lodged/paid BAS worksheet.
+- `listInboxItems(): Promise<InboxItem[]>` returns `ClosedPeriodInboxItem` separately from ordinary `TransactionInboxItem` values.
+- `generateBasWorksheet(obligationId, decision?): BasGenerationResult` refuses unresolved closed-period transactions and accepts `include_current`, `revision_required`, or `excluded` with a non-empty exclusion reason.
+
+- [x] **Step 1: Write the failing closed-period schema and creation tests**
+
+```ts
+test("marks a Q1 transaction entered after Q1 lodgement without changing the Q1 worksheet", () => {
+  const q1 = generateAndLodgeQ1();
+  const before = getWorksheetAmounts(q1.worksheetId);
+  const late = createTransaction({ ...confirmedQ1Input, date: "2026-07-05" });
+  expect(late.belongsToClosedPeriod).toBe(true);
+  expect(late.closedPeriodWorksheetId).toBe(q1.worksheetId);
+  expect(getWorksheetAmounts(q1.worksheetId)).toEqual(before);
+});
+```
+
+- [x] **Step 2: Run the focused test to verify it fails**
+
+Run: `npm test -- tests/unit/closed-period-transactions.test.ts`
+
+Expected: FAIL because the transaction columns and closed-period lookup do not exist.
+
+- [x] **Step 3: Add the marker columns and centralize the lookup in `createTransaction`**
+
+Add nullable `closed_period_worksheet_id`, integer `belongs_to_closed_period` defaulting to 0, and nullable `closed_period_resolution`. Within the same SQLite transaction as the insert, query `bas_worksheets JOIN obligations` for the same entity, a `bas_quarterly` period containing the new local date, and obligation status `lodged` or `paid`. Store the matched worksheet ID; do not change the existing worksheet or its transactions.
+
+- [x] **Step 4: Add the failing Inbox separation test**
+
+```ts
+test("returns a closed-period transaction in its own Inbox queue", async () => {
+  const item = (await listInboxItems()).find((candidate) => candidate.kind === "closed_period_transaction");
+  expect(item).toMatchObject({ kind: "closed_period_transaction", originalWorksheetId: expect.any(Number) });
+  expect((await listInboxItems()).filter((candidate) => candidate.kind === "transaction")).not.toContain(item);
+});
+```
+
+- [x] **Step 5: Implement the separate Inbox section and BAS decision gate**
+
+Filter ordinary Inbox rows with `belongs_to_closed_period = 0`; render unresolved closed-period rows under a separate `已关账期间补录` heading. Before a later BAS worksheet is created, return the unresolved rows and require one of the three decisions. `include_current` adds those rows to the new snapshot and locks them; `revision_required` and `excluded` leave them out and set `closed_period_resolution`. Exclusion requires a trimmed reason. Write one `audit_log` row per transaction with the original worksheet, target obligation, decision, and reason. Never update the original worksheet.
+
+- [x] **Step 6: Run the regression tests and browser flow**
+
+Run: `npm test -- tests/unit/closed-period-transactions.test.ts tests/unit/bas-generator.test.ts && npm run build && npm run test:e2e -- tests/e2e/gate4-closed-period.spec.ts`
+
+Verify Q1 amounts remain byte-for-byte equal after the late transaction, the Inbox sections are distinct, the no-decision prompt is visible, each decision is audited, and the next worksheet only includes the transaction when `include_current` is selected.
 
 ### Task 4.1: Implement AI config, redaction, persistent cache, and four adapters
 
@@ -819,7 +884,7 @@ Start only after Gate 3 acceptance. AI remains optional and cannot block the loc
 - `redactSensitiveText(input): string` replaces TFN, bank account numbers, and full street addresses with stable placeholders.
 - `getOrCreateAiCache(method, redactedInput, producer): Promise<unknown>` uses `(method, sha256(canonicalRedactedInput))`.
 
-- [ ] **Step 1: Write failing redaction/cache/fallback tests**
+- [x] **Step 1: Write failing redaction/cache/fallback tests**
 
 ```ts
 test("redacts TFN, bank account and full address before hashing or sending", () => {
@@ -840,21 +905,21 @@ test("AI disabled uses fallback and writes one persistent cache row", async () =
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/unit/ai-adapter.test.ts`
 
 Expected: FAIL because redaction, cache and adapters are absent.
 
-- [ ] **Step 3: Implement canonical redaction and cache**
+- [x] **Step 3: Implement canonical redaction and cache**
 
 Canonicalize keys in stable order, redact before hashing, store only the redacted input and JSON output, and use a unique constraint to prevent duplicate concurrent calls. Read the API key only from the configured environment variable. Do not log prompts, payloads, tokens, or raw invoice contents.
 
-- [ ] **Step 4: Implement provider call and safe fallback paths**
+- [x] **Step 4: Implement provider call and safe fallback paths**
 
 On `enabled: false`, timeout, non-2xx response, invalid JSON, or schema mismatch, call the deterministic fallback and return a typed result. Never let an adapter exception reach the page without a caller-level fallback.
 
-- [ ] **Step 5: Run AI tests with AI disabled**
+- [x] **Step 5: Run AI tests with AI disabled**
 
 Run: `npm test -- tests/unit/ai-adapter.test.ts && npm run build`
 
@@ -870,16 +935,17 @@ Expected: PASS with no network required.
 - Create: `app/news/page.tsx`
 - Create: `app/api/news/route.ts`
 - Create: `components/news/news-card.tsx`
+- Create: `tests/e2e/gate4-ai-disabled.spec.ts`
+- Create: `tests/e2e/gate4-closed-period.spec.ts`
 - Create: `tests/unit/news.test.ts`
-- Create: `tests/e2e/gate4-news.spec.ts`
 
 **Interfaces:**
 - `refreshNewsInBackground(): Promise<void>` never blocks the first dashboard response.
 - `prescreenNewsItem(item): boolean` matches the configured keyword set.
 - `dismissNewsItem(id): void` records `dismissed_at`.
-- `createTodoFromNewsAnalysis(id): Obligation` requires an explicit user action.
+- `createTodoFromNewsAnalysis(id, confirmed): NewsTodo` requires an explicit user action and does not mutate `transactions` or `obligations`.
 
-- [ ] **Step 1: Write failing prescreen/cache/error-isolation tests**
+- [x] **Step 1: Write failing prescreen/cache/error-isolation tests**
 
 ```ts
 test("only keyword-relevant news enters AI analysis", () => {
@@ -893,29 +959,31 @@ test("one failed source does not prevent other sources from being stored", async
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/unit/news.test.ts`
 
 Expected: FAIL because news services are absent.
 
-- [ ] **Step 3: Implement seed sources, 24-hour cache, hash deduplication and silent fallback**
+- [x] **Step 3: Implement seed sources, 24-hour cache, hash deduplication and silent fallback**
 
 Seed ATO small business, ASIC, Consumer Affairs Victoria estate-agent, and Treasury sources. Store title, original URL, publication date, raw text, and content hash. Update `last_error` per source and keep the last successful cache on failures.
 
-- [ ] **Step 4: Implement pre-screened AI analysis and user-confirmed todo creation**
+- [x] **Step 4: Implement pre-screened AI analysis and user-confirmed todo creation**
 
 Sort `action` items above `watch` and `none`. Display source name, publication date and original URL on every card. A “建成待办” action must call a confirmation route and never directly alter a transaction, amount or existing obligation.
 
-- [ ] **Step 5: Implement the page load boundary**
+- [x] **Step 5: Implement the page load boundary**
 
 The dashboard reads cached news synchronously and schedules refresh after the response path; network failures must not throw from the page loader. The news page lists dismissed items separately only when requested.
 
-- [ ] **Step 6: Run Gate 4 verification and stop**
+- [x] **Step 6: Run Gate 4 verification and stop**
 
-Run: `npm test -- tests/unit/ai-adapter.test.ts tests/unit/news.test.ts && npm run build && npm run test:e2e -- tests/e2e/gate4-news.spec.ts`
+Run: `npm test -- tests/unit/ai-adapter.test.ts tests/unit/news.test.ts && npm run build && npm run test:e2e -- tests/e2e/gate4-ai-disabled.spec.ts tests/e2e/gate4-closed-period.spec.ts`
 
-Verify AI-disabled behavior, source links, dismissed state, explicit todo creation, and dashboard load without network. Stop and request Gate 4 acceptance.
+Verify AI-disabled behavior, source links, dismissed state, explicit todo creation, dashboard/detail/BAS load without network, and the closed-period decision flow. Stop and request Gate 4 acceptance.
+
+**Gate 4 implementation status:** all planned steps and verification commands are complete. The implementation is committed locally, but Gate 4 remains unaccepted until the user reviews the dedicated evidence directory and report. Gate 5 has not started.
 
 ## Gate 5 — 年度模块、Div 7A、养老金、备份还原与最终验收
 

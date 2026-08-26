@@ -1,5 +1,5 @@
 import { exportBasCsv, exportBasPdf } from "@/lib/domain/bas/export";
-import { BasGenerationError, generateBasWorksheet, getBasWorksheetByObligation, markBasLodged, updateBasPaygInstalment, updateBasPaygInstalments } from "@/lib/domain/bas/generator";
+import { BasGenerationError, generateBasWorksheet, getBasWorksheetByObligation, markBasLodged, updateBasPaygInstalment, updateBasPaygInstalments, type ClosedPeriodDecisionAction } from "@/lib/domain/bas/generator";
 import { getObligationById } from "@/lib/domain/obligations/repository";
 import { runMigrations } from "@/lib/db/migrate";
 
@@ -13,7 +13,12 @@ function parseObligationId(value: string) {
 
 function errorResponse(error: unknown) {
   if (error instanceof BasGenerationError) {
-    return Response.json({ error: error.message, warnings: error.warnings, pendingTransactionIds: error.pendingTransactionIds }, { status: error.pendingTransactionIds.length ? 409 : 400 });
+    return Response.json({
+      error: error.message,
+      warnings: error.warnings,
+      pendingTransactionIds: error.pendingTransactionIds,
+      closedPeriodTransactions: error.closedPeriodTransactions,
+    }, { status: error.pendingTransactionIds.length || error.closedPeriodTransactions.length ? 409 : 400 });
   }
   return Response.json({ error: error instanceof Error ? error.message : "BAS 操作失败" }, { status: 400 });
 }
@@ -43,11 +48,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ obl
       payg5aCents?: number | null;
       payg5bCents?: number | null;
       paygInstalmentCents?: number | null;
+      closedPeriodDecision?: { action: ClosedPeriodDecisionAction; reason?: string };
+      closedPeriodReason?: string;
       receiptNumber?: string;
       lodgedAmountCents?: number;
     };
     if (body.action === "generate") {
-      const result = generateBasWorksheet(obligationId);
+      const result = generateBasWorksheet(obligationId, body.closedPeriodDecision ?? (body.closedPeriodReason ? { action: "excluded", reason: body.closedPeriodReason } : undefined));
       return Response.json({ obligation: getObligationById(obligationId), ...result }, { status: 201 });
     }
     if (body.action === "payg") {
