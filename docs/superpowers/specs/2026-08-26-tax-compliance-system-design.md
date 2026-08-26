@@ -104,6 +104,8 @@ Next.js App Router
 
 所有表都有 `created_at` / `updated_at`，SQLite 布尔值在 domain 层映射为 boolean。金额列包括 `amount_cents`、`gst_cents`、BAS 标签、Div 7A 本金/还款、供款和上限，均为整数。
 
+`obligations` 额外保存 `income_year`（所属所得年度）和 `deadline_fy`（`effective_due` 所在财年）。`bas_worksheets` 保留 `payg_instalment_cents`，为整数分且可空；它只能由用户根据 ATO 预填的 5A/5B 数字手动录入，系统不得自行推算。
+
 ### 4.3 主体种子
 
 系统首次 seed 六个固定 ID：`self`、`spouse`、`boyun_trust`、`boyun_co`、`yeeliving_co`、`neighbourhood_co`。三家公司初始 `gst_registered = true`，其中 `neighbourhood_co` 也生成正常 BAS 义务；ACN、ASIC 周年日、牌照周年日为空时相关卡片为 `blocked / 待配置`。
@@ -114,25 +116,39 @@ Next.js App Router
 
 每条 obligation 同时存储：
 
+- `income_year`：该义务所属的所得年度，例如 2026-10-31 的信托/个人税表属于 FY2025-26。
+- `deadline_fy`：截止日所在财年，例如 2026-10-31 属于 FY2026-27；它不替代 `income_year`。
 - `statutory_due`：规则表或需求表列出的原始日期。
 - `effective_due`：按墨尔本工作日规则顺延后的日期。
 
 `period_start` 与 `period_end` 也使用本地 `YYYY-MM-DD`。日期展示统一 `DD MMM YYYY`。
 
+卡片和底稿标题显示 `income_year` 与法定日，例如「FY2025–26 信托税表 · 截止 31 Oct 2026」。卡片详情另外显示「实际工作日：02 Nov 2026」并以 `effective_due` 计算倒数；这样标题保留原规则日，操作提醒仍使用实际工作日。
+
 ### 5.2 FY2026–27 BAS 必须断言的结果
 
 对三家 GST 注册公司各生成四条 BAS：
 
-| 期间 | statutory_due | effective_due | 规则 |
-|---|---:|---:|---|
-| Q1 | 28 Oct 2026 | 11 Nov 2026 | 网上自办额外 14 天 |
-| Q2 | 28 Feb 2027 | 01 Mar 2027 | 周日顺延；没有两周延期 |
-| Q3 | 28 Apr 2027 | 12 May 2027 | 网上自办额外 14 天 |
-| Q4 | 28 Jul 2027 | 11 Aug 2027 | 网上自办额外 14 天 |
+| 期间 | income_year | statutory_due | effective_due | 规则 |
+|---|---|---:|---:|---|
+| Q1 | FY2026–27 | 28 Oct 2026 | 11 Nov 2026 | 网上自办额外 14 天 |
+| Q2 | FY2026–27 | 28 Feb 2027 | 01 Mar 2027 | 周日顺延；没有两周延期 |
+| Q3 | FY2026–27 | 28 Apr 2027 | 12 May 2027 | 网上自办额外 14 天 |
+| Q4 | FY2026–27 | 28 Jul 2027 | 11 Aug 2027 | 网上自办额外 14 天 |
 
 这里的 Q2 断言必须防止通用“季度加 14 天”代码误套用。需求表中的 Q2 法定日仍是 2027-02-28；实际日是 2027-03-01。
 
-### 5.3 维州公众假日
+### 5.3 所属年度与截止日所在财年
+
+年度义务的 `income_year` 不按到期日推导：
+
+- 2026-10-31 的 Boyun Trust 和两个人的税表：`income_year = FY2025-26`，`deadline_fy = FY2026-27`。
+- 2027-02-28 的三家公司税表：`income_year = FY2025-26`，`deadline_fy = FY2026-27`；实际工作日为 2027-03-01。
+- FY2026–27 BAS 的 `income_year = FY2026-27`，并统一填写 `deadline_fy = FY2026-27`。
+
+看板、义务详情、BAS/年度底稿标题必须显示 `income_year`；截止日、实际工作日和倒数分开显示，不能只显示一个模糊的 FY 标签。
+
+### 5.4 维州公众假日
 
 `lib/holidays.ts` 硬编码 2026 和 2027 的维州公共假日，并附带“每年更新”注释。初始来源为 Business Victoria 的 2026、2027 官方页面：
 
@@ -180,7 +196,24 @@ GST 归位由纯函数实现并单测：
 | `GST_CAPITAL` | G10、1B | 支出绝对值进 G10，GST 绝对值进 1B |
 | `NO_GST`、`PRIVATE` | 无 | 完全排除 |
 
-净额为 `1A - 1B`，全程整数分。BAS 快照保存交易 ID，锁定纳入交易，nil BAS 仍生成全零底稿和操作指引。
+三家公司营业额低于 $10m，按 Simpler BAS 处理。BAS 底稿的「操作指引卡」只能列出 G1、1A、1B；G10/G11 仍在内部汇总和 worksheet 中保存，并在 UI 明确标注「内部核算用，不填入 ATO 表单」。G10/G11 供年度模块区分资本与非资本采购，不得出现在指引卡的 ATO 填表步骤中。
+
+`BasSummary` 明确区分三个值：
+
+```ts
+type BasSummary = {
+  g1Cents: number;
+  a1Cents: number;
+  b1Cents: number;
+  g10Cents: number; // 内部核算用
+  g11Cents: number; // 内部核算用
+  paygInstalmentCents: number | null; // 用户手动录入 ATO 预填 5A/5B
+  gstNetCents: number; // a1Cents - b1Cents
+  statementTotalCents: number | null; // 输入 PAYG 后为 gstNetCents + paygInstalmentCents
+};
+```
+
+系统不得根据收入、利润或历史数据推算 PAYG instalment。`paygInstalmentCents` 未录入时，`statementTotalCents` 保持待录入状态；录入后才计算总额。已递交金额校验必须对比 `statementTotalCents`，不能只对比 `gstNetCents`。BAS 快照保存交易 ID，锁定纳入交易，nil BAS 仍生成全零底稿和仅包含 G1/1A/1B 的操作指引。
 
 ## 8. AI、资讯和脱敏
 
@@ -199,6 +232,7 @@ AI 配置从 `config/ai.json` 读取，密钥只从环境变量读取。四个�
 验证层级：
 
 - Vitest：日期、GST、Div 7A、金额、状态机、AI 脱敏、CSV 去重、BAS 原子锁定。
+- Div 7A 官方基准测试必须在 Gate 5 开始前从 ATO 官方 Division 7A calculator 取数并记录来源与取数日期；无法访问时测试使用 `test.skip`，不得用实现者自算值宣称通过。另测贷款发放当年不产生最低还款义务，下一所得年度才开始。
 - Playwright：每个已完成 Gate 的用户可见流程；Gate 2 只做桌面和窄屏响应式检查。
 - 每次 Gate 结束前执行 production build，并运行对应 Gate 的真实 API/页面流程。
 

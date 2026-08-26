@@ -17,6 +17,9 @@
 - 所有金额用整数分存储和计算；禁止用浮点数保存或累加金额，最终显示才转换为澳元字符串。
 - 必须实现 `POST /api/ingest/email`，支持 multipart 与 base64，并使用 `.env.local` 的 `INGEST_TOKEN` 校验。
 - 必须实现 `audit_log` 和 `ai_cache`；AI 缓存键为脱敏 canonical input 的 SHA-256，缓存不得保存未脱敏秘密。
+- 三家公司按 Simpler BAS 处理：ATO 操作指引只列 G1、1A、1B；G10/G11 可内部计算和存储，但 UI 必须标注“内部核算用，不填入 ATO 表单”。
+- `bas_worksheets.payg_instalment_cents` 是整数分、可空、只接受用户从 ATO 预填 5A/5B 手动录入；系统不推算 PAYG。`BasSummary` 必须区分 `gstNetCents` 和 `statementTotalCents`，已递交金额校验使用后者。
+- `obligations.income_year` 与 `deadline_fy` 独立保存；卡片和底稿标题显示所属所得年度，截止日所在财年不作为所属年度。
 - 必须为义务日期、GST 到 BAS 标签、Div 7A 最低还款额编写单元测试，并在对应 Gate 报告中单独列出。
 - 不做 ATO/ASIC 自动申报，不保存 TFN，不做多用户、权限、云端、STP、工资单或信托账户管理。
 - 自动化浏览器只验证桌面和窄屏响应式；不声称验证真实手机摄像头或真实手机拍照权限。
@@ -196,7 +199,7 @@ Expected: FAIL because schema and table metadata are not defined.
 
 - [ ] **Step 3: Define all tables, indexes, foreign keys, and uniqueness constraints**
 
-Implement the logical schema from the requirements. Use text primary keys for fixed entity/rule IDs, integer primary keys for event rows, date-only strings for business dates, and integer columns for every money field. Add unique constraints for `documents.sha256`, `(rule_id, entity_id, period_label)`, `(method, input_sha256)`, and bank mapping identity. `ai_cache.redacted_input_json` must never contain the original payload.
+Implement the logical schema from the requirements. Use text primary keys for fixed entity/rule IDs, integer primary keys for event rows, date-only strings for business dates, and integer columns for every money field. Add `obligations.income_year` for the obligation's income year and `obligations.deadline_fy` for the fiscal year containing `effective_due`; they are required for every expanded obligation, including BAS. Add `bas_worksheets.payg_instalment_cents` as a nullable integer cents column. Add unique constraints for `documents.sha256`, `(rule_id, entity_id, period_label)`, `(method, input_sha256)`, and bank mapping identity. `ai_cache.redacted_input_json` must never contain the original payload.
 
 - [ ] **Step 4: Implement database pragmas and migrations**
 
@@ -269,6 +272,8 @@ Expected: FAIL because the exact-string money parser and settings service are ab
 Use `date-fns-tz` with the literal IANA zone. Do not introduce a fixed offset constant. Add the GST code list, six entities, one licence row, account templates, obligation rule seed rows, initial news sources, settings defaults, and the FY2026–27 concessional cap `3_250_000` cents.
 
 Hard-code the 2026 and known 2027 Victorian holiday dates in `lib/time/holidays.ts`, with a comment requiring annual update and an explicit note that the 2027 AFL Grand Final Friday is pending the official schedule. No date calculation may silently substitute a guessed date.
+
+Seed the rule metadata so that FY2026–27 BAS obligations have `income_year = FY2026-27` and annual tax rules later expand with `income_year = FY2025-26` while assigning `deadline_fy` from the actual due date.
 
 - [ ] **Step 4: Implement settings API and responsive settings page**
 
@@ -350,8 +355,8 @@ Expected: PASS with no fixed-offset timezone constants.
 - Create: `tests/unit/obligation-state.test.ts`
 
 **Interfaces:**
-- `calculateBasDueDates(fy: string, quarter: "Q1"|"Q2"|"Q3"|"Q4"): { statutoryDue: DateOnly; effectiveDue: DateOnly }`.
-- `calculateAnnualTaxDue(entity, context): { statutoryDue: DateOnly; effectiveDue: DateOnly }`.
+- `calculateBasDueDates(fy: string, quarter: "Q1"|"Q2"|"Q3"|"Q4"): { incomeYear: string; deadlineFy: string; statutoryDue: DateOnly; effectiveDue: DateOnly }`.
+- `calculateAnnualTaxDue(entity, context): { incomeYear: string; deadlineFy: string; statutoryDue: DateOnly; effectiveDue: DateOnly }`.
 - `expandObligations({ fy, entities, licences, context }): ObligationInput[]` is idempotent by `(rule_id, entity_id, period_label)`.
 - `transitionObligation({ obligationId, to, reason }): Obligation` validates the state machine and writes exactly one audit row in the same transaction.
 - `buildReminderInstances(obligation): ReminderInput[]` creates T-30/T-10/T-3/due/overdue and special offsets.
@@ -369,13 +374,15 @@ test.each([
   ["Q4", "2027-07-28", "2027-08-11"],
 ])("calculates FY2026-27 %s without applying the Q2 extension", (quarter, statutory, effective) => {
   expect(calculateBasDueDates("2026-27", quarter as "Q1"|"Q2"|"Q3"|"Q4")).toEqual({
+    incomeYear: "FY2026-27",
+    deadlineFy: "FY2026-27",
     statutoryDue: statutory,
     effectiveDue: effective,
   });
 });
 ```
 
-Also test that a company with an outstanding prior-year return gets statutory due `2026-10-31`, while a current company gets `2027-02-28` and effective `2027-03-01`; the test must assert both fields. Test ASIC, trust resolution, licence six-week window, super contribution and notice reminders.
+Also test that a company with an outstanding prior-year return gets `incomeYear = FY2025-26`, statutory due `2026-10-31`, effective due `2026-11-02`, and `deadlineFy = FY2026-27`; a current company gets `incomeYear = FY2025-26`, statutory due `2027-02-28`, effective due `2027-03-01`, and `deadlineFy = FY2026-27`. Trust and personal returns due 2026-10-31 use the same FY2025-26/FY2026-27 split. Test ASIC, trust resolution, licence six-week window, super contribution and notice reminders.
 
 - [ ] **Step 2: Run the focused test and verify it fails**
 
@@ -416,6 +423,7 @@ Expected: PASS; the output must include the Q2 test proving no 14-day extension.
 - `GET /api/obligations?fy=2026-27` returns grouped obligations with `statutoryDue` and `effectiveDue`.
 - `GET /api/calendar/export?fy=2026-27` returns `text/calendar` with one all-day event per obligation.
 - `renderDashboardModel()` returns six fixed entity columns and sorted urgency cards.
+- Each card model contains `incomeYear`, `statutoryDue`, `effectiveDue`, and `deadlineFy`; the title uses `incomeYear` plus statutory due, while the countdown uses `effectiveDue`.
 
 - [ ] **Step 1: Write the calendar serialization test**
 
@@ -449,7 +457,7 @@ Use `effective_due` for `DTSTART;VALUE=DATE`, include statutory date in `DESCRIP
 
 Run: `npm test -- tests/unit/melbourne-dates.test.ts tests/unit/obligation-calculator.test.ts tests/unit/obligation-state.test.ts tests/unit/ics.test.ts && npm run build && npm run test:e2e -- tests/e2e/gate1-dashboard.spec.ts`
 
-Use the browser to seed FY2026–27, configure the three company/ASIC/licence dates, reload `/`, and record all 12 BAS dates plus annual/other cards. Compare the statutory/effective pairs to the design table. Verify `/api/calendar/export?fy=2026-27` contains all due-date events.
+Use the browser to seed FY2026–27, configure the three company/ASIC/licence dates, reload `/`, and record all 12 BAS dates plus annual/other cards. The report table must include `income_year`, `deadline_fy`, `statutory_due`, and `effective_due`. Assert the annual card titles show `FY2025–26 信托税表 · 截止 31 Oct 2026` and `FY2025–26 公司税表 · 截止 28 Feb 2027`, while their details show the adjusted actual workdays. Compare the statutory/effective pairs to the design table. Verify `/api/calendar/export?fy=2026-27` contains all due-date events.
 
 - [ ] **Step 6: Stop and request Gate 1 acceptance**
 
@@ -676,7 +684,7 @@ Start only after Gate 2 acceptance. This Gate contains the mandatory GST-to-BAS 
 
 **Interfaces:**
 - `mapTransactionToBas(tx): BasLineContribution` returns integer deltas for `g1Cents`, `a1Cents`, `b1Cents`, `g10Cents`, and `g11Cents`.
-- `summarizeBas(transactions): BasSummary` returns all labels and `netCents = a1Cents - b1Cents`.
+- `summarizeBas(transactions, paygInstalmentCents): BasSummary` returns all labels, `gstNetCents = a1Cents - b1Cents`, and `statementTotalCents = gstNetCents + paygInstalmentCents` only after the manual PAYG value is present. `paygInstalmentCents` remains nullable at the database boundary.
 
 - [ ] **Step 1: Write the complete failing GST mapping test matrix**
 
@@ -704,9 +712,9 @@ Expected: FAIL because the GST mapping function is absent.
 
 Treat expenses as negative in the ledger and use integer absolute values for G11/G10/1B. Reject fractional amounts and unknown GST codes. Exclude `PRIVATE` and `NO_GST` completely. Do not calculate any money with `parseFloat`.
 
-- [ ] **Step 4: Add summary and warning tests**
+- [ ] **Step 4: Add summary, Simpler BAS and PAYG tests**
 
-Test `netCents`, zero nil BAS, and that `review_flag = true`, missing account, missing entity or missing GST code yields a warning rather than an included contribution.
+Test `gstNetCents`, `statementTotalCents` with a manually entered PAYG value, the unresolved/null PAYG state, zero nil BAS, and that `review_flag = true`, missing account, missing entity or missing GST code yields a warning rather than an included contribution. Assert that G10/G11 remain available in the internal summary but are not part of the external instructions model.
 
 - [ ] **Step 5: Run the mandatory GST unit test**
 
@@ -730,7 +738,8 @@ Expected: PASS with every row in the matrix.
 - `generateBasWorksheet(obligationId): { worksheet, warnings, lockedTransactionIds }` runs as one SQLite transaction.
 - `exportBasCsv(worksheetId): Response` exports traceable transaction lines.
 - `exportBasPdf(worksheetId): Response` exports the one-page worksheet and instructions.
-- `markBasLodged(obligationId, receiptNumber, lodgedAmountCents): Obligation` writes audit log and moves to `lodged`.
+- `updateBasPaygInstalment(obligationId, paygInstalmentCents: number): BasWorksheet` records the user's integer-cent 5A/5B value and never calculates it.
+- `markBasLodged(obligationId, receiptNumber, lodgedAmountCents): Obligation` requires a resolved `statementTotalCents`, compares the submitted amount to it, writes audit log and moves to `lodged`.
 
 - [ ] **Step 1: Write the atomicity and traceability tests**
 
@@ -758,13 +767,13 @@ Expected: FAIL because the generator is absent.
 
 Select only the obligation’s entity/FY/quarter, `locked = false`, confirmed rows. Before writing, query and list all pending rows. If pending rows exist, return a structured warning and do not lock or create the worksheet. For an empty eligible set, create a zero worksheet with `nil BAS` instructions.
 
-- [ ] **Step 4: Render operation instructions and receipt flow**
+- [ ] **Step 4: Render Simpler BAS operation instructions, PAYG entry and receipt flow**
 
-Show ATO Online services for business → select company → Lodgments → Activity statements → enter each BAS label → submit → record receipt. The nil path explicitly says to lodge a nil activity statement. The “已递交” action requires receipt number and actual integer amount, then uses the audited state transition.
+Show ATO Online services for business → select company → Lodgments → Activity statements → enter G1, 1A and 1B → review any manual 5A/5B PAYG prefill → submit → record receipt. The instruction card must not contain G10 or G11. The worksheet summary may show G10/G11 in a separate section labelled “内部核算用，不填入 ATO 表单”. The user manually enters the ATO prefilled PAYG instalment in integer cents; until entered, `statementTotalCents` and the “已递交金额” comparison are blocked. The nil path explicitly says to lodge a nil activity statement. The “已递交” action requires receipt number and actual integer amount, then compares against `statementTotalCents` and uses the audited state transition.
 
 - [ ] **Step 5: Add CSV/PDF exports and browser verification**
 
-Use the PDF skill’s render-and-verify workflow for the PDF output. The browser test creates Q1 worksheets for three companies, asserts the dormant company is zero/nil, expands line items, and verifies each amount is traceable to a transaction ID.
+Use the PDF skill’s render-and-verify workflow for the PDF output. The browser test creates Q1 worksheets for three companies, asserts the dormant company is zero/nil, expands line items, verifies each amount is traceable to a transaction ID, asserts the `data-testid="bas-instructions"` region contains G1/1A/1B but not G10/G11, and asserts the internal summary labels G10/G11 include “内部核算用，不填入 ATO 表单”. It also enters a PAYG value and verifies the lodged-amount comparison uses `statementTotalCents`.
 
 - [ ] **Step 6: Run Gate 3 verification and stop**
 
@@ -953,24 +962,35 @@ Use the browser to open `/annual`, select FY2026–27, and verify a company work
 - Create: `lib/domain/div7a/service.ts`
 - Create: `app/div7a/page.tsx`
 - Create: `components/annual/div7a-loan-card.tsx`
+- Create: `tests/fixtures/div7a/ato-baseline.json` (created only after official calculator access at Gate 5 entry)
 - Create: `tests/unit/div7a.test.ts`
 
 **Interfaces:**
-- `calculateMinimumYearlyRepaymentCents(input: { principalCents: number; benchmarkRate: string; remainingTermYears: number }): number` returns a safe integer.
+- `calculateMinimumYearlyRepaymentCents(input: { principalCents: number; benchmarkRate: string; remainingTermYears: number; loanIncomeYear: string; assessmentIncomeYear: string }): number` returns `0` in the loan origination income year and a safe integer from the ATO formula from the next income year onward.
 - `getDiv7aLoanSummary(loanId, fy): Div7aSummary` returns principal, minimum repayment, actual repayments, shortfall and days to 30 June.
 
-- [ ] **Step 1: Write the mandatory failing Div 7A formula tests**
+- [ ] **Step 1: Gate 5 entry preflight — obtain an official ATO baseline before writing the implementation**
+
+Before writing the formula implementation or declaring this test passing, enter the planned input set into the ATO official Division 7A calculator: principal `$100,000.00`, benchmark rate `5.30%`, remaining term `7` years, with the calculator's required historical income-year/loan-year fields set so the official tool accepts the input. Record the calculator output in `tests/fixtures/div7a/ato-baseline.json` together with the exact input, source URL, and Melbourne-local retrieval date. Do not copy the implementation's computed output into the fixture.
+
+If the official calculator cannot be accessed or does not accept this historical input, do not invent an expected number. Leave the fixture absent/unverified and make the official-output test `test.skip("ATO calculator unavailable; manual verification required")`; the Gate 5 report must list it under “待人工核对” and must not count it as a passing mandatory test.
+
+- [ ] **Step 2: Write the mandatory failing Div 7A formula tests**
 
 ```ts
 import { expect, test } from "vitest";
 import { calculateMinimumYearlyRepaymentCents } from "@/lib/domain/div7a/formula";
 
-test("calculates a 7-year repayment using the ATO annuity formula in integer cents", () => {
+const officialBaseline = loadOfficialAtoBaseline();
+
+(officialBaseline ? test : test.skip)("matches the official ATO calculator output in integer cents", () => {
   expect(calculateMinimumYearlyRepaymentCents({
     principalCents: 10_000_000,
     benchmarkRate: "0.053",
     remainingTermYears: 7,
-  })).toBe(1_747_034);
+    loanIncomeYear: officialBaseline.loanIncomeYear,
+    assessmentIncomeYear: officialBaseline.assessmentIncomeYear,
+  })).toBe(officialBaseline.minimumRepaymentCents);
 });
 
 test("supports a 25-year secured term and never returns fractional cents", () => {
@@ -978,25 +998,37 @@ test("supports a 25-year secured term and never returns fractional cents", () =>
     principalCents: 10_000_000,
     benchmarkRate: "0.053",
     remainingTermYears: 25,
+    loanIncomeYear: "2016-17",
+    assessmentIncomeYear: "2017-18",
   });
   expect(Number.isSafeInteger(result)).toBe(true);
   expect(result).toBeGreaterThan(0);
 });
+
+test("does not require a minimum repayment in the loan origination income year", () => {
+  expect(calculateMinimumYearlyRepaymentCents({
+    principalCents: 10_000_000,
+    benchmarkRate: "0.053",
+    remainingTermYears: 7,
+    loanIncomeYear: "2026-27",
+    assessmentIncomeYear: "2026-27",
+  })).toBe(0);
+});
 ```
 
-The formula is the ATO minimum yearly repayment formula: `P × I / (1 - (1 / (1 + I))^T)`, where `P` is the unpaid balance at the end of the previous income year, `I` is the benchmark rate, and `T` is the remaining term. Use Decimal.js for the rate/power calculation and round only the final dollar result to the nearest cent with half-up rounding. The implementation reference is the [ATO Division 7A calculator and decision tool](https://www.ato.gov.au/calculators-and-tools/division-7a-calculator-and-decision-tool?page=1).
+The formula implementation is the ATO minimum yearly repayment formula: `P × I / (1 - (1 / (1 + I))^T)`, where `P` is the unpaid balance at the end of the previous income year, `I` is the benchmark rate, and `T` is the remaining term. Use Decimal.js for the rate/power calculation and round only the final dollar result to the nearest cent with half-up rounding. The official-output assertion is the baseline; the formula itself is not allowed to supply its own expected test value. The implementation reference is the [ATO Division 7A calculator and decision tool](https://www.ato.gov.au/calculators-and-tools/division-7a-calculator-and-decision-tool?page=1).
 
-- [ ] **Step 2: Run tests to verify failure**
+- [ ] **Step 3: Run tests to verify failure**
 
 Run: `npm test -- tests/unit/div7a.test.ts`
 
 Expected: FAIL because the formula function is absent.
 
-- [ ] **Step 3: Implement the formula and repayment service**
+- [ ] **Step 4: Implement the formula and repayment service**
 
-Validate positive safe-integer principal, rate between 0 and 1, and term of 1–25 years. Store repayments as integer cents in JSON. Use the repayment due date 30 June for shortfall/day countdown presentation and keep agreement-signed status visible.
+Validate positive safe-integer principal, rate between 0 and 1, and term of 1–25 years. Return zero and do not create a missing-repayment warning when `assessmentIncomeYear === loanIncomeYear`; start the minimum repayment schedule in the next income year. Store repayments as integer cents in JSON. Use the repayment due date 30 June for shortfall/day countdown presentation and keep agreement-signed status visible.
 
-- [ ] **Step 4: Run the mandatory Div 7A test and panel flow**
+- [ ] **Step 5: Run the mandatory Div 7A test and panel flow**
 
 Run: `npm test -- tests/unit/div7a.test.ts && npm run build`
 
@@ -1061,10 +1093,11 @@ Report all test/build/browser evidence, all six Gate outcomes, known manual task
 ## Plan self-review
 
 - Gate 0 covers the full schema, six-entity seed, obligation-rule seed, GST constants, Melbourne timezone foundation, settings persistence, environment hygiene and no application dashboard yet.
-- Gate 1 covers weekend/public-holiday adjustment, statutory/effective date separation, all FY2026–27 BAS dates, Q2 exception, state machine, reminders, six-column dashboard and `.ics`.
+- Gate 1 covers weekend/public-holiday adjustment, statutory/effective date separation, all FY2026–27 BAS dates, Q2 exception, `income_year`/`deadline_fy` separation, state machine, reminders, six-column dashboard and `.ics`.
+- Gate 1 also reports `income_year` and `deadline_fy` for every date-table row and checks annual titles preserve FY2025–26 even when the deadline falls in FY2026–27.
 - Gate 2 covers all four entrances, including multipart/base64 email ingestion with `INGEST_TOKEN`, CSV mapping, integer money, duplicate marking, document hash, Inbox and keyboard flow; real phone camera is explicitly excluded from automated claims.
-- Gate 3 covers the mandatory GST mapping unit test, BAS aggregation, warning gate, atomic lock/snapshot, nil BAS, instructions and PDF/CSV export.
+- Gate 3 covers the mandatory GST mapping unit test, Simpler BAS G1/1A/1B-only instructions, internal G10/G11 labels, manual PAYG 5A/5B input, `gstNetCents` versus `statementTotalCents`, warning gate, atomic lock/snapshot, nil BAS, instructions and PDF/CSV export.
 - Gate 4 covers `audit_log`/`ai_cache` availability from Gate 0, AI redaction/cache/fallback, four methods, asynchronous news and explicit user confirmation for news-created todos.
-- Gate 5 covers company/trust/personal worksheets, the mandatory Div 7A formula test, super contributions/notice, backup/restore and final regression.
+- Gate 5 covers company/trust/personal worksheets, an ATO-official-baseline Div 7A test or explicitly skipped manual-check item, the loan-origination-year zero-repayment rule, super contributions/notice, backup/restore and final regression.
 - No step uses `TBD`, `TODO`, or a generic “handle edge cases” instruction; each implementation boundary has a file, interface, test, and expected verification command.
 - The only external date uncertainty is the 2027 AFL Grand Final Friday, which the official Victorian calendar currently leaves subject to the AFL schedule; the code will not guess it and will carry an annual update note.
