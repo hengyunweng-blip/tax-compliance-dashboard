@@ -1,0 +1,14 @@
+Query: SELECT source_id, title, published_at, url FROM news_items LIMIT 10;
+Database: ./data/gate4-return-final.db
+
+source_id | title | published_at | url
+1 | Correcting GST errors | 2024-09-05 | https://www.ato.gov.au/businesses-and-organisations/gst-excise-and-indirect-taxes/gst/in-detail/managing-gst-in-your-business/reporting-paying-and-activity-statements/correcting-gst-errors
+2 | Superannuation and whole-of-business retirement | 2026-08-20 | https://www.asic.gov.au/about-asic/news-centre/speeches/superannuation-and-whole-of-business-retirement
+2 | Consumers left in the dark about rising car insurance premiums, ASIC warns | 2026-08-11 | https://www.asic.gov.au/about-asic/news-centre/find-a-media-release/2026-releases/26-189mr-consumers-left-in-the-dark-about-rising-car-insurance-premiums-asic-warns
+2 | ASIC Chair Joe Longo delivers keynote address at ASIC Annual Forum | 2024-11-14 | https://www.asic.gov.au/about-asic/news-centre/speeches/asic-annual-forum-2024-bridging-generations-regulating-for-all-australians/?altTemplate=betanewsroom
+2 | ASIC Deputy Chair Sarah Court gives opening remarks at ASIC Annual Forum’s Enforcement session | 2024-11-14 | https://www.asic.gov.au/about-asic/news-centre/speeches/asic-annual-forum-2024-enforcement-session-opening-remarks/?altTemplate=betanewsroom
+3 | Tradie who failed to deliver convicted and fined | 2026-08-26 | https://www.consumer.vic.gov.au/latest-news/tradie-who-failed-to-deliver-convicted-and-fined
+3 | Don't buy a regret: New campaign helps Victorians make smarter used car purchases | 2026-08-20 | https://www.consumer.vic.gov.au/latest-news/dont-buy-a-regret-new-campaign-helps-victorians-make-smarter-used-car-purchases
+3 | Supreme Court bid to close Panda Mart stores | 2026-08-07 | https://www.consumer.vic.gov.au/latest-news/supreme-court-bid-to-close-panda-mart-stores
+3 | New framework to guide compliance action | 2026-08-06 | https://www.consumer.vic.gov.au/latest-news/new-framework-to-guide-compliance-action
+3 | From Bendigo to Wangaratta: Renting Taskforce inspects rental properties across the state | 2026-07-31 | https://www.consumer.vic.gov.au/latest-news/from-bendigo-to-wangaratta-renting-taskforce-inspects-rental-properties-across-the-state

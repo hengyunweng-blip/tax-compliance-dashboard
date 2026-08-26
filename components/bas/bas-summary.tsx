@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatCents } from "@/lib/money";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
+import { displayBasPeriodLabel, summarizePriorPeriodCorrections } from "@/lib/domain/bas/correction-summary";
 import type { BasGenerationResult, BasLineItem, BasWorksheetRecord, ClosedPeriodDecision, ClosedPeriodTransaction } from "@/lib/domain/bas/generator";
 import { BasInstructions } from "@/components/bas/bas-instructions";
 
@@ -34,7 +35,11 @@ function LineItem({ line }: { line: BasLineItem }) {
     <tr data-testid="bas-line-item">
       <td>交易 #{line.transactionId}</td>
       <td>{formatDueDate(line.date)}</td>
-      <td>{line.description}</td>
+      <td>
+        {line.isPriorPeriodCorrection ? <span className="correction-badge">前期更正</span> : null}
+        <span>{line.description}</span>
+        {line.isPriorPeriodCorrection ? <small className="correction-meta">原属期间 {line.originalPeriodLabel ? displayBasPeriodLabel(line.originalPeriodLabel) : "未知"} · 原 worksheet #{line.originalWorksheetId ?? "未知"}</small> : null}
+      </td>
       <td>{line.gstCode}</td>
       <td className="amount-cell">{formatCents(line.amountCents)}</td>
     </tr>
@@ -53,6 +58,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
   const [lodgedInput, setLodgedInput] = useState(initialWorksheet?.statementTotalCents === null || initialWorksheet?.statementTotalCents === undefined ? "" : String(initialWorksheet.statementTotalCents));
   const [closedPeriodTransactions, setClosedPeriodTransactions] = useState<ClosedPeriodTransaction[]>([]);
   const [closedPeriodReason, setClosedPeriodReason] = useState("");
+  const [closedPeriodIncludeAllowed, setClosedPeriodIncludeAllowed] = useState(true);
 
   async function callApi(body: Record<string, unknown>) {
     setBusy(true);
@@ -62,14 +68,16 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const payload = await response.json() as { worksheet?: BasWorksheetRecord; result?: BasGenerationResult; obligation?: { status: string }; error?: string; warnings?: string[]; closedPeriodTransactions?: ClosedPeriodTransaction[] };
+    const payload = await response.json() as { worksheet?: BasWorksheetRecord; result?: BasGenerationResult; obligation?: { status: string }; error?: string; warnings?: string[]; closedPeriodTransactions?: ClosedPeriodTransaction[]; closedPeriodIncludeAllowed?: boolean };
     setBusy(false);
     if (!response.ok) {
       setClosedPeriodTransactions(payload.closedPeriodTransactions ?? []);
+      setClosedPeriodIncludeAllowed(payload.closedPeriodIncludeAllowed ?? true);
       setMessage([payload.error, ...(payload.warnings ?? [])].filter(Boolean).join("；") || "BAS 操作失败");
       return null;
     }
     setClosedPeriodTransactions([]);
+    setClosedPeriodIncludeAllowed(true);
     const nextWorksheet = payload.worksheet ?? payload.result?.worksheet ?? null;
     if (nextWorksheet) setWorksheet(nextWorksheet);
     if (payload.obligation?.status) setStatus(payload.obligation.status);
@@ -139,7 +147,8 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
                 <p>原已递交底稿不会自动修改。请为这些交易选择本期更正、待修订或排除。</p>
                 <ul>{closedPeriodTransactions.map((transaction) => <li key={transaction.id}>交易 #{transaction.id} · {formatDueDate(transaction.date)} · {transaction.description} · 原 worksheet #{transaction.originalWorksheetId}</li>)}</ul>
                 <div className="closed-period-choice-actions">
-                  <button type="button" className="primary-button" onClick={() => void generate({ action: "include_current" })} disabled={busy}>并入本期作为更正</button>
+                  <button type="button" className="primary-button" onClick={() => void generate({ action: "include_current" })} disabled={busy || !closedPeriodIncludeAllowed}>并入本期作为更正</button>
+                  {!closedPeriodIncludeAllowed ? <p className="form-error">该更正超出 ATO 现行金额或时间限制，不能并入本期；请选择“标为待修订”。</p> : null}
                   <button type="button" className="secondary-button" onClick={() => void generate({ action: "revision_required" })} disabled={busy}>标为待修订</button>
                 </div>
                 <div className="closed-period-exclude">
@@ -151,6 +160,12 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
           </section>
         ) : (
           <>
+            {(() => {
+              const correctionSummary = summarizePriorPeriodCorrections(worksheet.lines);
+              if (!correctionSummary.count) return null;
+              const periods = correctionSummary.periodLabels.map(displayBasPeriodLabel).join("、");
+              return <section className="bas-correction-summary" data-testid="prior-period-correction-summary" aria-label="前期更正汇总"><strong>本期含 {correctionSummary.count} 笔前期更正，合计 {formatCents(correctionSummary.totalAmountCents)}，原属期间 {periods}</strong><p>原已递交底稿的金额未被修改；本期底稿记录了更正来源和原 worksheet。</p></section>;
+            })()}
             <section className="bas-summary-grid" aria-label="BAS 对外申报汇总">
               <SummaryValue label="G1" cents={worksheet.g1Cents} />
               <SummaryValue label="1A" cents={worksheet.a1Cents} />

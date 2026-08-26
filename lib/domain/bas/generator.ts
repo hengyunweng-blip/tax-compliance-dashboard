@@ -2,6 +2,8 @@ import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { getSimplerBasInstructionSteps } from "@/lib/domain/bas/instructions";
 import { mapTransactionToBas, summarizeBas, type BasLineContribution, type BasPaygInput, type BasStatementType, type BasTransactionInput } from "@/lib/domain/bas/gst-mapping";
+import { assessGstCorrection } from "@/lib/domain/bas/gst-correction-policy";
+import { storedLodgedDateOnly } from "@/lib/domain/bas/correction-summary";
 import { assertIntegerCents } from "@/lib/money";
 import { formatMelbourneDateTime, type DateOnly } from "@/lib/time/melbourne";
 
@@ -11,6 +13,9 @@ type BasTransactionRow = BasTransactionInput & {
   description: string;
   counterparty: string | null;
   gstCode: string;
+  belongsToClosedPeriod?: boolean;
+  originalWorksheetId?: number | null;
+  originalPeriodLabel?: string | null;
 };
 
 export type BasLineItem = BasLineContribution & {
@@ -21,6 +26,9 @@ export type BasLineItem = BasLineContribution & {
   amountCents: number;
   gstCents: number;
   gstCode: string;
+  isPriorPeriodCorrection: boolean;
+  originalPeriodLabel: string | null;
+  originalWorksheetId: number | null;
 };
 
 type BasSnapshot = {
@@ -82,6 +90,8 @@ export type ClosedPeriodTransaction = {
   reviewFlag: boolean;
   originalWorksheetId: number;
   originalPeriodLabel: string;
+  originalEffectiveDue: DateOnly;
+  originalLodgedDate: DateOnly | null;
   closedPeriodResolution: null;
 };
 
@@ -91,6 +101,7 @@ export class BasGenerationError extends Error {
     public readonly warnings: string[] = [],
     public readonly pendingTransactionIds: number[] = [],
     public readonly closedPeriodTransactions: ClosedPeriodTransaction[] = [],
+    public readonly closedPeriodIncludeAllowed = true,
   ) {
     super(message);
     this.name = "BasGenerationError";
@@ -203,14 +214,23 @@ function toLineItem(row: BasTransactionRow): BasLineItem {
     amountCents: row.amountCents,
     gstCents: row.gstCents,
     gstCode: row.gstCode,
+    isPriorPeriodCorrection: Boolean(row.originalWorksheetId),
+    originalPeriodLabel: row.originalPeriodLabel ?? null,
+    originalWorksheetId: row.originalWorksheetId ?? null,
     ...mapTransactionToBas(row),
   };
 }
 
-function mapClosedPeriodTransaction(row: ClosedPeriodTransaction): ClosedPeriodTransaction {
+type ClosedPeriodTransactionDbRow = Omit<ClosedPeriodTransaction, "originalLodgedDate" | "closedPeriodResolution"> & {
+  originalLodgedAt: string | null;
+  closedPeriodResolution: null;
+};
+
+function mapClosedPeriodTransaction(row: ClosedPeriodTransactionDbRow): ClosedPeriodTransaction {
   return {
     ...row,
     reviewFlag: Boolean(row.reviewFlag),
+    originalLodgedDate: storedLodgedDateOnly(row.originalLodgedAt),
     closedPeriodResolution: null,
   };
 }
@@ -237,7 +257,7 @@ export function generateBasWorksheet(obligationId: number, closedPeriodDecision?
 
   const generated = db.transaction(() => {
     const obligation = db.prepare(`
-      SELECT o.id, o.rule_id, o.entity_id, o.income_year, o.period_label, o.status,
+      SELECT o.id, o.rule_id, o.entity_id, o.income_year, o.period_label, o.status, o.effective_due,
         e.type AS entity_type, e.gst_registered
       FROM obligations o
       INNER JOIN entities e ON e.id = o.entity_id
@@ -249,6 +269,7 @@ export function generateBasWorksheet(obligationId: number, closedPeriodDecision?
       income_year: string;
       period_label: string;
       status: string;
+      effective_due: DateOnly | null;
       entity_type: string;
       gst_registered: number;
     } | undefined;
@@ -263,7 +284,9 @@ export function generateBasWorksheet(obligationId: number, closedPeriodDecision?
         t.amount_cents AS amountCents, t.gst_cents AS gstCents, t.account_id AS accountId,
         t.gst_code AS gstCode, t.review_flag AS reviewFlag,
         t.closed_period_worksheet_id AS originalWorksheetId,
-        original.period_label AS originalPeriodLabel
+        original.period_label AS originalPeriodLabel,
+        original.effective_due AS originalEffectiveDue,
+        original.lodged_at AS originalLodgedAt
       FROM transactions t
       INNER JOIN bas_worksheets original_worksheet ON original_worksheet.id = t.closed_period_worksheet_id
       INNER JOIN obligations original ON original.id = original_worksheet.obligation_id
@@ -272,7 +295,7 @@ export function generateBasWorksheet(obligationId: number, closedPeriodDecision?
         AND t.closed_period_resolution IS NULL
         AND t.locked = 0
       ORDER BY t.date, t.id
-    `).all(obligation.entity_id) as ClosedPeriodTransaction[];
+    `).all(obligation.entity_id) as ClosedPeriodTransactionDbRow[];
     const closedPeriodTransactions = closedPeriodRows.map(mapClosedPeriodTransaction);
     if (closedPeriodTransactions.length) {
       if (!closedPeriodDecision) {
@@ -298,6 +321,43 @@ export function generateBasWorksheet(obligationId: number, closedPeriodDecision?
           closedPeriodTransactions,
         );
       }
+
+      if (closedPeriodDecision.action === "include_current") {
+        if (!obligation.effective_due) {
+          throw new BasGenerationError("本期 BAS 缺少实际工作日，无法校验 GST 更正时限", [], [], closedPeriodTransactions, false);
+        }
+        const correctionGroups = new Map<number, { originalEffectiveDue: DateOnly; originalLodgedDate: DateOnly | null; gstDeltaCents: number }>();
+        for (const row of closedPeriodTransactions) {
+          const existingGroup = correctionGroups.get(row.originalWorksheetId);
+          const gstDeltaCents = mapTransactionToBas(row).a1Cents - mapTransactionToBas(row).b1Cents;
+          if (existingGroup) {
+            existingGroup.gstDeltaCents += gstDeltaCents;
+          } else {
+            correctionGroups.set(row.originalWorksheetId, {
+              originalEffectiveDue: row.originalEffectiveDue,
+              originalLodgedDate: row.originalLodgedDate,
+              gstDeltaCents,
+            });
+          }
+        }
+        for (const correction of correctionGroups.values()) {
+          const assessment = assessGstCorrection({
+            originalEffectiveDue: correction.originalEffectiveDue,
+            originalLodgedDate: correction.originalLodgedDate,
+            targetEffectiveDue: obligation.effective_due,
+            gstDeltaCents: correction.gstDeltaCents,
+          });
+          if (!assessment.allowed) {
+            throw new BasGenerationError(
+              `${assessment.reason} 请改选“标为待修订”。`,
+              [assessment.reason ?? "GST 更正不能并入本期"],
+              [],
+              closedPeriodTransactions,
+              false,
+            );
+          }
+        }
+      }
     }
 
     const fy = obligation.income_year.replace(/^FY/, "");
@@ -316,7 +376,9 @@ export function generateBasWorksheet(obligationId: number, closedPeriodDecision?
     const transactionRows = db.prepare(`
       SELECT id, entity_id AS entityId, date, description, counterparty,
         amount_cents AS amountCents, gst_cents AS gstCents, account_id AS accountId,
-        gst_code AS gstCode, review_flag AS reviewFlag
+        gst_code AS gstCode, review_flag AS reviewFlag,
+        belongs_to_closed_period AS belongsToClosedPeriod,
+        closed_period_worksheet_id AS originalWorksheetId
       FROM transactions
       WHERE entity_id = ? AND fy = ? AND quarter = ? AND locked = 0 AND review_flag = 0
       ORDER BY date, id

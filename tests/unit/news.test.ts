@@ -52,6 +52,23 @@ test("successful source refresh is cached for 24 hours and content hash deduplic
   expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM news_items WHERE source_id = ?").get(source)).toEqual({ count: 1 });
 });
 
+test("parses real-style ASIC listing entries instead of saving the navigation page title", async () => {
+  const source = sourceId("ASIC 公告");
+  const listing = `
+    <span class="nh-list-date">20 August 2026</span>
+    <h3 class="line-clamp"><a href="/about-asic/news-centre/news-items/example-one" class="nh-list-link">Example ASIC announcement</a></h3>
+    <span class="nh-list-date">11 August 2026</span>
+    <h3 class="line-clamp"><a href="https://www.asic.gov.au/about-asic/news-centre/news-items/example-two" class="nh-list-link">Second ASIC announcement</a></h3>
+  `;
+
+  await refreshSource(source, async () => new Response(listing, { status: 200 }));
+
+  expect(getRawDb().prepare("SELECT title, published_at AS publishedAt, url FROM news_items WHERE source_id = ? ORDER BY id").all(source)).toEqual([
+    { title: "Example ASIC announcement", publishedAt: "2026-08-20", url: "https://asic.gov.au/about-asic/news-centre/news-items/example-one" },
+    { title: "Second ASIC announcement", publishedAt: "2026-08-11", url: "https://www.asic.gov.au/about-asic/news-centre/news-items/example-two" },
+  ]);
+});
+
 test("analysis is persisted only for pre-screened items and a todo requires explicit confirmation", async () => {
   const source = sourceId("ATO 小企业资讯");
   const insert = getRawDb().prepare("INSERT INTO news_items (source_id, title, url, published_at, raw_text, content_hash) VALUES (?, ?, ?, ?, ?, ?)");

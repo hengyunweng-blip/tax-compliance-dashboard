@@ -1105,6 +1105,23 @@ textarea {
   font-size: 13px;
 }
 
+.bas-correction-summary {
+  margin-top: 20px;
+  border: 1px solid #e2a6a0;
+  border-radius: 7px;
+  background: #fff8f6;
+  padding: 14px 16px;
+  color: #7d241c;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.bas-correction-summary p {
+  margin: 6px 0 0;
+  color: #687386;
+  font-size: 12px;
+}
+
 .bas-generate-card,
 .bas-payg-panel,
 .bas-instructions,
@@ -1144,6 +1161,13 @@ textarea {
 
 .closed-period-choice p {
   margin: 7px 0 0;
+}
+
+.closed-period-choice .form-error {
+  flex: 1 1 100%;
+  margin: 0;
+  color: #8f2118;
+  font-weight: 700;
 }
 
 .closed-period-choice ul {
@@ -1359,6 +1383,24 @@ textarea {
 
 .bas-table-wrap td {
   color: #3b4c67;
+}
+
+.correction-badge {
+  display: inline-block;
+  margin-right: 7px;
+  border-radius: 999px;
+  background: #fff0d6;
+  padding: 2px 7px;
+  color: #8a5600;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.correction-meta {
+  display: block;
+  margin-top: 4px;
+  color: #8a5600;
+  font-size: 11px;
 }
 
 .bas-table-wrap .amount-cell {

@@ -18,6 +18,7 @@ function errorResponse(error: unknown) {
       warnings: error.warnings,
       pendingTransactionIds: error.pendingTransactionIds,
       closedPeriodTransactions: error.closedPeriodTransactions,
+      closedPeriodIncludeAllowed: error.closedPeriodIncludeAllowed,
     }, { status: error.pendingTransactionIds.length || error.closedPeriodTransactions.length ? 409 : 400 });
   }
   return Response.json({ error: error instanceof Error ? error.message : "BAS 操作失败" }, { status: 400 });

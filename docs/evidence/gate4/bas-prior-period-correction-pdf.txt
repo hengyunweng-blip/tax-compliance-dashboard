@@ -1,0 +1,5 @@
+Runtime extraction: GET /api/bas/8?format=pdf, decoded from the generated PDF content stream for verification.
+Database: ./data/gate4-return-final.db
+
+Prior-period corrections: 1 transaction(s), total $1,100.00, originally FY2026-27 Q1
+Prior-period correction | Transaction #2 | 05 Jul 2026 | FY2026-27 Q1 | worksheet #1 | GST_INCOME | $1,100.00

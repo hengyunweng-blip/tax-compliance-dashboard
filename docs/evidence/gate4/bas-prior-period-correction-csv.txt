@@ -1,0 +1,7 @@
+Runtime extraction: GET /api/bas/8?format=csv
+Database: ./data/gate4-return-final.db
+
+transaction_id,date,description,amount_cents,gst_cents,gst_code,g1_cents,a1_cents,b1_cents,g10_cents,g11_cents,line_type,original_period,original_worksheet_id
+2,05 Jul 2026,Late Q1 sale - prior period correction,110000,10000,GST_INCOME,110000,10000,0,0,0,前期更正,FY2026–27 Q1,worksheet #1
+SUMMARY,,,,,,110000,10000,0,0,0,,,
+CORRECTION_SUMMARY,,"本期含 1 笔前期更正，合计 $1,100.00，原属期间 FY2026–27 Q1",,,,,,,,,前期更正,FY2026–27 Q1,1

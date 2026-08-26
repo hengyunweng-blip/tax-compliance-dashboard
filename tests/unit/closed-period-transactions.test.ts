@@ -29,15 +29,15 @@ function obligationId(period: "Q1" | "Q2") {
   return (getRawDb().prepare("SELECT id FROM obligations WHERE entity_id = 'boyun_co' AND rule_id = 'bas_quarterly' AND period_label LIKE ?").get(`% ${period}`) as { id: number }).id;
 }
 
-function createConfirmedTransaction(date: string, description: string) {
+function createConfirmedTransaction(date: string, description: string, values: { amountCents?: number; gstCents?: number } = {}) {
   return createTransaction({
     entityId: "boyun_co",
     date,
     description,
     accountId: accountId(),
     gstCode: "GST_INCOME",
-    amountCents: 110000,
-    gstCents: 10000,
+    amountCents: values.amountCents ?? 110000,
+    gstCents: values.gstCents ?? 10000,
     reviewFlag: false,
     source: "closed-period-test",
   });
@@ -124,4 +124,24 @@ test("requires a choice before generating the next BAS and audits the selected r
     reason: "将已关账期间交易并入本期作为更正",
   });
   expect(q2.worksheet.id).not.toBe(q1.worksheetId);
+});
+
+test("blocks include_current when a GST correction exceeds the ATO threshold and permits revision", () => {
+  const q1 = generateAndLodgeQ1();
+  const late = createConfirmedTransaction("2026-07-05", "Over-limit Q1 sale", {
+    amountCents: 13_750_000,
+    gstCents: 1_250_000,
+  });
+
+  expect(() => generateBasWorksheet(obligationId("Q2"), { action: "include_current" })).toThrow(/12,500|修订/);
+  expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM bas_worksheets").get()).toEqual({ count: 1 });
+  expect(getRawDb().prepare("SELECT locked, closed_period_resolution FROM transactions WHERE id = ?").get(late.id)).toEqual({ locked: 0, closed_period_resolution: null });
+  expect(worksheetAmounts(q1.worksheetId)).toMatchObject({
+    g1_cents: 110000,
+    a1_cents: 10000,
+  });
+
+  const revised = generateBasWorksheet(obligationId("Q2"), { action: "revision_required" });
+  expect(revised.worksheet.lines).toHaveLength(0);
+  expect(getRawDb().prepare("SELECT closed_period_resolution FROM transactions WHERE id = ?").get(late.id)).toEqual({ closed_period_resolution: "revision_required" });
 });

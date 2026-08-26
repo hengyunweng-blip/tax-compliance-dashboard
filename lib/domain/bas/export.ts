@@ -2,6 +2,7 @@ import { formatCents } from "@/lib/money";
 import { formatDueDate } from "@/lib/time/melbourne";
 import { getRawDb } from "@/lib/db/client";
 import { getBasWorksheetById } from "@/lib/domain/bas/generator";
+import { displayBasPeriodLabel, summarizePriorPeriodCorrections } from "@/lib/domain/bas/correction-summary";
 
 function csvEscape(value: string | number | null) {
   const text = value === null ? "" : String(value);
@@ -11,7 +12,8 @@ function csvEscape(value: string | number | null) {
 export function exportBasCsv(worksheetId: number): Response {
   const worksheet = getBasWorksheetById(worksheetId);
   if (!worksheet) return Response.json({ error: "BAS 底稿不存在" }, { status: 404 });
-  const headers = ["transaction_id", "date", "description", "amount_cents", "gst_cents", "gst_code", "g1_cents", "a1_cents", "b1_cents", "g10_cents", "g11_cents"];
+  const correctionSummary = summarizePriorPeriodCorrections(worksheet.lines);
+  const headers = ["transaction_id", "date", "description", "amount_cents", "gst_cents", "gst_code", "g1_cents", "a1_cents", "b1_cents", "g10_cents", "g11_cents", "line_type", "original_period", "original_worksheet_id"];
   const lines = worksheet.lines.map((line) => [
     line.transactionId,
     formatDueDate(line.date),
@@ -24,8 +26,16 @@ export function exportBasCsv(worksheetId: number): Response {
     line.b1Cents,
     line.g10Cents,
     line.g11Cents,
+    line.isPriorPeriodCorrection ? "前期更正" : "普通交易",
+    line.originalPeriodLabel ? displayBasPeriodLabel(line.originalPeriodLabel) : "",
+    line.originalWorksheetId ? `worksheet #${line.originalWorksheetId}` : "",
   ].map(csvEscape).join(","));
-  lines.push(["SUMMARY", "", "", "", "", "", worksheet.g1Cents, worksheet.a1Cents, worksheet.b1Cents, worksheet.g10Cents, worksheet.g11Cents].map(csvEscape).join(","));
+  lines.push(["SUMMARY", "", "", "", "", "", worksheet.g1Cents, worksheet.a1Cents, worksheet.b1Cents, worksheet.g10Cents, worksheet.g11Cents, "", "", ""].map(csvEscape).join(","));
+  if (correctionSummary.count) {
+    const periods = correctionSummary.periodLabels.map(displayBasPeriodLabel).join("、");
+    const text = `本期含 ${correctionSummary.count} 笔前期更正，合计 ${formatCents(correctionSummary.totalAmountCents)}，原属期间 ${periods}`;
+    lines.push(["CORRECTION_SUMMARY", "", text, "", "", "", "", "", "", "", "", "前期更正", periods, correctionSummary.worksheetIds.join("、")].map(csvEscape).join(","));
+  }
   return new Response(`${headers.join(",")}\r\n${lines.join("\r\n")}\r\n`, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
@@ -84,6 +94,8 @@ export function exportBasPdf(worksheetId: number): Response {
   } | undefined;
   if (!context) return Response.json({ error: "BAS 义务不存在" }, { status: 404 });
   const quarter = context.period_label.split(" ").at(-1) ?? context.period_label;
+  const correctionSummary = summarizePriorPeriodCorrections(worksheet.lines);
+  const correctionPeriods = correctionSummary.periodLabels.map((period) => displayBasPeriodLabel(period).replace("–", "-")).join(", ");
   const lines = [
     "BAS WORKSHEET",
     `${context.entity_name} - ${context.income_year} ${quarter}`,
@@ -98,10 +110,13 @@ export function exportBasPdf(worksheetId: number): Response {
     `PAYG 5B credit: ${worksheet.payg5bCents === null ? "Not entered" : formatCents(worksheet.payg5bCents)}`,
     `PAYG instalment net (5A - 5B): ${worksheet.paygInstalmentCents === null ? "Not entered" : formatCents(worksheet.paygInstalmentCents)}`,
     `Statement total (${worksheet.statementType === "refund" ? "refund" : "payable"}): ${worksheet.statementTotalCents === null ? "Not resolved" : formatCents(worksheet.statementTotalCents)}`,
+    ...(correctionSummary.count ? [`Prior-period corrections: ${correctionSummary.count} transaction(s), total ${formatCents(correctionSummary.totalAmountCents)}, originally ${correctionPeriods}`] : []),
     "",
     "Simpler BAS instructions: enter G1, 1A and 1B only.",
     worksheet.isNil ? "Nil BAS: lodge a nil activity statement." : `Traceable transaction lines: ${worksheet.lines.length}`,
-    ...worksheet.lines.slice(0, 25).map((line) => `Transaction #${line.transactionId} ${formatDueDate(line.date)} ${line.gstCode} ${formatCents(line.amountCents)}`),
+    ...worksheet.lines.slice(0, 25).map((line) => line.isPriorPeriodCorrection
+      ? `Prior-period correction | Transaction #${line.transactionId} | ${formatDueDate(line.date)} | ${line.originalPeriodLabel ? displayBasPeriodLabel(line.originalPeriodLabel).replace("–", "-") : "period unknown"} | worksheet #${line.originalWorksheetId ?? "unknown"} | ${line.gstCode} | ${formatCents(line.amountCents)}`
+      : `Transaction #${line.transactionId} ${formatDueDate(line.date)} ${line.gstCode} ${formatCents(line.amountCents)}`),
   ];
   const pdf = buildOnePagePdf(lines.slice(0, 45));
   return new Response(pdf, {
