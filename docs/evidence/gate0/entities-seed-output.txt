@@ -1,0 +1,12 @@
+Command:
+SELECT id, name, type, gst_registered FROM entities ORDER BY sort_order;
+
+Actual output from DATABASE_PATH=./data/gate0-evidence-final.db after `npm run db:seed`:
+[
+  { "id": "self", "name": "使用者本人", "type": "individual", "gst_registered": 0 },
+  { "id": "spouse", "name": "配偶", "type": "individual", "gst_registered": 0 },
+  { "id": "boyun_trust", "name": "Boyun Trust", "type": "trust", "gst_registered": 0 },
+  { "id": "boyun_co", "name": "Boyun Pty Ltd", "type": "company", "gst_registered": 1 },
+  { "id": "yeeliving_co", "name": "Yeeliving Pty Ltd（易居）", "type": "company", "gst_registered": 1 },
+  { "id": "neighbourhood_co", "name": "Neighbourhood Project Pty Ltd", "type": "company", "gst_registered": 1 }
+]

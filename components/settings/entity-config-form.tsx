@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, ChevronDown, Info, Save, Settings2, ShieldCheck } from "lucide-react";
+import { CalendarDays, Info, Save, Settings2, ShieldCheck } from "lucide-react";
+import { getEntityConfigurationStatus } from "@/lib/settings-status";
 
 type Entity = {
   id: string;
@@ -33,10 +34,6 @@ type Snapshot = {
 };
 
 type Props = { initialSnapshot: Snapshot };
-
-function configured(value: string | null | undefined) {
-  return Boolean(value?.trim());
-}
 
 export function SettingsForm({ initialSnapshot }: Props) {
   const [activeTab, setActiveTab] = useState<"entities" | "licence">("entities");
@@ -95,11 +92,6 @@ export function SettingsForm({ initialSnapshot }: Props) {
             <span>设置</span>
           </a>
         </nav>
-        <div className="rail-footer">
-          <span className="rail-footer-mark" aria-hidden="true">▥</span>
-          <span>私人工作区</span>
-          <ChevronDown size={16} aria-hidden="true" />
-        </div>
       </aside>
 
       <section className="settings-content" id="settings">
@@ -137,7 +129,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
             <div className="panel-heading">
               <div>
                 <h2>主体配置</h2>
-                <p>ACN 与周年日用于生成后续法定义务；未填写的项目会保留为“待配置”。</p>
+                <p>公司 ACN 与 ASIC 周年日用于生成后续法定义务；个人与信托不适用的字段不会进入配置状态判断。</p>
               </div>
               <span className="panel-count">{entities.length} 个主体</span>
             </div>
@@ -156,7 +148,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
                 <tbody>
                   {entities.map((entity, index) => {
                     const isCompany = entity.type === "company";
-                    const ready = !isCompany || (configured(entity.acn) && configured(entity.asicReviewDate));
+                    const status = getEntityConfigurationStatus(entity);
                     return (
                       <tr key={entity.id} data-testid={`entity-row-${entity.id}`}>
                         <td data-label="#" className="row-number">{index + 1}</td>
@@ -189,18 +181,20 @@ export function SettingsForm({ initialSnapshot }: Props) {
                           ) : <span className="not-applicable">不适用</span>}
                         </td>
                         <td data-label="GST 已注册">
-                          <select
-                            aria-label="GST 已注册"
-                            value={entity.gstRegistered ? "yes" : "no"}
-                            onChange={(event) => updateEntity(entity.id, { gstRegistered: event.target.value === "yes" })}
-                          >
-                            <option value="yes">是</option>
-                            <option value="no">否</option>
-                          </select>
+                          {isCompany ? (
+                            <select
+                              aria-label="GST 已注册"
+                              value={entity.gstRegistered ? "yes" : "no"}
+                              onChange={(event) => updateEntity(entity.id, { gstRegistered: event.target.value === "yes" })}
+                            >
+                              <option value="yes">是</option>
+                              <option value="no">否</option>
+                            </select>
+                          ) : <span className="not-applicable">不适用</span>}
                         </td>
                         <td data-label="状态">
-                          <span className={ready ? "status-ready" : "status-pending"}>
-                            {ready ? "已配置" : "待配置"}
+                          <span className={status === "ready" ? "status-ready" : "status-pending"}>
+                            {status === "ready" ? "已配置" : "待配置"}
                           </span>
                         </td>
                       </tr>

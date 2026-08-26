@@ -277,13 +277,13 @@ Seed the rule metadata so that FY2026–27 BAS obligations have `income_year = F
 
 - [ ] **Step 4: Implement settings API and responsive settings page**
 
-The page must show all six entities and their configuration status. ACN and anniversary fields are optional; empty values render “待配置” instead of hiding obligations. Add licence number and anniversary fields. Never render or accept a TFN field.
+The page must show the fixed six entities (`self`, `spouse`, `boyun_trust`, `boyun_co`, `yeeliving_co`, `neighbourhood_co`) and their configuration status. Render ACN, ASIC review date and GST controls only for `company` entities; for `individual` and `trust`, render three “不适用” values with no inputs and never show “待配置”. The pure status function must keep individual/trust rows `ready` when company identifiers are absent, while companies remain `blocked` until their applicable fields are present. Keep the one `self`-held licence's number and anniversary date on the separate licence tab; the entity table must not have a licence column. Do not render a subject/workspace switcher or a “私人工作区” footer. Never render or accept a TFN field.
 
 - [ ] **Step 5: Run tests, seed, and verify persistence through the real route**
 
 Run: `npm test -- tests/unit/money.test.ts tests/unit/settings.test.ts && npm run db:seed && npm run build`
 
-Then start the app with `npm run dev`, use a browser test to `PATCH /api/settings` for `boyun_co`, reload `/settings`, and assert the saved ACN/anniversary appear. This is the Gate 0 user-visible acceptance path.
+Then run `npm run db:seed`, start the app with `npm run dev`, capture `/settings` with the six real seeded names, use the real `PATCH /api/settings` path for `boyun_co`, reload `/settings`, and capture a second screenshot proving the ACN/ASIC anniversary persisted. Also report `SELECT id, name, type, gst_registered FROM entities ORDER BY sort_order;` output. This is the Gate 0 user-visible acceptance path; it does not claim real phone camera upload.
 
 - [ ] **Step 6: Stop and request Gate 0 acceptance**
 

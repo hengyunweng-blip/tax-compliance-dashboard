@@ -3,6 +3,7 @@ import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { seedDatabase } from "@/lib/db/seed";
 import { saveEntityConfiguration, saveSettings } from "@/lib/settings";
+import { getEntityConfigurationStatus } from "@/lib/settings-status";
 
 test("saving entity configuration survives a fresh database read", () => {
   seedDatabase();
@@ -61,4 +62,10 @@ test("saves combined settings atomically", () => {
     .get("spouse") as { acn: string | null };
 
   expect(row.acn).toBeNull();
+});
+
+test("individual and trust entities are never blocked by missing company identifiers", () => {
+  expect(getEntityConfigurationStatus({ type: "individual", acn: null, asicReviewDate: null })).toBe("ready");
+  expect(getEntityConfigurationStatus({ type: "trust", acn: null, asicReviewDate: null })).toBe("ready");
+  expect(getEntityConfigurationStatus({ type: "company", acn: null, asicReviewDate: null })).toBe("blocked");
 });

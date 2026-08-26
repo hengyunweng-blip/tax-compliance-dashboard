@@ -1,6 +1,6 @@
 # 澳洲多主体税务合规看板系统设计
 
-**状态：** 已按用户确认的五项修正更新，等待 Gate 0 开始确认
+**状态：** 已按用户反馈更新 Gate 0 配置边界，等待 Gate 0 重新验收
 
 **需求来源：** `/Users/neilweng/Downloads/tax-compliance-system-spec.md`
 
@@ -108,7 +108,14 @@ Next.js App Router
 
 ### 4.3 主体种子
 
-系统首次 seed 六个固定 ID：`self`、`spouse`、`boyun_trust`、`boyun_co`、`yeeliving_co`、`neighbourhood_co`。三家公司初始 `gst_registered = true`，其中 `neighbourhood_co` 也生成正常 BAS 义务；ACN、ASIC 周年日、牌照周年日为空时相关卡片为 `blocked / 待配置`。
+系统首次 seed 六个固定 ID：`self`、`spouse`、`boyun_trust`、`boyun_co`、`yeeliving_co`、`neighbourhood_co`。三家公司初始 `gst_registered = true`，其中 `neighbourhood_co` 也生成正常 BAS 义务。公司 ACN/ASIC 周年日和唯一 `self` 持有牌照的周年日为空时，只有对应的适用义务可以是 `blocked / 待配置`；个人和信托不因缺少公司字段而进入 blocked。
+
+### 4.4 Gate 0 配置页边界
+
+- 主体配置表固定展示上述两个个人、一个信托和三家公司；按 `entities.type` 渲染字段。公司显示 ACN、ASIC 周年日和 GST 注册选择，个人/信托这三项显示“不适用”，不渲染输入控件，也不显示“待配置”。
+- 主体状态只对公司检查 ACN 与 ASIC 周年日；个人和信托的缺失公司字段始终是 `ready`，不能污染义务 blocked 状态。
+- 牌照只有一张，由 `self` 持有；牌照号码与牌照周年日仅出现在独立的“牌照配置”标签页，主体表不出现牌照列。
+- 系统是本地单用户工作台，不提供主体切换下拉、工作区选择、“私人工作区”页脚或多租户壳子。
 
 ## 5. 时间、假日和到期日设计
 

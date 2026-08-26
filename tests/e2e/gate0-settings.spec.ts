@@ -27,3 +27,20 @@ test("settings layout has no viewport overflow at a narrow width", async ({ page
   expect(acnBox?.width ?? 0).toBeGreaterThan(120);
   await expect(page.getByRole("button", { name: "保存设置" })).toBeVisible();
 });
+
+test("renders only applicable entity fields and keeps the licence date on its own tab", async ({ page }) => {
+  await page.goto("/settings");
+
+  for (const entityId of ["self", "spouse", "boyun_trust"]) {
+    const row = page.getByTestId(`entity-row-${entityId}`);
+    await expect(row.locator(".not-applicable")).toHaveCount(3);
+    await expect(row.getByLabel("GST 已注册")).toHaveCount(0);
+    await expect(row.getByText("待配置")).toHaveCount(0);
+  }
+
+  await expect(page.getByText("私人工作区")).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "牌照周年日" })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "牌照配置" }).click();
+  await expect(page.getByRole("region", { name: "牌照配置" }).getByText("牌照周年日", { exact: true })).toBeVisible();
+});

@@ -86,26 +86,6 @@ textarea {
   font-weight: 650;
 }
 
-.rail-footer {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: auto;
-  border-top: 1px solid #e2e6ed;
-  padding: 23px 8px 0;
-  color: #536073;
-  font-size: 13px;
-}
-
-.rail-footer svg {
-  margin-left: auto;
-}
-
-.rail-footer-mark {
-  color: #172033;
-  font-size: 20px;
-}
-
 .settings-content {
   width: min(100%, 1230px);
   padding: 45px 38px 42px;
@@ -425,7 +405,6 @@ textarea {
   .brand-lockup { font-size: 18px; }
   .app-nav { margin-top: 14px; }
   .nav-item { min-height: 38px; }
-  .rail-footer { display: none; }
   .settings-content { padding: 26px 18px 30px; }
   .settings-header { align-items: flex-start; flex-direction: column; gap: 14px; padding-bottom: 18px; }
   .settings-header h1 { font-size: 32px; }
