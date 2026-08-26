@@ -307,8 +307,10 @@ Start this section only after the user explicitly accepts Gate 0. Stop after thi
 - `isVictorianPublicHoliday(date: DateOnly): boolean` checks the hard-coded set.
 - `nextMelbourneBusinessDay(date: DateOnly): DateOnly` moves forward until neither weekend nor holiday.
 - `formatDueDate(date: DateOnly): string` returns `DD MMM YYYY`.
+- All read-only dates in settings, cards, detail pages, BAS/annual worksheets, and exports use `formatDueDate`; date inputs use a custom `DD/MM/YYYY` control with an explicit format hint and never depend on browser locale.
+- Unit tests must assert `formatDueDate("2026-07-15") === "15 Jul 2026"` both under the default test environment and with `en-US` locale settings.
 
-- [ ] **Step 1: Write failing tests for weekends, holidays, and DST-safe conversion**
+- [x] **Step 1: Write failing tests for weekends, holidays, and DST-safe conversion**
 
 ```ts
 import { expect, test } from "vitest";
@@ -327,17 +329,17 @@ test("uses Australia/Melbourne across daylight-saving boundaries", () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run: `npm test -- tests/unit/melbourne-dates.test.ts`
 
 Expected: FAIL because business-day functions are not implemented.
 
-- [ ] **Step 3: Implement the pure functions with date-fns-tz**
+- [x] **Step 3: Implement the pure functions with date-fns-tz**
 
 Parse date-only values as Melbourne calendar dates, derive weekday with `toZonedTime`/`formatInTimeZone`, and return date-only strings. No function may compare a deadline by calling `new Date(dateString)` in the server’s default timezone.
 
-- [ ] **Step 4: Run the focused test and lint**
+- [x] **Step 4: Run the focused test and lint**
 
 Run: `npm test -- tests/unit/melbourne-dates.test.ts && npm run lint`
 
@@ -361,7 +363,7 @@ Expected: PASS with no fixed-offset timezone constants.
 - `transitionObligation({ obligationId, to, reason }): Obligation` validates the state machine and writes exactly one audit row in the same transaction.
 - `buildReminderInstances(obligation): ReminderInput[]` creates T-30/T-10/T-3/due/overdue and special offsets.
 
-- [ ] **Step 1: Write failing exact-date tests**
+- [x] **Step 1: Write failing exact-date tests**
 
 ```ts
 import { expect, test } from "vitest";
@@ -384,21 +386,21 @@ test.each([
 
 Also test that a company with an outstanding prior-year return gets `incomeYear = FY2025-26`, statutory due `2026-10-31`, effective due `2026-11-02`, and `deadlineFy = FY2026-27`; a current company gets `incomeYear = FY2025-26`, statutory due `2027-02-28`, effective due `2027-03-01`, and `deadlineFy = FY2026-27`. Trust and personal returns due 2026-10-31 use the same FY2025-26/FY2026-27 split. Test ASIC, trust resolution, licence six-week window, super contribution and notice reminders.
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run: `npm test -- tests/unit/obligation-calculator.test.ts tests/unit/obligation-state.test.ts`
 
 Expected: FAIL because calculator, expansion, and state transition services do not exist.
 
-- [ ] **Step 3: Implement explicit quarter rules rather than one generic offset**
+- [x] **Step 3: Implement explicit quarter rules rather than one generic offset**
 
 Represent Q1/Q3/Q4 online self-lodge offsets as `14` days and Q2 as `0`. Keep the statutory dates explicit for FY2026–27. Apply `nextMelbourneBusinessDay()` only to produce `effectiveDue`. Make expansion idempotent and mark missing configuration as `blocked`.
 
-- [ ] **Step 4: Implement state transitions and audit logging**
+- [x] **Step 4: Implement state transitions and audit logging**
 
 Allow only `blocked → todo → collecting → draft_ready → lodged → paid`, `na` as a terminal state, and explicit reasoned rollback transitions. Every update must insert `audit_log` with target, from state, to state, reason and Melbourne-local changed timestamp in one transaction.
 
-- [ ] **Step 5: Run all Gate 1 unit tests**
+- [x] **Step 5: Run all Gate 1 unit tests**
 
 Run: `npm test -- tests/unit/melbourne-dates.test.ts tests/unit/obligation-calculator.test.ts tests/unit/obligation-state.test.ts`
 
@@ -425,7 +427,7 @@ Expected: PASS; the output must include the Q2 test proving no 14-day extension.
 - `renderDashboardModel()` returns six fixed entity columns and sorted urgency cards.
 - Each card model contains `incomeYear`, `statutoryDue`, `effectiveDue`, and `deadlineFy`; the title uses `incomeYear` plus statutory due, while the countdown uses `effectiveDue`.
 
-- [ ] **Step 1: Write the calendar serialization test**
+- [x] **Step 1: Write the calendar serialization test**
 
 ```ts
 test("exports a Melbourne all-day event using the effective due date", () => {
@@ -439,21 +441,21 @@ test("exports a Melbourne all-day event using the effective due date", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npm test -- tests/unit/ics.test.ts`
 
 Expected: FAIL because the serializer and export route are absent.
 
-- [ ] **Step 3: Implement dashboard data and responsive layout**
+- [x] **Step 3: Implement dashboard data and responsive layout**
 
 Render six columns on desktop, urgent banner for overdue/≤7 days, status filter, hide-completed switch, exact date format, and highest-risk licence styling. On a narrow viewport columns become a readable vertical or horizontally scrollable layout without clipping the primary dates. Do not add camera assertions to this E2E test.
 
-- [ ] **Step 4: Implement `.ics` route and detail page**
+- [x] **Step 4: Implement `.ics` route and detail page**
 
 Use `effective_due` for `DTSTART;VALUE=DATE`, include statutory date in `DESCRIPTION`, include portal URL, and escape iCalendar text. The detail page shows static checklist when AI is disabled and the state transition controls.
 
-- [ ] **Step 5: Run Gate 1 verification**
+- [x] **Step 5: Run Gate 1 verification**
 
 Run: `npm test -- tests/unit/melbourne-dates.test.ts tests/unit/obligation-calculator.test.ts tests/unit/obligation-state.test.ts tests/unit/ics.test.ts && npm run build && npm run test:e2e -- tests/e2e/gate1-dashboard.spec.ts`
 
@@ -462,6 +464,19 @@ Use the browser to seed FY2026–27, configure the three company/ASIC/licence da
 - [ ] **Step 6: Stop and request Gate 1 acceptance**
 
 Report the exact generated date table and test output. Do not create or modify Gate 2 files until the user explicitly confirms that the Gate 1 dates match the requirements.
+
+### Gate 1 复审修订（用户反馈后）
+
+- [x] 将牌照周年日作为 `statutory_due`，另存窗口开启日；提醒从窗口开启日开始，详情页显示周年日后 21 天自动注销后果。
+- [x] 在 `obligation_rules` 增加 `adjustment_direction`，`forward` 为默认；供款、信托决议和牌照使用 `backward`，BAS/税表/ASIC 使用 `forward`。
+- [x] 允许配置缺失的 ASIC 义务保留为 `blocked`，`statutory_due`/`effective_due` 为 `NULL`，不生成默认日期；看板对逾期牌照使用最高危险样式。
+- [x] 将 `obligation_rules.required_fields` 纳入 schema 与 seed；BAS/公司税表不依赖 ACN/ASIC，只有规则自己声明的缺失字段才会使该义务 `blocked`。
+- [x] 修复提醒展开：blocked ASIC 不生成提醒；同一主体的 BAS 仍生成 T-30/T-10/T-3/当天四条提醒，并锁定对应单元测试。
+
+### Gate 1 修复后转入 Gate 2
+
+用户已确认牌照日期、顺延方向和 ASIC 未配置行为修复正确，并授权在修复 blocked 扩散问题后直接开始 Gate 2；Gate 2 报告开头必须先附修正后的看板截图和两组 blocked/提醒测试结果。Gate 2 验收修订完成并本地合并后，按用户授权进入 Gate 3。
+- [x] 补充牌照窗口、2029-06-30 反向调整、ASIC 空配置、规则种子值、提醒锚点和 ICS 日期测试，并重新运行浏览器证据。
 
 ## Gate 2 — 四种录入、账本、分类队列与 CSV 导入
 
@@ -483,7 +498,7 @@ Start only after Gate 1 acceptance. Gate 2 must include the email endpoint that 
 - `createDocument(input): Document` deduplicates by SHA-256 and stores files only below `data/files/`.
 - `listInboxItems(): Promise<InboxItem[]>` returns unconfirmed documents and `review_flag` transactions.
 
-- [ ] **Step 1: Write failing integer-money and validation tests**
+- [x] **Step 1: Write failing integer-money and validation tests**
 
 ```ts
 test("rejects a transaction amount that is not a safe integer", () => {
@@ -496,21 +511,21 @@ test("does not include an unconfirmed transaction in a BAS candidate list", asyn
 });
 ```
 
-- [ ] **Step 2: Run focused tests to verify they fail**
+- [x] **Step 2: Run focused tests to verify they fail**
 
 Run: `npm test -- tests/unit/transactions.test.ts`
 
 Expected: FAIL because transaction/document services do not exist.
 
-- [ ] **Step 3: Implement transaction/document CRUD with strict integer checks**
+- [x] **Step 3: Implement transaction/document CRUD with strict integer checks**
 
 Use Zod schemas that distinguish money strings at API boundaries from integer cents inside the domain. Store negative expenses as negative `amount_cents` and negative `gst_cents`; all BAS aggregation converts eligible expense totals to positive absolute values at the boundary. Store `fy` and `quarter` as derived date-only fields.
 
-- [ ] **Step 4: Add file hash deduplication and safe paths**
+- [x] **Step 4: Add file hash deduplication and safe paths**
 
 Compute SHA-256 from file bytes, reject path traversal and unsupported MIME types, generate server-side filenames, and never use user-supplied filenames as filesystem paths. A duplicate document is returned with a duplicate status and is not written twice.
 
-- [ ] **Step 5: Run tests and a real transaction API request**
+- [x] **Step 5: Run tests and a real transaction API request**
 
 Run: `npm test -- tests/unit/transactions.test.ts && npm run build`
 
@@ -533,7 +548,7 @@ Use `POST /api/transactions` and `GET /api/transactions` in the running app, rel
 - `POST /api/ingest/email` returns `401` for a missing/invalid `INGEST_TOKEN`, `201` for accepted attachments, and `400` for malformed base64 or unsupported files.
 - `POST /api/documents` accepts multiple files and returns document IDs plus `pending`/`duplicate` status.
 
-- [ ] **Step 1: Write failing authentication and base64 tests**
+- [x] **Step 1: Write failing authentication and base64 tests**
 
 ```ts
 test("rejects email ingestion without the shared token before writing", async () => {
@@ -549,21 +564,21 @@ test("accepts a base64 PDF with the configured shared token", async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- tests/unit/email-ingest.test.ts`
 
 Expected: FAIL because `/api/ingest/email` does not exist.
 
-- [ ] **Step 3: Implement constant-time token verification and multipart/base64 parsing**
+- [x] **Step 3: Implement constant-time token verification and multipart/base64 parsing**
 
 Read `process.env.INGEST_TOKEN` only on the server. Compare encoded token bytes with a length-safe timing-safe comparison. Do not log request headers, token values, base64 payloads, or attachment contents. Reject requests before any file write if the token is invalid.
 
-- [ ] **Step 4: Implement multi-file upload and image compression**
+- [x] **Step 4: Implement multi-file upload and image compression**
 
 Accept image/PDF files, compress images before storage using `sharp`, store SHA-256-based generated names below `data/files/`, and enqueue documents as `pending`. If AI is disabled, leave `extraction_json` null and show the document in Inbox for manual classification.
 
-- [ ] **Step 5: Run unit tests and browser layout verification**
+- [x] **Step 5: Run unit tests and browser layout verification**
 
 Run: `npm test -- tests/unit/email-ingest.test.ts && npm run test:e2e -- tests/e2e/gate2-upload.spec.ts`
 
@@ -584,7 +599,7 @@ The E2E test must run the upload page at desktop and a narrow viewport, assert n
 - `saveCsvMappingTemplate(input): CsvMappingTemplate` persists bank column mapping.
 - `importCsv(input): ImportSummary` creates transactions and marks duplicate candidates.
 
-- [ ] **Step 1: Write failing CSV tests**
+- [x] **Step 1: Write failing CSV tests**
 
 ```ts
 test("maps a bank row to date, description and integer cents", () => {
@@ -602,21 +617,21 @@ test("marks duplicate date and amount rows instead of dropping them", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify failure**
+- [x] **Step 2: Run the tests to verify failure**
 
 Run: `npm test -- tests/unit/csv-import.test.ts`
 
 Expected: FAIL because the parser/importer is absent.
 
-- [ ] **Step 3: Implement preview, mapping template, exact money parsing, and duplicate detection**
+- [x] **Step 3: Implement preview, mapping template, exact money parsing, and duplicate detection**
 
-Use `csv-parse` only for CSV syntax. Require date, description, and amount mappings before import. Store balance as integer cents when present. Hash the original row for provenance, but identify duplicates by SHA-256 + date + amount and mark them visibly.
+Use `csv-parse` only for CSV syntax. Require date, description, and amount mappings before import. Store balance as integer cents when present. Let the mapping wizard select `DD/MM/YYYY` (default), `YYYY-MM-DD`, or `MM/DD/YYYY`; persist the selection in the bank template, show parsed `DD MMM YYYY` dates in the preview, and block imports when parsing fails or the selected format yields an impossible month. Hash the complete original row (including description) for provenance and identify duplicates by SHA-256 + parsed date + amount, marking them visibly.
 
-- [ ] **Step 4: Implement the wizard and browser flow**
+- [x] **Step 4: Implement the wizard and browser flow**
 
 Create a three-step flow: upload/preview → map columns → choose entity/default account/GST code and import. The summary must show created, duplicate, invalid, and review counts.
 
-- [ ] **Step 5: Run tests and the real CSV flow**
+- [x] **Step 5: Run tests and the real CSV flow**
 
 Run: `npm test -- tests/unit/csv-import.test.ts && npm run test:e2e -- tests/e2e/gate2-csv.spec.ts`
 
@@ -639,7 +654,7 @@ Upload a fixture CSV, map it, reload Inbox, and verify the imported records pers
 - `confirmInboxItem(input): Transaction` requires entity, account and GST code and clears the review flag.
 - `copyPreviousTransaction(id): DraftTransaction` returns editable values without locking or copying the original ID.
 
-- [ ] **Step 1: Write failing rule and keyboard tests**
+- [x] **Step 1: Write failing rule and keyboard tests**
 
 ```ts
 test("classifies a common commission supplier with a deterministic fallback", () => {
@@ -651,21 +666,21 @@ test("classifies a common commission supplier with a deterministic fallback", ()
 
 The browser test must confirm arrow-key movement, number-key account selection, Enter confirmation, and a required-field error when entity/account/GST is missing.
 
-- [ ] **Step 2: Run the tests to verify failure**
+- [x] **Step 2: Run the tests to verify failure**
 
 Run: `npm test -- tests/unit/classification.test.ts`
 
 Expected: FAIL because the rules and Inbox are absent.
 
-- [ ] **Step 3: Implement keyword fallback and explicit confirmation**
+- [x] **Step 3: Implement keyword fallback and explicit confirmation**
 
 Keep suggestions separate from confirmed transaction values. Confidence below the configured threshold sets `review_flag = true`; no suggestion may enter a BAS candidate set until the user confirms it.
 
-- [ ] **Step 4: Implement Inbox and quick entry UI**
+- [x] **Step 4: Implement Inbox and quick entry UI**
 
 Render all unclassified documents and low-confidence transactions in one page. Use stable keyboard focus order, visually show source and confidence, and allow manual correction. Add duplicate warning rather than silent deletion.
 
-- [ ] **Step 5: Run Gate 2 verification and stop**
+- [x] **Step 5: Run Gate 2 verification and stop**
 
 Run: `npm test -- tests/unit/transactions.test.ts tests/unit/email-ingest.test.ts tests/unit/csv-import.test.ts tests/unit/classification.test.ts && npm run build && npm run test:e2e -- tests/e2e/gate2-upload.spec.ts tests/e2e/gate2-csv.spec.ts tests/e2e/gate2-inbox.spec.ts`
 

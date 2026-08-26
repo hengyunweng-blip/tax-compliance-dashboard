@@ -1,6 +1,6 @@
 # 澳洲多主体税务合规看板系统设计
 
-**状态：** 已按用户反馈更新 Gate 0 配置边界，等待 Gate 0 重新验收
+**状态：** Gate 0、Gate 1 已验收通过；Gate 2 修订已完成，准备合并并进入 Gate 3
 
 **需求来源：** `/Users/neilweng/Downloads/tax-compliance-system-spec.md`
 
@@ -104,7 +104,7 @@ Next.js App Router
 
 所有表都有 `created_at` / `updated_at`，SQLite 布尔值在 domain 层映射为 boolean。金额列包括 `amount_cents`、`gst_cents`、BAS 标签、Div 7A 本金/还款、供款和上限，均为整数。
 
-`obligations` 额外保存 `income_year`（所属所得年度）和 `deadline_fy`（`effective_due` 所在财年）。`bas_worksheets` 保留 `payg_instalment_cents`，为整数分且可空；它只能由用户根据 ATO 预填的 5A/5B 数字手动录入，系统不得自行推算。
+`obligations` 额外保存 `income_year`（所属所得年度）和 `deadline_fy`（`effective_due` 所在财年）。配置缺失而必须保留义务卡片时，`statutory_due` 与 `effective_due` 可为空，状态必须为 `blocked`。`obligation_rules.adjustment_direction` 为 `forward`（默认）或 `backward`，`required_fields` 保存该规则自己的配置依赖字段 JSON。`blocked` 只由当前规则声明的依赖字段缺失触发，不能从主体级别扩散到其他义务；BAS 与公司税表的 `required_fields` 均为空。`bas_worksheets` 保留 `payg_instalment_cents`，为整数分且可空；它只能由用户根据 ATO 预填的 5A/5B 数字手动录入，系统不得自行推算。
 
 ### 4.3 主体种子
 
@@ -128,7 +128,7 @@ Next.js App Router
 - `statutory_due`：规则表或需求表列出的原始日期。
 - `effective_due`：按墨尔本工作日规则顺延后的日期。
 
-`period_start` 与 `period_end` 也使用本地 `YYYY-MM-DD`。日期展示统一 `DD MMM YYYY`。
+`period_start` 与 `period_end` 也使用本地 `YYYY-MM-DD`。日期展示统一 `DD MMM YYYY`，由 `formatDueDate()` 输出固定英文月份缩写，不读取浏览器或服务器 locale。日期输入不使用原生 `type="date"`，统一使用显式 `DD/MM/YYYY` 文本控件并在字段内标明格式；保存前解析为 Melbourne 本地 `DateOnly`，存储仍为 `YYYY-MM-DD`。因此同一份应用在 `en-US` 或其他机器区域设置下不会改变日期顺序。
 
 卡片和底稿标题显示 `income_year` 与法定日，例如「FY2025–26 信托税表 · 截止 31 Oct 2026」。卡片详情另外显示「实际工作日：02 Nov 2026」并以 `effective_due` 计算倒数；这样标题保留原规则日，操作提醒仍使用实际工作日。
 
@@ -144,6 +144,17 @@ Next.js App Router
 | Q4 | FY2026–27 | 28 Jul 2027 | 11 Aug 2027 | 网上自办额外 14 天 |
 
 这里的 Q2 断言必须防止通用“季度加 14 天”代码误套用。需求表中的 Q2 法定日仍是 2027-02-28；实际日是 2027-03-01。
+
+### 5.2a 非统一顺延方向与牌照窗口
+
+- `forward` 用于 BAS、公司/信托/个人税表和 ASIC 年检，非工作日调整到下一个工作日。
+- `backward` 用于个人可抵扣供款到账、信托分配决议和牌照年度声明，非工作日调整到上一个工作日。2029-06-30 为周六时，实际日为 2029-06-29，不能推入下一财年。
+- 牌照周年日是截止日，不是窗口开启日。周年日 `15 Aug 2026` 时，`windowOpens = 04 Jul 2026`、`statutory_due = 15 Aug 2026`、`effective_due = 14 Aug 2026`。卡片同时显示窗口开启日和周年日，只有周年日带“截止”字样；提醒从窗口开启日开始。
+- 牌照详情页明确显示：周年日后 21 天仍未完成年度声明将自动注销，示例注销后果日期为 `05 Sep 2026`。逾期牌照卡片使用最高危险红色样式。
+
+### 5.2b 未配置 ASIC 的安全行为
+
+公司缺少 `asic_review_date` 时仍生成 ASIC 年检卡片，但状态为 `blocked`，`statutory_due` 与 `effective_due` 均为 `NULL`，UI 只显示“日期待配置”，禁止套用默认周年日。该 `blocked` 只作用于 ASIC 年检本身；同一公司不依赖 ASIC 日期的 BAS 与公司税表仍按完整日期生成并保持 `todo`。
 
 ### 5.3 所属年度与截止日所在财年
 
@@ -175,7 +186,7 @@ Next.js App Router
 blocked → todo → collecting → draft_ready → lodged → paid
 ```
 
-`na` 是独立终态；回退必须携带原因。缺少 ACN、周年日或所需账本数据时显示 `blocked`，不隐藏义务。每次状态变更写 `audit_log`，包括来源页面/操作人标识、前后状态和原因。
+`na` 是独立终态；回退必须携带原因。每条义务按其 `obligation_rules.required_fields` 独立判断是否 `blocked`，不按主体汇总状态。缺少 ACN、周年日或所需账本数据时，只影响声明依赖该字段的规则，不隐藏其他义务。`blocked` 义务不生成提醒；同一主体的其他可计算义务仍按自己的提醒偏移生成提醒。每次状态变更写 `audit_log`，包括来源页面/操作人标识、前后状态和原因。
 
 默认提醒为 T-30、T-10、T-3、当天和逾期每日；信托分配决议为 T-60，牌照为窗口开启日，供款为 T-45。牌照逾期在 UI 使用最高危险样式。
 
@@ -187,7 +198,7 @@ blocked → todo → collecting → draft_ready → lodged → paid
 
 1. 拍照/文件上传：去重、压缩、保存 sha256；AI 关闭时直接进入人工 Inbox。
 2. `POST /api/ingest/email`：共享密钥校验后接收 multipart 或 base64，复用文档入库服务。
-3. CSV：映射日期/描述/金额/余额，按银行保存模板；sha256 + 日期 + 金额重复行标记，不静默删除。
+3. CSV：映射日期/描述/金额/余额，按银行保存模板；日期格式可选 `DD/MM/YYYY`（默认）、`YYYY-MM-DD`、`MM/DD/YYYY`，选择值随模板保存。预览区按所选格式解析并固定显示 `DD MMM YYYY`；全量导入前若解析失败或月份超过 12 则阻止导入并提示可能选错格式。重复键为“完整原始行（包含描述）的 SHA-256 + 解析后的日期 + 金额分”，同日同额但描述不同不视为重复，不静默删除。
 4. 手动表单：金额字符串精确解析成分，支持复制上一条。
 
 未确认主体、科目或 GST 代码的记录不能进入 BAS；生成底稿前显示待确认笔数。

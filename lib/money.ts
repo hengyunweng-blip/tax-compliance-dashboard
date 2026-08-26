@@ -36,5 +36,7 @@ export function formatCents(cents: number): string {
 }
 
 export function assertIntegerCents(value: number): asserts value is number {
-  assertSafeCents(value);
+  if (!Number.isSafeInteger(value)) {
+    throw new Error("Money must be represented as integer cents");
+  }
 }
