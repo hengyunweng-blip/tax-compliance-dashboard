@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import { schema } from "@/lib/db/schema";
 
 let database: Database.Database | undefined;
+let drizzleDatabase: BetterSQLite3Database<typeof schema> | undefined;
 
 function databasePath() {
   const configuredPath = process.env.DATABASE_PATH ?? "./data/app.db";
@@ -26,4 +29,12 @@ export function getRawDb() {
 
 export function pingDatabase() {
   return getRawDb().prepare("SELECT 1 AS ok").get() as { ok: number };
+}
+
+export function getDb(): BetterSQLite3Database<typeof schema> {
+  if (!drizzleDatabase) {
+    drizzleDatabase = drizzle(getRawDb(), { schema });
+  }
+
+  return drizzleDatabase;
 }
