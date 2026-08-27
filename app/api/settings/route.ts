@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 import { getSettingsSnapshot, saveSettings } from "@/lib/settings";
 import { runMigrations } from "@/lib/db/migrate";
 
@@ -17,7 +18,7 @@ export async function PATCH(request: Request) {
     return Response.json(saveSettings(body));
   } catch (error) {
     const message = error instanceof Error ? error.message : "设置保存失败";
-    const status = message.includes("TFN") || message.includes("Invalid") || message.includes("Entity") || message.includes("Licence")
+    const status = error instanceof ZodError || message.includes("TFN") || message.includes("Invalid") || message.includes("Entity") || message.includes("Licence")
       ? 400
       : 500;
     return Response.json({ error: message }, { status });

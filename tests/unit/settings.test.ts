@@ -4,6 +4,7 @@ import { runMigrations } from "@/lib/db/migrate";
 import { seedDatabase } from "@/lib/db/seed";
 import { saveEntityConfiguration, saveSettings } from "@/lib/settings";
 import { getEntityConfigurationStatus } from "@/lib/settings-status";
+import { PATCH as patchSettings } from "@/app/api/settings/route";
 
 test("saving entity configuration survives a fresh database read", () => {
   seedDatabase();
@@ -71,6 +72,18 @@ test("saves the configurable news window with the other local settings", () => {
 
   expect(getRawDb().prepare("SELECT value FROM settings WHERE key = 'news_window_days'").get()).toEqual({ value: "45" });
   saveSettings({ newsWindowDays: 90 });
+});
+
+test("invalid news window input is reported as a client error", async () => {
+  seedDatabase();
+
+  const response = await patchSettings(new Request("http://localhost/api/settings", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ newsWindowDays: 0 }),
+  }));
+
+  expect(response.status).toBe(400);
 });
 
 test("individual and trust entities are never blocked by missing company identifiers", () => {

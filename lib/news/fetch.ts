@@ -4,6 +4,8 @@ import { formatDateOnly, parseMelbourneDate, type DateOnly } from "@/lib/time/me
 import { listNewsSources, getNewsSource, type NewsSource } from "@/lib/news/sources";
 
 const NEWS_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+export const NEWS_FETCH_TIMEOUT_MS = 15_000;
+const ATO_SMALL_BUSINESS_NEWSROOM_PATH = "/businesses-and-organisations/small-business-newsroom";
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 function decodeEntities(value: string) {
@@ -84,18 +86,53 @@ type ParsedNewsItem = {
   contentHash: string;
 };
 
-type AtoCoveoResult = {
-  title?: unknown;
-  printableUri?: unknown;
-  clickUri?: unknown;
-  excerpt?: unknown;
-  summary?: unknown;
-  raw?: Record<string, unknown>;
-};
+type JsonRecord = Record<string, unknown>;
 
-type AtoCoveoResponse = {
-  results?: unknown;
-};
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readConfigValue(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (isRecord(value)) return readConfigValue(value.value);
+  return null;
+}
+
+function visitJsonRecords(value: unknown, visitor: (record: JsonRecord) => void) {
+  if (Array.isArray(value)) {
+    for (const item of value) visitJsonRecords(item, visitor);
+    return;
+  }
+  if (!isRecord(value)) return;
+  visitor(value);
+  for (const child of Object.values(value)) visitJsonRecords(child, visitor);
+}
+
+function readJsonScriptPayloads(html: string): unknown[] {
+  const payloads: unknown[] = [];
+  const scriptPattern = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  for (const match of html.matchAll(scriptPattern)) {
+    const attributes = match[1];
+    if (!/(?:id\s*=\s*["']__NEXT_DATA__["']|type\s*=\s*["']application\/json["'])/i.test(attributes)) continue;
+    try {
+      payloads.push(JSON.parse(match[2].trim()));
+    } catch {
+      // Ignore unrelated or malformed JSON scripts and try the other page payloads.
+    }
+  }
+  return payloads;
+}
+
+function isAtoSmallBusinessNewsroomUrl(value: string): boolean {
+  try {
+    const url = new URL(value, "https://www.ato.gov.au");
+    return url.protocol === "https:"
+      && url.hostname.toLowerCase() === "www.ato.gov.au"
+      && (url.pathname === ATO_SMALL_BUSINESS_NEWSROOM_PATH || url.pathname.startsWith(`${ATO_SMALL_BUSINESS_NEWSROOM_PATH}/`));
+  } catch {
+    return false;
+  }
+}
 
 function buildParsedItem(source: NewsSource, title: string, url: string, publishedAt: string | null, rawText: string, now: Date): ParsedNewsItem {
   const normalizedTitle = textFromHtml(title) || source.name;
@@ -161,24 +198,41 @@ function parseTreasuryListing(source: NewsSource, html: string, now: Date): Pars
   return entries;
 }
 
-function epochToPublishedAt(value: unknown): string | null {
-  const milliseconds = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return null;
-  const date = new Date(milliseconds);
-  return Number.isNaN(date.getTime()) ? null : formatDateOnly(date);
+function parseAtoDate(value: unknown): string | null {
+  const numericValue = typeof value === "number"
+    ? value
+    : typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim())
+      ? Number(value)
+      : null;
+  if (numericValue !== null) {
+    if (!Number.isFinite(numericValue) || numericValue <= 0) return null;
+    const milliseconds = numericValue < 1_000_000_000_000 ? numericValue * 1000 : numericValue;
+    const date = new Date(milliseconds);
+    return Number.isNaN(date.getTime()) ? null : formatDateOnly(date);
+  }
+
+  if (typeof value !== "string") return null;
+  const candidate = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim())?.[1];
+  if (!candidate) return null;
+  try {
+    const parsed = parseMelbourneDate(candidate as DateOnly);
+    return formatDateOnly(parsed) === candidate ? candidate : null;
+  } catch {
+    return null;
+  }
 }
 
-function parseAtoListing(source: NewsSource, payload: AtoCoveoResponse, now: Date): ParsedNewsItem[] {
-  if (!Array.isArray(payload.results)) return [];
+function parseAtoListing(source: NewsSource, payload: unknown, now: Date): ParsedNewsItem[] {
+  if (!isRecord(payload) || !Array.isArray(payload.results)) return [];
   const entries: ParsedNewsItem[] = [];
   for (const candidate of payload.results) {
-    if (!candidate || typeof candidate !== "object") continue;
-    const result = candidate as AtoCoveoResult;
+    if (!isRecord(candidate)) continue;
+    const result = candidate;
     const title = typeof result.title === "string" ? result.title : "";
     const printableUri = typeof result.printableUri === "string" ? result.printableUri : typeof result.clickUri === "string" ? result.clickUri : "";
-    if (!title || !printableUri || (!printableUri.startsWith("/") && !/https:\/\/www\.ato\.gov\.au\//i.test(printableUri))) continue;
-    const raw = result.raw ?? {};
-    const publishedAt = epochToPublishedAt(raw.dateupdated) ?? epochToPublishedAt(raw.date) ?? null;
+    if (!title || !printableUri || !isAtoSmallBusinessNewsroomUrl(printableUri)) continue;
+    const raw = isRecord(result.raw) ? result.raw : {};
+    const publishedAt = parseAtoDate(raw.date) ?? parseAtoDate(raw.dateupdated);
     const rawText = [result.excerpt, result.summary, raw.description, title]
       .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       .join(" ");
@@ -188,37 +242,56 @@ function parseAtoListing(source: NewsSource, payload: AtoCoveoResponse, now: Dat
 }
 
 function extractAtoSearchConfiguration(html: string) {
-  const organizationId = firstMatch(html, [
-    /"organizationId":\{"value":"([^"]+)"\}/i,
-  ]);
-  const searchToken = firstMatch(html, [
-    /"name":"ATOGov SmallBusiness"[\s\S]{0,1200}?"key":\{"value":"([^"]+)"\}/i,
-    /"name":"ATOGov WhatsNew"[\s\S]{0,1200}?"key":\{"value":"([^"]+)"\}/i,
-  ]);
-  if (!organizationId || !searchToken) {
+  let organizationId: string | null = null;
+  let searchHub: string | null = null;
+  let searchToken: string | null = null;
+  for (const payload of readJsonScriptPayloads(html)) {
+    visitJsonRecords(payload, (record) => {
+      if (!organizationId) organizationId = readConfigValue(record.organizationId);
+      if (typeof record.name !== "string" || !["ATOGov SmallBusiness", "ATOGov WhatsNew"].includes(record.name)) return;
+      const fields = isRecord(record.fields) ? record.fields : {};
+      const token = readConfigValue(fields.key);
+      if (token) {
+        searchHub = record.name;
+        searchToken = token;
+      }
+    });
+  }
+  if (!organizationId || !searchHub || !searchToken) {
     throw new Error("ATO list search configuration was not found");
   }
-  return { organizationId, searchToken };
+  return { organizationId, searchHub, searchToken };
+}
+
+async function fetchWithTimeout(fetchImpl: FetchImplementation, input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), NEWS_FETCH_TIMEOUT_MS);
+  try {
+    return await fetchImpl(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchAtoListing(source: NewsSource, fetchImpl: FetchImplementation, now: Date): Promise<ParsedNewsItem[]> {
-  const pageResponse = await fetchImpl(source.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
+  const pageResponse = await fetchWithTimeout(fetchImpl, source.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
   if (!pageResponse.ok) throw new Error(`ATO list HTTP ${pageResponse.status}`);
   const pageHtml = await pageResponse.text();
-  const { organizationId, searchToken } = extractAtoSearchConfiguration(pageHtml);
+  const { organizationId, searchHub, searchToken } = extractAtoSearchConfiguration(pageHtml);
   const apiUrl = `https://${organizationId}.org.coveo.com/rest/search/v2?organizationId=${encodeURIComponent(organizationId)}`;
-  const apiResponse = await fetchImpl(apiUrl, {
+  const apiResponse = await fetchWithTimeout(fetchImpl, apiUrl, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${searchToken}` },
     body: JSON.stringify({
       q: "",
+      searchHub,
       numberOfResults: 100,
       sortCriteria: "dateupdated descending",
       fieldsToInclude: ["title", "printableuri", "clickuri", "description", "excerpt", "date", "dateupdated"],
     }),
   });
   if (!apiResponse.ok) throw new Error(`ATO list search HTTP ${apiResponse.status}`);
-  const payload = await apiResponse.json() as AtoCoveoResponse;
+  const payload = await apiResponse.json() as unknown;
   return parseAtoListing(source, payload, now);
 }
 
@@ -241,7 +314,7 @@ export async function refreshSource(sourceId: number | string, fetchImpl: FetchI
     const articles = source.fetchType === "html_listing_ato"
       ? await fetchAtoListing(source, fetchImpl, now)
       : await (async () => {
-        const response = await fetchImpl(source.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
+        const response = await fetchWithTimeout(fetchImpl, source.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return parseNewsItems(source, await response.text(), now);
       })();

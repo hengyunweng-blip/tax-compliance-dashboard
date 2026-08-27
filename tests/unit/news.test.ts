@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { getRawDb } from "@/lib/db/client";
 import { seedDatabase } from "@/lib/db/seed";
 import { analyseNewsItems, createTodoFromNewsAnalysis, dismissNewsItem, listNewsFeed } from "@/lib/news/analysis";
-import { refreshSource } from "@/lib/news/fetch";
+import { NEWS_FETCH_TIMEOUT_MS, refreshSource } from "@/lib/news/fetch";
 import { getNewsWindowDays, setNewsWindowDays } from "@/lib/news/config";
 import { matchedNewsKeywords, prescreenNewsItem } from "@/lib/news/prescreen";
 
@@ -13,15 +13,23 @@ const articleHtml = `
 `;
 
 const atoListPageHtml = `
-  <script id="__NEXT_DATA__">{"organizationId":{"value":"ato-org"},"searchHub":{"name":"ATOGov SmallBusiness","fields":{"key":{"value":"public-search-token"}}}}</script>
+  <script id="__NEXT_DATA__" type="application/json">
+    {
+      "searchHub": {
+        "fields": { "key": { "value": "public-search-token" } },
+        "name": "ATOGov SmallBusiness"
+      },
+      "organizationId": { "value": "ato-org" }
+    }
+  </script>
 `;
 
 const atoListResponse = {
   results: [{
     title: "Three reasons to lodge your trust tax return on time | Australian Taxation Office",
-    printableUri: "/businesses-and-organisations/business-bulletins-newsroom/three-reasons-to-lodge-your-trust-tax-return-on-time",
+    printableUri: "/businesses-and-organisations/small-business-newsroom/three-reasons-to-lodge-your-trust-tax-return-on-time",
     excerpt: "Three reasons to lodge your trust tax return on time.",
-    raw: { dateupdated: 1787623472000 },
+    raw: { date: 1787623472000, dateupdated: 1787623472000 },
   }],
 };
 
@@ -84,6 +92,23 @@ test("one failed source records last_error while another source still stores an 
   expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM news_items WHERE source_id = ?").get(workingSource)).toEqual({ count: 1 });
 });
 
+test("a stalled source is aborted and records an isolated error", async () => {
+  const source = sourceId("Consumer Affairs Victoria 房产中介");
+  vi.useFakeTimers();
+  try {
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error("request aborted")), { once: true });
+    }));
+    const refreshPromise = refreshSource(source, fetchMock);
+    await vi.advanceTimersByTimeAsync(NEWS_FETCH_TIMEOUT_MS);
+    await refreshPromise;
+
+    expect(getRawDb().prepare("SELECT last_error FROM news_sources WHERE id = ?").get(source)).toEqual({ last_error: "request aborted" });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test("successful source refresh is cached for 24 hours and content hash deduplicates", async () => {
   const fetchMock = vi.fn(async () => new Response(asicListingHtml, { status: 200 }));
   const source = sourceId("ASIC 公告");
@@ -123,8 +148,45 @@ test("parses the official ATO small business newsroom list through its public li
   expect(getRawDb().prepare("SELECT title, published_at AS publishedAt, url FROM news_items WHERE source_id = ?").get(source)).toEqual({
     title: "Three reasons to lodge your trust tax return on time | Australian Taxation Office",
     publishedAt: "2026-08-25",
-    url: "https://www.ato.gov.au/businesses-and-organisations/business-bulletins-newsroom/three-reasons-to-lodge-your-trust-tax-return-on-time",
+    url: "https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/three-reasons-to-lodge-your-trust-tax-return-on-time",
   });
+});
+
+test("constrains ATO results to the configured newsroom and uses publication date", async () => {
+  const source = sourceId("ATO 小企业资讯");
+  const requestBodies: unknown[] = [];
+  const response = {
+    results: [
+      {
+        title: "Small business newsroom item",
+        printableUri: "/businesses-and-organisations/small-business-newsroom/valid-item",
+        raw: { date: 1785542400000, dateupdated: 1787623472000 },
+      },
+      {
+        title: "Unrelated ATO item",
+        printableUri: "/businesses-and-organisations/gst-excise-and-indirect-taxes/gst/unrelated-item",
+        raw: { date: 1787623472000, dateupdated: 1787623472000 },
+      },
+    ],
+  };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).includes("coveo.com")) {
+      requestBodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify(response), { status: 200 });
+    }
+    return new Response(atoListPageHtml, { status: 200 });
+  });
+
+  await refreshSource(source, fetchMock);
+
+  expect(requestBodies[0]).toMatchObject({ searchHub: "ATOGov SmallBusiness", q: "", sortCriteria: "dateupdated descending" });
+  expect(getRawDb().prepare("SELECT title, published_at AS publishedAt, url FROM news_items WHERE source_id = ?").all(source)).toEqual([
+    {
+      title: "Small business newsroom item",
+      publishedAt: "2026-08-01",
+      url: "https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/valid-item",
+    },
+  ]);
 });
 
 test("the main feed contains only recent keyword hits and returns the matched words", () => {
