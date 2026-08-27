@@ -206,6 +206,7 @@ export function seedDatabase() {
     insertSetting.run("concessional_cap_cents", "3250000");
     insertSetting.run("ai_enabled", "false");
     insertSetting.run("news_window_days", "90");
+    insertSetting.run("news_exclude_irrelevant_topics", "true");
   });
   transaction();
 }

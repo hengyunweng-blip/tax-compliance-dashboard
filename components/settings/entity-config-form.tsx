@@ -42,6 +42,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
   const [entities, setEntities] = useState(initialSnapshot.entities);
   const [licence, setLicence] = useState(initialSnapshot.licence);
   const [newsWindowDays, setNewsWindowDays] = useState(Number(initialSnapshot.settings.news_window_days ?? "90"));
+  const [excludeIrrelevantTopics, setExcludeIrrelevantTopics] = useState(initialSnapshot.settings.news_exclude_irrelevant_topics !== "false");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   function updateEntity(id: string, patch: Partial<Entity>) {
@@ -69,6 +70,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
           anniversaryDate: licence.anniversaryDate || null,
         } : undefined,
         newsWindowDays,
+        excludeIrrelevantTopics,
       }),
     });
 
@@ -81,6 +83,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
     setEntities(next.entities);
     setLicence(next.licence);
     setNewsWindowDays(Number(next.settings.news_window_days ?? newsWindowDays));
+    setExcludeIrrelevantTopics(next.settings.news_exclude_irrelevant_topics !== "false");
     setSaveState("saved");
   }
 
@@ -260,6 +263,19 @@ export function SettingsForm({ initialSnapshot }: Props) {
                 onChange={(event) => { setNewsWindowDays(Number(event.target.value)); setSaveState("idle"); }}
               />
               <small>按 `published_at` 计算；允许 1–3650 天。</small>
+            </label>
+            <label className="news-exclusion-toggle">
+              <span>主体不适用主题排除</span>
+              <span className="checkbox-line">
+                <input
+                  aria-label="按主体配置排除不适用主题"
+                  type="checkbox"
+                  checked={excludeIrrelevantTopics}
+                  onChange={(event) => { setExcludeIrrelevantTopics(event.target.checked); setSaveState("idle"); }}
+                />
+                <span>当前主体无雇员/无工资时，排除 payroll、STP、Payday Super、SBSCH、super guarantee、fuel tax credit 等资讯</span>
+              </span>
+              <small>关闭后这些条目仍可进入主列表；不会影响原始缓存。</small>
             </label>
           </div>
         </section>

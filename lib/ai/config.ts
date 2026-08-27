@@ -7,6 +7,7 @@ export type AiConfig = {
   model: string;
   timeoutMs: number;
   keywords: string[];
+  excludedKeywords: string[];
 };
 
 function envBoolean(value: string | undefined) {
@@ -25,6 +26,7 @@ export function getAiConfig(): AiConfig {
       ? Number(process.env.AI_TIMEOUT_MS)
       : aiDefaults.timeoutMs,
     keywords: [...aiDefaults.keywords],
+    excludedKeywords: [...aiDefaults.excludedKeywords],
   };
 }
 

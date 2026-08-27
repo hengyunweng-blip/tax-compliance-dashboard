@@ -21,5 +21,18 @@
     "agents' representative",
     "trust account",
     "vcat"
+  ],
+  "excludedKeywords": [
+    "payroll",
+    "stp",
+    "single touch payroll",
+    "payday super",
+    "sbsch",
+    "super guarantee",
+    "fuel tax credit",
+    "fuel tax credits",
+    "government payments program",
+    "waterproof bedding",
+    "sunscreen"
   ]
 }

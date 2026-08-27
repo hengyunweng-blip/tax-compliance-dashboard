@@ -1,5 +1,5 @@
 import { aiStatusLabel, isAiEnabled } from "@/lib/ai/config";
-import { createTodoFromNewsAnalysis, dismissNewsItem, listNewsFeed, analyseNewsItems } from "@/lib/news/analysis";
+import { createTodoFromNewsAnalysis, dismissNewsItem, listExcludedNewsFeed, listNewsFeed, listUndatedNewsFeed, analyseNewsItems } from "@/lib/news/analysis";
 import { getNewsWindowDays } from "@/lib/news/config";
 import { refreshNewsInBackground } from "@/lib/news/fetch";
 import { listNewsSources } from "@/lib/news/sources";
@@ -8,7 +8,15 @@ import { runMigrations } from "@/lib/db/migrate";
 export const dynamic = "force-dynamic";
 
 function responsePayload(includeDismissed = false) {
-  return { items: listNewsFeed(includeDismissed), sources: listNewsSources(), windowDays: getNewsWindowDays(), aiEnabled: isAiEnabled(), aiStatus: aiStatusLabel() };
+  return {
+    items: listNewsFeed(includeDismissed),
+    excludedItems: listExcludedNewsFeed(includeDismissed),
+    undatedItems: listUndatedNewsFeed(includeDismissed),
+    sources: listNewsSources(),
+    windowDays: getNewsWindowDays(),
+    aiEnabled: isAiEnabled(),
+    aiStatus: aiStatusLabel(),
+  };
 }
 
 export async function GET(request: Request) {

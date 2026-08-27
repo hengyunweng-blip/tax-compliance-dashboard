@@ -2,8 +2,8 @@ import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { summarizeNews } from "@/lib/ai/adapter";
 import type { NewsAnalysis } from "@/lib/ai/types";
-import { getNewsWindowStart } from "@/lib/news/config";
-import { matchedNewsKeywords, prescreenNewsItem } from "@/lib/news/prescreen";
+import { getNewsIrrelevantTopicExclusionEnabled, getNewsWindowStart } from "@/lib/news/config";
+import { isNewsExcludedByCurrentConfig, matchedNewsExclusionKeywords, matchedNewsKeywords, prescreenNewsItem } from "@/lib/news/prescreen";
 import { formatMelbourneDateTime } from "@/lib/time/melbourne";
 
 export type NewsFeedItem = {
@@ -17,6 +17,7 @@ export type NewsFeedItem = {
   rawText: string;
   fetchedAt: string;
   matchedKeywords: string[];
+  excludedKeywords: string[];
   analysisId: number | null;
   dismissedAt: string | null;
   analysis: NewsAnalysis | null;
@@ -72,6 +73,7 @@ function mapFeedRow(row: FeedRow): NewsFeedItem {
     rawText: row.raw_text,
     fetchedAt: row.fetched_at,
     matchedKeywords: matchedNewsKeywords({ title: row.title, rawText: row.raw_text }),
+    excludedKeywords: matchedNewsExclusionKeywords({ title: row.title, rawText: row.raw_text }),
     analysisId: row.analysis_id,
     dismissedAt: row.dismissed_at,
     analysis: readAnalysis(row.summary_json),
@@ -79,9 +81,17 @@ function mapFeedRow(row: FeedRow): NewsFeedItem {
   };
 }
 
-function feedRows(includeDismissed: boolean, windowStart: string): FeedRow[] {
-  const filters = ["s.active = 1", "n.published_at IS NOT NULL", "n.published_at >= ?"];
+type FeedMode = "main" | "excluded" | "undated";
+
+function feedRows(includeDismissed: boolean, windowStart: string, mode: FeedMode): FeedRow[] {
+  const filters = ["s.active = 1"];
+  if (mode === "undated") {
+    filters.push("n.published_at IS NULL");
+  } else {
+    filters.push("n.published_at IS NOT NULL", "n.published_at >= ?");
+  }
   if (!includeDismissed) filters.push("a.dismissed_at IS NULL");
+  const parameters = mode === "undated" ? [] : [windowStart];
   const rows = getRawDb().prepare(`
     SELECT n.id, n.source_id, s.name AS source_name, s.url AS source_url,
       n.title, n.url, n.published_at, n.raw_text, n.fetched_at,
@@ -94,8 +104,16 @@ function feedRows(includeDismissed: boolean, windowStart: string): FeedRow[] {
     WHERE ${filters.join(" AND ")}
     ORDER BY CASE json_extract(a.summary_json, '$.impactLevel') WHEN 'action' THEN 0 WHEN 'watch' THEN 1 ELSE 2 END,
       COALESCE(n.published_at, n.fetched_at) DESC, n.id DESC
-  `).all(windowStart) as FeedRow[];
-  return rows.filter((row) => matchedNewsKeywords({ title: row.title, rawText: row.raw_text }).length > 0);
+  `).all(...parameters) as FeedRow[];
+  const exclusionEnabled = getNewsIrrelevantTopicExclusionEnabled();
+  return rows.filter((row) => {
+    const item = { title: row.title, rawText: row.raw_text };
+    const hasKeyword = matchedNewsKeywords(item).length > 0;
+    const isExcluded = isNewsExcludedByCurrentConfig(item);
+    if (mode === "excluded") return exclusionEnabled && isExcluded;
+    if (mode === "main") return hasKeyword && (!exclusionEnabled || !isExcluded);
+    return true;
+  });
 }
 
 export async function analyseNewsItems(now = new Date()): Promise<void> {
@@ -110,7 +128,11 @@ export async function analyseNewsItems(now = new Date()): Promise<void> {
       AND n.published_at IS NOT NULL AND n.published_at >= ?
     ORDER BY n.id
   `).all(windowStart) as NewsRow[];
-  const relevant = rows.filter((row) => prescreenNewsItem({ title: row.title, rawText: row.raw_text }));
+  const exclusionEnabled = getNewsIrrelevantTopicExclusionEnabled();
+  const relevant = rows.filter((row) => {
+    const item = { title: row.title, rawText: row.raw_text };
+    return prescreenNewsItem(item) && (!exclusionEnabled || !isNewsExcludedByCurrentConfig(item));
+  });
   if (!relevant.length) return;
   const suggestions = await summarizeNews(relevant.map((row) => ({ id: row.id, title: row.title, rawText: row.raw_text })), {});
   const db = getRawDb();
@@ -128,7 +150,17 @@ export async function analyseNewsItems(now = new Date()): Promise<void> {
 
 export function listNewsFeed(includeDismissed = false, now = new Date()): NewsFeedItem[] {
   runMigrations();
-  return feedRows(includeDismissed, getNewsWindowStart(now)).map(mapFeedRow);
+  return feedRows(includeDismissed, getNewsWindowStart(now), "main").map(mapFeedRow);
+}
+
+export function listExcludedNewsFeed(includeDismissed = false, now = new Date()): NewsFeedItem[] {
+  runMigrations();
+  return feedRows(includeDismissed, getNewsWindowStart(now), "excluded").map(mapFeedRow);
+}
+
+export function listUndatedNewsFeed(includeDismissed = false, now = new Date()): NewsFeedItem[] {
+  runMigrations();
+  return feedRows(includeDismissed, getNewsWindowStart(now), "undated").map(mapFeedRow);
 }
 
 async function ensureAnalysisForItem(newsItemId: number) {
@@ -137,14 +169,16 @@ async function ensureAnalysisForItem(newsItemId: number) {
   if (!item) throw new Error(`News item not found: ${newsItemId}`);
   const existing = db.prepare("SELECT id FROM news_analyses WHERE news_item_id = ? ORDER BY id DESC LIMIT 1").get(newsItemId) as { id: number } | undefined;
   if (existing) return existing.id;
-  const relevant = prescreenNewsItem({ title: item.title, rawText: item.raw_text });
+  const prescreened = prescreenNewsItem({ title: item.title, rawText: item.raw_text });
+  const excluded = getNewsIrrelevantTopicExclusionEnabled() && isNewsExcludedByCurrentConfig({ title: item.title, rawText: item.raw_text });
+  const relevant = prescreened && !excluded;
   const analysis = relevant
     ? (await summarizeNews([{ id: item.id, title: item.title, rawText: item.raw_text }], {}))[0]
     : {
       newsItemId: item.id,
       affectedEntities: [],
       impactLevel: "none" as const,
-      summary: "未命中税务关键词，未调用 AI 分析。",
+      summary: excluded ? "按当前主体配置标记为可能不适用，未调用 AI 分析。" : "未命中税务关键词，未调用 AI 分析。",
       recommendations: [],
       modelUsed: "keyword-prescreen",
     };

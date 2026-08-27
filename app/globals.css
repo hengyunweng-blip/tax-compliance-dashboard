@@ -289,6 +289,7 @@ textarea {
 .date-input-text {
   position: relative;
   display: block;
+  padding-bottom: 17px;
 }
 
 .date-input-text svg {
@@ -300,16 +301,93 @@ textarea {
 }
 
 .date-input-text input {
-  padding-right: 96px;
+  padding-right: 38px;
 }
 
-.date-input-hint {
-  position: absolute;
-  top: 11px;
-  right: 30px;
+.date-input-format {
+  display: block;
+  margin-top: 3px;
   color: #9aa3b1;
   font-size: 11px;
   pointer-events: none;
+}
+
+.checkbox-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #3f4c61;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.checkbox-line input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.news-exclusion-toggle {
+  max-width: 760px;
+}
+
+.news-secondary-feed {
+  margin-top: 16px;
+  border: 1px solid #d9dee7;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 13px 16px;
+}
+
+.news-secondary-feed summary {
+  cursor: pointer;
+  color: #33415c;
+  font-weight: 700;
+}
+
+.news-secondary-feed p {
+  color: #687386;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.news-secondary-feed ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.news-secondary-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #edf0f4;
+  padding-top: 10px;
+}
+
+.news-secondary-item strong,
+.news-secondary-item span {
+  display: block;
+}
+
+.news-secondary-item strong {
+  color: #24314a;
+  font-size: 13px;
+}
+
+.news-secondary-item span {
+  margin-top: 3px;
+  color: #7b8492;
+  font-size: 12px;
+}
+
+.news-secondary-item a {
+  flex: 0 0 auto;
+  color: #173f82;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .not-applicable {

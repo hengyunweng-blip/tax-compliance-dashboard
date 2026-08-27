@@ -74,6 +74,15 @@ test("saves the configurable news window with the other local settings", () => {
   saveSettings({ newsWindowDays: 90 });
 });
 
+test("persists the主体不适用资讯排除开关", () => {
+  seedDatabase();
+
+  saveSettings({ excludeIrrelevantTopics: false });
+
+  expect(getRawDb().prepare("SELECT value FROM settings WHERE key = 'news_exclude_irrelevant_topics'").get()).toEqual({ value: "false" });
+  saveSettings({ excludeIrrelevantTopics: true });
+});
+
 test("invalid news window input is reported as a client error", async () => {
   seedDatabase();
 

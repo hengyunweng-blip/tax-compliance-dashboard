@@ -1,0 +1,39 @@
+Command:
+SELECT title, published_at FROM news_items WHERE source_id = 1 ORDER BY published_at DESC LIMIT 20;
+
+title                                                                                              published_at
+-------------------------------------------------------------------------------------------------  ------------
+Did you miss the final quarterly super payment? | Australian Taxation Office                       2026-08-06
+Paying super for independent contactors | Australian Taxation Office                               2026-08-05
+Top tips to meet the Payday Super 7 business day timeframe | Australian Taxation Office            2026-08-03
+Fuel tax credit rates have changed again on 3 August | Australian Taxation Office                  2026-08-03
+Are you a provider under the Government Payments Program? | Australian Taxation Office             2026-08-03
+Early stage innovation company (ESIC) reports due 31 July | Australian Taxation Office             2026-07-29
+Tips for claiming home-based business expenses this tax time | Australian Taxation Office          2026-07-28
+Stronger action on over-claimed expenses and GST credits | Australian Taxation Office              2026-07-08
+The SBSCH is now closed | Australian Taxation Office                                               2026-07-02
+2023–24 R&D transparency report publishing September | Australian Taxation Office                  2026-07-02
+Use reduced rates for fuel tax credits on your quarter 4 BAS | Australian Taxation Office          2026-07-02
+Did you miss our previous videos? | Australian Taxation Office                                     2026-06-12
+It’s the final countdown to Payday Super! | Australian Taxation Office                             2026-06-12
+Take advantage of our top Payday Super resources | Australian Taxation Office                      2026-06-12
+Don’t risk being unprepared: Act before Payday Super starts | Australian Taxation Office           2026-06-12
+Car thresholds from 1 July | Australian Taxation Office                                            2026-06-09
+Have your say on the future of GST – join the GST Stewardship Group! | Australian Taxation Office  2026-06-03
+Finalise your STP data by 14 July | Australian Taxation Office                                     2026-06-03
+Tax time made easier: toolkit now available | Australian Taxation Office                           2026-06-03
+Use our calculator to help claim the right fuel tax credits | Australian Taxation Office           2026-06-02
+
+Command:
+SELECT COUNT(*) AS null_published_at FROM news_items WHERE source_id = 1 AND published_at IS NULL;
+
+null_published_at
+-----------------
+38
+
+Command:
+SELECT title, published_at FROM news_items WHERE source_id = 1 AND title LIKE 'Tax time 2025%';
+
+title                                                      published_at
+---------------------------------------------------------  ------------
+Tax time 2025 is nearly over | Australian Taxation Office  2025-10-03

@@ -37,7 +37,7 @@ function firstMatch(html: string, patterns: RegExp[]) {
 
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"] as const;
 
-function normalizePublishedAt(value: string | null, now: Date): string {
+function normalizePublishedAt(value: string | null): string | null {
   const raw = value?.trim() ?? "";
   const isoMatch = /(\d{4})-(\d{2})-(\d{2})(?:T[^\s<]*)?/.exec(raw);
   if (isoMatch) {
@@ -46,7 +46,7 @@ function normalizePublishedAt(value: string | null, now: Date): string {
       parseMelbourneDate(candidate);
       return raw.includes("T") ? raw : candidate;
     } catch {
-      // Fall through to the fetch date when a source exposes an invalid date.
+      return null;
     }
   }
 
@@ -58,10 +58,10 @@ function normalizePublishedAt(value: string | null, now: Date): string {
       parseMelbourneDate(candidate);
       return candidate;
     } catch {
-      // Fall through to the fetch date when a source exposes an invalid date.
+      return null;
     }
   }
-  return formatDateOnly(now);
+  return null;
 }
 
 function resolveUrl(source: NewsSource, value: string): string {
@@ -81,7 +81,7 @@ function isFresh(lastFetchedAt: string | null, now: Date) {
 type ParsedNewsItem = {
   title: string;
   url: string;
-  publishedAt: string;
+  publishedAt: string | null;
   rawText: string;
   contentHash: string;
 };
@@ -134,14 +134,22 @@ function isAtoSmallBusinessNewsroomUrl(value: string): boolean {
   }
 }
 
-function buildParsedItem(source: NewsSource, title: string, url: string, publishedAt: string | null, rawText: string, now: Date): ParsedNewsItem {
+function buildParsedItem(source: NewsSource, title: string, url: string, publishedAt: string | null, rawText: string, _now: Date): ParsedNewsItem {
   const normalizedTitle = textFromHtml(title) || source.name;
   const normalizedUrl = resolveUrl(source, url);
-  const normalizedPublishedAt = normalizePublishedAt(publishedAt, now);
+  const normalizedPublishedAt = normalizePublishedAt(publishedAt);
   const normalizedText = textFromHtml(rawText).slice(0, 20000);
   if (!normalizedText) throw new Error("Source returned no readable text");
   const contentHash = crypto.createHash("sha256").update(JSON.stringify([normalizedTitle, normalizedUrl, normalizedPublishedAt, normalizedText])).digest("hex");
   return { title: normalizedTitle, url: normalizedUrl, publishedAt: normalizedPublishedAt, rawText: normalizedText, contentHash };
+}
+
+function publishedDateFromAtoArticle(html: string): string | null {
+  const dateBlock = /<p\b[^>]*data-testid=["']date["'][^>]*>([\s\S]*?)<\/p>/i.exec(html)?.[1];
+  if (!dateBlock) return null;
+  const visible = textFromHtml(dateBlock);
+  const published = /\bPublished\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})\b/i.exec(visible)?.[1];
+  return normalizePublishedAt(published ?? null);
 }
 
 function parseArticle(source: NewsSource, html: string, now: Date): ParsedNewsItem {
@@ -150,8 +158,7 @@ function parseArticle(source: NewsSource, html: string, now: Date): ParsedNewsIt
   const publishedAt = firstMatch(html, [
     /<time[^>]+datetime=["']([^"']+)["']/i,
     /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i,
-    /<meta[^>]+name=["']dcterms\.modified["'][^>]+content=["'][^"']*?(\d{4}-\d{2}-\d{2})[^"']*["']/i,
-    /(?:Last updated|Published)\s*:?\s*([^<\r\n]+)/i,
+    /(?:Published)\s*:?\s*([^<\r\n]+)/i,
   ]);
   return buildParsedItem(source, title, url, publishedAt, html, now);
 }
@@ -222,6 +229,10 @@ function parseAtoDate(value: unknown): string | null {
   }
 }
 
+function isAtoFirstPublish(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
 function parseAtoListing(source: NewsSource, payload: unknown, now: Date): ParsedNewsItem[] {
   if (!isRecord(payload) || !Array.isArray(payload.results)) return [];
   const entries: ParsedNewsItem[] = [];
@@ -232,13 +243,48 @@ function parseAtoListing(source: NewsSource, payload: unknown, now: Date): Parse
     const printableUri = typeof result.printableUri === "string" ? result.printableUri : typeof result.clickUri === "string" ? result.clickUri : "";
     if (!title || !printableUri || !isAtoSmallBusinessNewsroomUrl(printableUri)) continue;
     const raw = isRecord(result.raw) ? result.raw : {};
-    const publishedAt = parseAtoDate(raw.date) ?? parseAtoDate(raw.dateupdated);
+    // Coveo's `date` is an index/content-update timestamp. `dateupdated` is
+    // only treated as a publication date when the result explicitly says it
+    // is a first publication. Revisions are hydrated from the article page;
+    // a page that only exposes "Last updated" remains undated.
+    const publishedAt = isAtoFirstPublish(raw.firstpublish) ? parseAtoDate(raw.dateupdated) : null;
     const rawText = [result.excerpt, result.summary, raw.description, title]
       .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       .join(" ");
     entries.push(buildParsedItem(source, title, printableUri, publishedAt, rawText, now));
   }
   return entries;
+}
+
+async function hydrateAtoPublicationDates(source: NewsSource, items: ParsedNewsItem[], fetchImpl: FetchImplementation, now: Date): Promise<ParsedNewsItem[]> {
+  const candidates = items.filter((item) => item.publishedAt === null);
+  if (!candidates.length) return items;
+
+  const hydrated = new Array<ParsedNewsItem>(candidates.length);
+  let nextIndex = 0;
+  async function hydrateWorker() {
+    while (nextIndex < candidates.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const item = candidates[index];
+      try {
+        const response = await fetchWithTimeout(fetchImpl, item.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
+        if (!response.ok) {
+          hydrated[index] = item;
+          continue;
+        }
+        const publishedAt = publishedDateFromAtoArticle(await response.text());
+        hydrated[index] = publishedAt === null ? item : buildParsedItem(source, item.title, item.url, publishedAt, item.rawText, now);
+      } catch {
+        // One article without a usable publication date must not make the whole
+        // source fail, and it must never inherit the fetch/batch date.
+        hydrated[index] = item;
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(8, candidates.length) }, () => hydrateWorker()));
+  const hydratedByUrl = new Map(hydrated.map((item) => [item.url, item]));
+  return items.map((item) => hydratedByUrl.get(item.url) ?? item);
 }
 
 function extractAtoSearchConfiguration(html: string) {
@@ -287,12 +333,12 @@ async function fetchAtoListing(source: NewsSource, fetchImpl: FetchImplementatio
       searchHub,
       numberOfResults: 100,
       sortCriteria: "dateupdated descending",
-      fieldsToInclude: ["title", "printableuri", "clickuri", "description", "excerpt", "date", "dateupdated"],
+      fieldsToInclude: ["title", "printableuri", "clickuri", "description", "excerpt", "date", "dateupdated", "firstpublish"],
     }),
   });
   if (!apiResponse.ok) throw new Error(`ATO list search HTTP ${apiResponse.status}`);
   const payload = await apiResponse.json() as unknown;
-  return parseAtoListing(source, payload, now);
+  return hydrateAtoPublicationDates(source, parseAtoListing(source, payload, now), fetchImpl, now);
 }
 
 function parseNewsItems(source: NewsSource, html: string, now: Date): ParsedNewsItem[] {
@@ -320,13 +366,27 @@ export async function refreshSource(sourceId: number | string, fetchImpl: FetchI
       })();
     if (!articles.length) throw new Error(`Source returned no parseable news items (${source.fetchType})`);
     const db = getRawDb();
+    const existing = db.prepare("SELECT id FROM news_items WHERE source_id = ? AND url = ? ORDER BY id LIMIT 1");
+    const update = db.prepare(`
+      UPDATE news_items
+      SET title = ?, published_at = ?, raw_text = ?, content_hash = ?, fetched_at = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `);
     const insert = db.prepare(`
       INSERT OR IGNORE INTO news_items (source_id, title, url, published_at, raw_text, content_hash, fetched_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    for (const article of articles) {
-      insert.run(source.id, article.title, article.url, article.publishedAt, article.rawText, article.contentHash, now.toISOString());
-    }
+    const write = db.transaction(() => {
+      for (const article of articles) {
+        const cached = existing.get(source.id, article.url) as { id: number } | undefined;
+        if (cached) {
+          update.run(article.title, article.publishedAt, article.rawText, article.contentHash, now.toISOString(), cached.id);
+        } else {
+          insert.run(source.id, article.title, article.url, article.publishedAt, article.rawText, article.contentHash, now.toISOString());
+        }
+      }
+    });
+    write();
     db.prepare("UPDATE news_sources SET last_fetched_at = ?, last_error = NULL WHERE id = ?").run(now.toISOString(), source.id);
   } catch (error) {
     // A source failure is isolated to the source's diagnostic field; cached items remain available.

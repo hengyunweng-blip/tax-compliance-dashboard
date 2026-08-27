@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { getRawDb } from "@/lib/db/client";
-import { parseNewsWindowDays, NEWS_WINDOW_SETTING_KEY } from "@/lib/news/config";
+import {
+  NEWS_IRRELEVANT_TOPIC_EXCLUSION_SETTING_KEY,
+  NEWS_WINDOW_SETTING_KEY,
+  parseNewsWindowDays,
+  setNewsIrrelevantTopicExclusionEnabled,
+} from "@/lib/news/config";
 import type { DateOnly } from "@/lib/time/melbourne";
 
 const entityConfigurationSchema = z.object({
@@ -166,6 +171,7 @@ export function saveSettings(input: unknown) {
     entities: z.array(entityConfigurationSchema).optional(),
     licence: licenceConfigurationSchema.optional(),
     newsWindowDays: newsWindowDaysSchema.optional(),
+    excludeIrrelevantTopics: z.boolean().optional(),
   }).strict().parse(input);
 
   const db = getRawDb();
@@ -183,6 +189,9 @@ export function saveSettings(input: unknown) {
         VALUES (?, ?, datetime('now'))
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
       `).run(NEWS_WINDOW_SETTING_KEY, String(days));
+    }
+    if (parsed.excludeIrrelevantTopics !== undefined) {
+      setNewsIrrelevantTopicExclusionEnabled(parsed.excludeIrrelevantTopics);
     }
   });
   transaction();

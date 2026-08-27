@@ -251,6 +251,10 @@ AI 配置从 `config/ai.json` 读取，密钥只从环境变量读取。四个�
 
 资讯抓取启动后异步运行，24 小时缓存，单源错误只写回对应 `news_sources.last_error`，不阻塞首屏。关键词预筛命中后才分析，页面必须显示来源、发布日期和原文链接。资讯分析只有在用户二次确认后才写入独立的 `news_todos`；确认操作写审计记录，绝不直接改变交易金额、交易记录或法定义务。
 
+ATO `published_at` 只接受明确的首发证据：列表结果标记 `firstpublish = 1` 时使用其 publication 字段；修订条目还要进入文章页，只接受可见的 `Published` 标签，不把 `Last updated`、索引日期、列表页日期或抓取时间当成发布日期。无法确认时保存 `NULL`，在“日期未知”折叠区展示并排除出近 N 天主列表。刷新同一来源时按文章 URL更新已有缓存行，确保发布日期纠正不会留下旧的错误副本。
+
+当前主体经营配置声明为无雇员/无工资、不实现工资单和 STP，因此资讯默认启用 `settings.news_exclude_irrelevant_topics = true`，把 payroll、STP、Single Touch Payroll、Payday Super、SBSCH、super guarantee、fuel tax credit 等条目移到“可能不适用”折叠区；设置页可以关闭该排除开关，关闭后缓存原文仍保留并可回到主列表。
+
 ## 10. 页面与验证
 
 页面路由严格覆盖需求文档的 `/`、`/inbox`、`/entities/[id]`、`/obligations/[id]`、`/bas/[obligationId]`、`/annual`、`/div7a`、`/super`、`/news`、`/settings`、`/import`，并实现 `/api/calendar/export`、`/api/ingest/email`、`/api/backup` 与还原接口。

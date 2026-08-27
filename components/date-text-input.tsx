@@ -56,7 +56,7 @@ export function DateTextInput({ ariaLabel, value, onChange }: Props) {
         onChange={(event) => handleChange(event.target.value)}
         onBlur={handleBlur}
       />
-      <span className="date-input-hint" aria-hidden="true">DD/MM/YYYY</span>
+      <span className="date-input-format">格式：DD/MM/YYYY</span>
       <CalendarDays size={16} aria-hidden="true" />
     </label>
   );

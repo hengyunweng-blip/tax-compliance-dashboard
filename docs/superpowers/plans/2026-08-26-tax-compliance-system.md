@@ -985,6 +985,8 @@ Verify AI-disabled behavior, source links, dismissed state, explicit todo creati
 
 **Gate 4 implementation status:** all planned steps and verification commands are complete. The implementation is committed locally, but Gate 4 remains unaccepted until the user reviews the dedicated evidence directory and report. Gate 5 has not started.
 
+**Gate 4 news correction:** ATO list `raw.date` is not a publication date and is never used for `published_at`. First-publication results use the explicit publication field; revision results are checked against the article page's `Published` label, while `Last updated` produces `NULL`. Unknown dates are shown separately from the recent main feed. The current no-employee/no-payroll profile is persisted as `news_exclude_irrelevant_topics` (default `true`), with an explicit settings-page switch and a separate “可能不适用” section for excluded topics.
+
 ## Gate 5 — 年度模块、Div 7A、养老金、备份还原与最终验收
 
 Start only after Gate 4 acceptance. This is the final Gate and still requires a stop/report before declaring the whole system accepted.

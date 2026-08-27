@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { getRawDb } from "@/lib/db/client";
 import { seedDatabase } from "@/lib/db/seed";
-import { analyseNewsItems, createTodoFromNewsAnalysis, dismissNewsItem, listNewsFeed } from "@/lib/news/analysis";
+import { analyseNewsItems, createTodoFromNewsAnalysis, dismissNewsItem, listExcludedNewsFeed, listNewsFeed, listUndatedNewsFeed } from "@/lib/news/analysis";
 import { NEWS_FETCH_TIMEOUT_MS, refreshSource } from "@/lib/news/fetch";
-import { getNewsWindowDays, setNewsWindowDays } from "@/lib/news/config";
-import { matchedNewsKeywords, prescreenNewsItem } from "@/lib/news/prescreen";
+import { getNewsIrrelevantTopicExclusionEnabled, getNewsWindowDays, setNewsIrrelevantTopicExclusionEnabled, setNewsWindowDays } from "@/lib/news/config";
+import { matchedNewsExclusionKeywords, matchedNewsKeywords, prescreenNewsItem } from "@/lib/news/prescreen";
 
 const articleHtml = `
   <html><head><title>ATO GST activity statement update</title></head>
@@ -29,7 +29,7 @@ const atoListResponse = {
     title: "Three reasons to lodge your trust tax return on time | Australian Taxation Office",
     printableUri: "/businesses-and-organisations/small-business-newsroom/three-reasons-to-lodge-your-trust-tax-return-on-time",
     excerpt: "Three reasons to lodge your trust tax return on time.",
-    raw: { date: 1787623472000, dateupdated: 1787623472000 },
+    raw: { date: 1787623472000, dateupdated: 1787623472000, firstpublish: "1" },
   }],
 };
 
@@ -43,6 +43,7 @@ beforeEach(() => {
   getRawDb().exec("DELETE FROM news_todos; DELETE FROM news_analyses; DELETE FROM news_items;");
   getRawDb().prepare("UPDATE news_sources SET last_fetched_at = NULL, last_error = NULL").run();
   setNewsWindowDays(90);
+  setNewsIrrelevantTopicExclusionEnabled(true);
   vi.unstubAllGlobals();
 });
 
@@ -78,6 +79,7 @@ test("only tax-relevant news enters the pre-screen", () => {
     "underquoting",
   ]);
   expect(matchedNewsKeywords({ title: "Bass Hill investigation", rawText: "LRBAs are mentioned in the background only" })).toEqual([]);
+  expect(matchedNewsExclusionKeywords({ title: "Fuel tax credits update", rawText: "" })).toEqual(["fuel tax credits"]);
 });
 
 test("one failed source records last_error while another source still stores an item", async () => {
@@ -119,6 +121,32 @@ test("successful source refresh is cached for 24 hours and content hash deduplic
   expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM news_items WHERE source_id = ?").get(source)).toEqual({ count: 1 });
 });
 
+test("refresh updates the existing article row when publication evidence is corrected", async () => {
+  const source = sourceId("ATO 小企业资讯");
+  getRawDb().prepare("INSERT INTO news_items (source_id, title, url, published_at, raw_text, content_hash) VALUES (?, ?, ?, ?, ?, ?)").run(
+    source,
+    "Corrected ATO item",
+    "https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/corrected-item",
+    "2026-06-04",
+    "GST reporting",
+    "old-incorrect-date-hash",
+  );
+  const response = {
+    results: [{
+      title: "Corrected ATO item",
+      printableUri: "/businesses-and-organisations/small-business-newsroom/corrected-item",
+      raw: { firstpublish: "1", date: 1780523832000, dateupdated: 1785542400000 },
+    }],
+  };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).includes("coveo.com")
+    ? new Response(JSON.stringify(response), { status: 200 })
+    : new Response(atoListPageHtml, { status: 200 }));
+
+  await refreshSource(source, fetchMock);
+
+  expect(getRawDb().prepare("SELECT COUNT(*) AS count, MIN(published_at) AS publishedAt FROM news_items WHERE source_id = ? AND url LIKE '%corrected-item'").get(source)).toEqual({ count: 1, publishedAt: "2026-08-01" });
+});
+
 test("parses real-style ASIC listing entries instead of saving the navigation page title", async () => {
   const source = sourceId("ASIC 公告");
   const listing = `
@@ -152,6 +180,56 @@ test("parses the official ATO small business newsroom list through its public li
   });
 });
 
+test("uses an article Published date when the ATO list item has no publication date", async () => {
+  const source = sourceId("ATO 小企业资讯");
+  const articleUrl = "https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/article-published-item";
+  const response = {
+    results: [{
+      title: "ATO article with a page publication date",
+      printableUri: "/businesses-and-organisations/small-business-newsroom/article-published-item",
+      raw: { firstpublish: "0", date: 1780523832000, dateupdated: 1780523832000 },
+    }],
+  };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    if (String(input).includes("coveo.com")) return new Response(JSON.stringify(response), { status: 200 });
+    if (String(input) === articleUrl) {
+      return new Response("<h1>ATO article with a page publication date</h1><p data-testid=\"date\"><strong>Published </strong>3 October 2025</p><p>GST and BAS article content.</p>", { status: 200 });
+    }
+    return new Response(atoListPageHtml, { status: 200 });
+  });
+
+  await refreshSource(source, fetchMock);
+
+  expect(getRawDb().prepare("SELECT published_at AS publishedAt FROM news_items WHERE source_id = ?").get(source)).toEqual({ publishedAt: "2025-10-03" });
+});
+
+test("missing ATO publication dates stay NULL and never inherit the fetch date", async () => {
+  const source = sourceId("ATO 小企业资讯");
+  const response = {
+    results: Array.from({ length: 17 }, (_, index) => ({
+      title: `Undated ATO item ${index + 1}`,
+      printableUri: `/businesses-and-organisations/small-business-newsroom/undated-${index + 1}`,
+      raw: { firstpublish: "0", date: 1780523832000, dateupdated: 1780523832000 },
+    })),
+  };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    if (String(input).includes("coveo.com")) return new Response(JSON.stringify(response), { status: 200 });
+    if (String(input) === "https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom") return new Response(atoListPageHtml, { status: 200 });
+    return new Response("<h1>ATO item</h1><p>Last updated 27 August 2026</p>", { status: 200 });
+  });
+
+  await refreshSource(source, fetchMock, new Date("2026-08-27T00:00:00.000Z"));
+
+  const rows = getRawDb().prepare("SELECT title, published_at AS publishedAt FROM news_items WHERE source_id = ? ORDER BY title").all(source) as Array<{ title: string; publishedAt: string | null }>;
+  expect(rows).toHaveLength(17);
+  expect(rows.every((row) => row.publishedAt === null)).toBe(true);
+  expect(new Set(rows.map((row) => row.publishedAt)).size).toBe(1);
+  expect(rows.filter((row) => row.publishedAt === "2026-08-27")).toHaveLength(0);
+  expect(listUndatedNewsFeed(false, new Date("2026-08-27T00:00:00.000Z")).map((item) => item.title)).toEqual([
+    ...Array.from({ length: 17 }, (_, index) => `Undated ATO item ${17 - index}`),
+  ]);
+});
+
 test("constrains ATO results to the configured newsroom and uses publication date", async () => {
   const source = sourceId("ATO 小企业资讯");
   const requestBodies: unknown[] = [];
@@ -160,7 +238,7 @@ test("constrains ATO results to the configured newsroom and uses publication dat
       {
         title: "Small business newsroom item",
         printableUri: "/businesses-and-organisations/small-business-newsroom/valid-item",
-        raw: { date: 1785542400000, dateupdated: 1787623472000 },
+        raw: { date: 1785542400000, dateupdated: 1785542400000, firstpublish: "1" },
       },
       {
         title: "Unrelated ATO item",
@@ -200,6 +278,29 @@ test("the main feed contains only recent keyword hits and returns the matched wo
 
   expect(items.map((item) => item.title)).toEqual(["Recent BAS update"]);
   expect(items[0]?.matchedKeywords).toEqual(["gst", "bas"]);
+});
+
+test("excludes configured no-payroll topics from the main feed and can be disabled", () => {
+  const source = sourceId("ATO 小企业资讯");
+  const insert = getRawDb().prepare("INSERT INTO news_items (source_id, title, url, published_at, raw_text, content_hash) VALUES (?, ?, ?, ?, ?, ?)");
+  insert.run(source, "Payday Super update", "https://example.test/payday", "2026-08-20", "Payroll, STP, Single Touch Payroll and superannuation information", "hash-payroll");
+  insert.run(source, "Relevant GST update", "https://example.test/gst", "2026-08-20", "GST reporting", "hash-gst");
+
+  expect(getNewsIrrelevantTopicExclusionEnabled()).toBe(true);
+  expect(matchedNewsExclusionKeywords({ title: "Payday Super update", rawText: "Payroll, STP, Single Touch Payroll and superannuation information" })).toEqual([
+    "payroll",
+    "stp",
+    "single touch payroll",
+    "payday super",
+  ]);
+  expect(listNewsFeed(false, new Date("2026-08-27T00:00:00.000Z")).map((item) => item.title)).toEqual(["Relevant GST update"]);
+  expect(listExcludedNewsFeed(false, new Date("2026-08-27T00:00:00.000Z")).map((item) => item.title)).toEqual(["Payday Super update"]);
+
+  setNewsIrrelevantTopicExclusionEnabled(false);
+  expect(listNewsFeed(false, new Date("2026-08-27T00:00:00.000Z")).map((item) => item.title)).toEqual([
+    "Relevant GST update",
+    "Payday Super update",
+  ]);
 });
 
 test("the news window is a persisted setting with a 90-day default", () => {
