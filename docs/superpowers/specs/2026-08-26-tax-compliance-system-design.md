@@ -1,6 +1,6 @@
 # 澳洲多主体税务合规看板系统设计
 
-**状态：** Gate 0、Gate 1、Gate 2、Gate 3 已验收通过并已本地合并；Gate 4 已实现并完成运行验证，等待用户验收
+**状态：** Gate 0、Gate 1、Gate 2、Gate 3、Gate 4 已验收通过并已本地合并并分别打标签；Gate 5 已完成实现与运行验证，等待用户验收
 
 **需求来源：** `/Users/neilweng/Downloads/tax-compliance-system-spec.md`
 
@@ -254,6 +254,13 @@ AI 配置从 `config/ai.json` 读取，密钥只从环境变量读取。四个�
 ATO `published_at` 只接受明确的首发证据：列表结果标记 `firstpublish = 1` 时使用其 publication 字段；修订条目还要进入文章页，只接受可见的 `Published` 标签，不把 `Last updated`、索引日期、列表页日期或抓取时间当成发布日期。无法确认时保存 `NULL`，在“日期未知”折叠区展示并排除出近 N 天主列表。刷新同一来源时按文章 URL更新已有缓存行，确保发布日期纠正不会留下旧的错误副本。
 
 当前主体经营配置声明为无雇员/无工资、不实现工资单和 STP，因此资讯默认启用 `settings.news_exclude_irrelevant_topics = true`，把 payroll、STP、Single Touch Payroll、Payday Super、SBSCH、super guarantee、fuel tax credit 等条目移到“可能不适用”折叠区；设置页可以关闭该排除开关，关闭后缓存原文仍保留并可回到主列表。
+
+## 9.1 Gate 5 年度、Div 7A、养老金与备份实现记录
+
+- 年度公司、信托和个人底稿按 `income_year` 查询交易与生成标题；`deadline_fy` 不参与年度聚合。每个年度底稿保留折旧、结转亏损、franking account 余额、Div 7A 借款余额和信托 FTE 状态五项待人工补充清单。
+- Div 7A 基准样本已在 2026-08-27（Australia/Melbourne）输入 [ATO Division 7A calculator and decision tool](https://www.ato.gov.au/calculators-and-tools/division-7a-calculator-and-decision-tool?page=1)。输入为 2016–17、无担保、$100,000、5.30%、7 年，官方对 2017–18 返回 $17,470.34；测试 fixture 保存该官方输出，不以实现自算值作为基准。贷款发放所得年度最低还款为 0，从下一个所得年度开始；基准利率始终由用户手动录入。
+- 养老金年度上限使用可配置整数分设置；当前默认 $30,000（3,000,000 分），来源为 [ATO caps, limits and tax on super contributions](https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions)，取数日期为 2026-08-27。追补规则保留 5 年与 $500,000 TSB 门槛；个人实际可用追补额度不从账本推算，当前留空并在 UI 提示人工核对。供款到账与抵扣意向通知分别建模、分别记录，供款使用 `backward` 顺延方向。
+- `/api/backup` 生成含 SQLite `app.db`、`data/files/` 和 manifest 的 ZIP；`/api/restore` 校验路径、符号链接和必需表后以临时目录与回滚副本替换数据。Gate 5 证据对导出、清空临时库、还原后的主体/交易/义务/worksheet SQL 做了前后对比。
 
 ## 10. 页面与验证
 

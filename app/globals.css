@@ -1890,3 +1890,297 @@ textarea {
   .bas-action-row label { min-width: 0; }
   .bas-total-row { align-items: flex-start; flex-direction: column; }
 }
+
+.annual-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.annual-toolbar label,
+.annual-person-switch label,
+.div7a-repayment-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.annual-toolbar label > span,
+.annual-person-switch label > span,
+.div7a-repayment-form label > span {
+  color: #687386;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.annual-toolbar select,
+.annual-person-switch select,
+.div7a-repayment-form input,
+.annual-checkbox,
+.annual-worksheet-card input,
+.annual-worksheet-card select {
+  min-height: 40px;
+  border: 1px solid #cfd6e1;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #172033;
+  padding: 8px 10px;
+}
+
+.annual-worksheet-list,
+.div7a-list {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.annual-worksheet-card,
+.super-overview,
+.super-task,
+.backup-card,
+.div7a-loan-card {
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 22px 24px;
+}
+
+.annual-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e4e8ee;
+  padding-bottom: 15px;
+}
+
+.annual-card-heading h2,
+.backup-card h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 18px;
+}
+
+.annual-card-heading > span {
+  color: #687386;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.annual-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.annual-metric-grid > div {
+  min-width: 0;
+  border: 1px solid #dce7f5;
+  border-radius: 6px;
+  background: #f7fbff;
+  padding: 12px;
+}
+
+.annual-metric-grid span,
+.annual-metric-grid strong {
+  display: block;
+}
+
+.annual-metric-grid span {
+  color: #687386;
+  font-size: 11px;
+}
+
+.annual-metric-grid strong {
+  margin-top: 7px;
+  color: #173f82;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.annual-manual-items {
+  margin-top: 19px;
+  border: 1px solid #e8dfc8;
+  border-radius: 6px;
+  background: #fffdf6;
+  padding: 13px 15px;
+}
+
+.annual-manual-items h3 {
+  margin: 0;
+  color: #7e5410;
+  font-size: 13px;
+}
+
+.annual-manual-items ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  margin: 9px 0 0;
+  padding-left: 17px;
+  color: #8a5600;
+  font-size: 12px;
+}
+
+.annual-transactions {
+  margin-top: 18px;
+  color: #3b4c67;
+  font-size: 12px;
+}
+
+.annual-transactions summary {
+  cursor: pointer;
+  color: #173f82;
+  font-weight: 700;
+}
+
+.annual-transactions ul {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding-left: 17px;
+}
+
+.resolution-template {
+  margin: 18px 0 0;
+  white-space: pre-wrap;
+  border: 1px solid #e4e8ee;
+  border-radius: 6px;
+  background: #fafbfd;
+  padding: 13px;
+  color: #3b4c67;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.annual-independent-note,
+.div7a-meta,
+.div7a-due-note,
+.super-source {
+  color: #687386;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.div7a-meta,
+.div7a-due-note {
+  margin: 12px 0 0;
+}
+
+.div7a-repayment-form,
+.super-form,
+.backup-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 11px;
+  margin-top: 17px;
+}
+
+.div7a-repayment-form label {
+  flex: 1 1 170px;
+}
+
+.div7a-repayment-form .date-input-text {
+  min-width: 0;
+}
+
+.danger-text {
+  color: #b42318 !important;
+}
+
+.annual-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  border: 0;
+  padding: 0;
+  color: #3b4c67;
+  font-size: 13px;
+}
+
+.annual-checkbox input {
+  min-height: 0;
+  accent-color: #173f82;
+}
+
+.super-overview,
+.backup-card {
+  margin-top: 25px;
+}
+
+.super-source a,
+.backup-card a {
+  color: #173f82;
+  font-weight: 700;
+}
+
+.super-task-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.super-task {
+  margin: 0;
+}
+
+.super-task.complete {
+  border-color: #a4c9af;
+  background: #f6fcf7;
+}
+
+.super-task h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 16px;
+}
+
+.super-task p,
+.backup-card p {
+  color: #687386;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.backup-card p {
+  margin: 7px 0 0;
+}
+
+.backup-file-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.backup-card a.primary-button {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.backup-file-label input {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+@media (max-width: 820px) {
+  .annual-worksheet-card,
+  .super-overview,
+  .super-task,
+  .backup-card,
+  .div7a-loan-card { padding: 18px; }
+  .annual-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .super-task-grid { grid-template-columns: 1fr; }
+  .backup-actions { align-items: stretch; flex-direction: column; }
+  .backup-actions > * { width: 100%; justify-content: center; }
+  .super-form { align-items: stretch; flex-direction: column; }
+  .super-form > * { width: 100%; }
+}

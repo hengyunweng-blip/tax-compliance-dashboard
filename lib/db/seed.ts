@@ -2,6 +2,7 @@ import { getRawDb } from "@/lib/db/client";
 import { ACCOUNT_SEEDS } from "@/lib/constants/accounts";
 import { ENTITY_SEEDS, LICENCE_SEED } from "@/lib/constants/entities";
 import { runMigrations } from "@/lib/db/migrate";
+import { DEFAULT_SUPER_CONFIGURATION, SUPER_SETTING_KEYS } from "@/lib/domain/super/constants";
 
 const OBLIGATION_RULE_SEEDS = [
   {
@@ -203,7 +204,20 @@ export function seedDatabase() {
     const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
     insertSetting.run("timezone", "Australia/Melbourne");
     insertSetting.run("fy_start", "2026-07-01");
-    insertSetting.run("concessional_cap_cents", "3250000");
+    insertSetting.run(SUPER_SETTING_KEYS.concessionalCapCents, String(DEFAULT_SUPER_CONFIGURATION.concessionalCapCents));
+    // 3,250,000 was the unverified pre-Gate-5 placeholder. Preserve an
+    // intentional user override, but migrate that legacy seed value.
+    db.prepare("UPDATE settings SET value = ? WHERE key = ? AND value = '3250000'").run(
+      String(DEFAULT_SUPER_CONFIGURATION.concessionalCapCents),
+      SUPER_SETTING_KEYS.concessionalCapCents,
+    );
+    insertSetting.run(SUPER_SETTING_KEYS.concessionalCapSourceUrl, DEFAULT_SUPER_CONFIGURATION.concessionalCapSourceUrl);
+    insertSetting.run(SUPER_SETTING_KEYS.concessionalCapRetrievedAt, DEFAULT_SUPER_CONFIGURATION.concessionalCapRetrievedAt);
+    insertSetting.run(SUPER_SETTING_KEYS.carryForwardYears, String(DEFAULT_SUPER_CONFIGURATION.carryForwardYears));
+    insertSetting.run(SUPER_SETTING_KEYS.carryForwardTsbLimitCents, String(DEFAULT_SUPER_CONFIGURATION.carryForwardTsbLimitCents));
+    insertSetting.run(SUPER_SETTING_KEYS.carryForwardSourceUrl, DEFAULT_SUPER_CONFIGURATION.carryForwardSourceUrl);
+    insertSetting.run(SUPER_SETTING_KEYS.carryForwardRetrievedAt, DEFAULT_SUPER_CONFIGURATION.carryForwardRetrievedAt);
+    insertSetting.run(SUPER_SETTING_KEYS.carryForwardAvailableCents, "");
     insertSetting.run("ai_enabled", "false");
     insertSetting.run("news_window_days", "90");
     insertSetting.run("news_exclude_irrelevant_topics", "true");

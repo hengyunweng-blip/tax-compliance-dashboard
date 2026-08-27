@@ -113,6 +113,14 @@ export function calculateSuperContributionDue(statutoryDue: DateOnly = "2027-06-
   };
 }
 
+/**
+ * A notice of intent is a separate user task. Its default review deadline is
+ * the individual return deadline; it is never inferred from payment status.
+ */
+export function calculateSuperNoticeDue(fy: string, adjustmentDirection: AdjustmentDirection = "forward"): DueDateResult {
+  return calculateAnnualTaxDue({ type: "individual" }, { fy }, adjustmentDirection);
+}
+
 export function calculateLicenceCancellationDate(anniversaryDate: DateOnly): DateOnly {
   return formatDateOnly(addDays(parseMelbourneDate(anniversaryDate), 21));
 }

@@ -983,7 +983,7 @@ Run: `npm test -- tests/unit/ai-adapter.test.ts tests/unit/news.test.ts && npm r
 
 Verify AI-disabled behavior, source links, dismissed state, explicit todo creation, dashboard/detail/BAS load without network, and the closed-period decision flow. Stop and request Gate 4 acceptance.
 
-**Gate 4 implementation status:** all planned steps and verification commands are complete. The implementation is committed locally, but Gate 4 remains unaccepted until the user reviews the dedicated evidence directory and report. Gate 5 has not started.
+**Gate 4 implementation status:** all planned steps and verification commands are complete. Gate 4 was accepted and tagged locally as `gate-4` at commit `691ba48`. Its evidence directory remains immutable. Gate 5 has now started after a feasibility preflight.
 
 **Gate 4 news correction:** ATO list `raw.date` is not a publication date and is never used for `published_at`. First-publication results use the explicit publication field; revision results are checked against the article page's `Published` label, while `Last updated` produces `NULL`. Unknown dates are shown separately from the recent main feed. The current no-employee/no-payroll profile is persisted as `news_exclude_irrelevant_topics` (default `true`), with an explicit settings-page switch and a separate “可能不适用” section for excluded topics.
 
@@ -1008,7 +1008,7 @@ Start only after Gate 4 acceptance. This is the final Gate and still requires a 
 - `buildTrustDistributionDraft(entityId, fy): TrustDistributionDraft` returns a text template and editable beneficiary amounts.
 - `buildPersonalTaxSummary(person, fy): PersonalTaxSummary` aggregates trust distributions, dividends/franking credits and concessional contributions.
 
-- [ ] **Step 1: Write failing worksheet tests**
+- [x] **Step 1: Write failing worksheet tests**
 
 ```ts
 test("company worksheet reports integer profit and named manual supplements", async () => {
@@ -1020,25 +1020,27 @@ test("company worksheet reports integer profit and named manual supplements", as
 });
 ```
 
-- [ ] **Step 2: Run focused tests to verify failure**
+- [x] **Step 2: Run focused tests to verify failure**
 
 Run: `npm test -- tests/unit/annual-worksheets.test.ts`
 
 Expected: FAIL because annual services do not exist.
 
-- [ ] **Step 3: Implement aggregators and text-template generation**
+- [x] **Step 3: Implement aggregators and text-template generation**
 
 Aggregate only confirmed transactions by FY, preserve transaction IDs for traceability, and keep manual supplements visibly separate from calculated numbers. Trust distribution output is a draft for user signature, not an electronic filing.
 
-- [ ] **Step 4: Implement annual page and exports**
+- [x] **Step 4: Implement annual page and exports**
 
 Show company, trust and personal tabs, editable manual data, a distribution decision template, and source transaction links. Do not offer an automatic filing action.
 
-- [ ] **Step 5: Run tests and browser flow**
+- [x] **Step 5: Run tests and browser flow**
 
 Run: `npm test -- tests/unit/annual-worksheets.test.ts && npm run build`
 
 Use the browser to open `/annual`, select FY2026–27, and verify a company worksheet and trust draft render.
+
+The implementation and browser flow use the `income_year` selector for aggregation and titles. A regression assertion also switches to FY2025–26 and checks the rendered trust title before returning to FY2026–27.
 
 ### Task 5.2: Implement Div 7A calculation and panel with a mandatory unit test
 
@@ -1054,13 +1056,13 @@ Use the browser to open `/annual`, select FY2026–27, and verify a company work
 - `calculateMinimumYearlyRepaymentCents(input: { principalCents: number; benchmarkRate: string; remainingTermYears: number; loanIncomeYear: string; assessmentIncomeYear: string }): number` returns `0` in the loan origination income year and a safe integer from the ATO formula from the next income year onward.
 - `getDiv7aLoanSummary(loanId, fy): Div7aSummary` returns principal, minimum repayment, actual repayments, shortfall and days to 30 June.
 
-- [ ] **Step 1: Gate 5 entry preflight — obtain an official ATO baseline before writing the implementation**
+- [x] **Step 1: Gate 5 entry preflight — obtain an official ATO baseline before writing the implementation**
 
 Before writing the formula implementation or declaring this test passing, enter the planned input set into the ATO official Division 7A calculator: principal `$100,000.00`, benchmark rate `5.30%`, remaining term `7` years, with the calculator's required historical income-year/loan-year fields set so the official tool accepts the input. Record the calculator output in `tests/fixtures/div7a/ato-baseline.json` together with the exact input, source URL, and Melbourne-local retrieval date. Do not copy the implementation's computed output into the fixture.
 
 If the official calculator cannot be accessed or does not accept this historical input, do not invent an expected number. Leave the fixture absent/unverified and make the official-output test `test.skip("ATO calculator unavailable; manual verification required")`; the Gate 5 report must list it under “待人工核对” and must not count it as a passing mandatory test.
 
-- [ ] **Step 2: Write the mandatory failing Div 7A formula tests**
+- [x] **Step 2: Write the mandatory failing Div 7A formula tests**
 
 ```ts
 import { expect, test } from "vitest";
@@ -1103,21 +1105,23 @@ test("does not require a minimum repayment in the loan origination income year",
 
 The formula implementation is the ATO minimum yearly repayment formula: `P × I / (1 - (1 / (1 + I))^T)`, where `P` is the unpaid balance at the end of the previous income year, `I` is the benchmark rate, and `T` is the remaining term. Use Decimal.js for the rate/power calculation and round only the final dollar result to the nearest cent with half-up rounding. The official-output assertion is the baseline; the formula itself is not allowed to supply its own expected test value. The implementation reference is the [ATO Division 7A calculator and decision tool](https://www.ato.gov.au/calculators-and-tools/division-7a-calculator-and-decision-tool?page=1).
 
-- [ ] **Step 3: Run tests to verify failure**
+- [x] **Step 3: Run tests to verify failure**
 
 Run: `npm test -- tests/unit/div7a.test.ts`
 
 Expected: FAIL because the formula function is absent.
 
-- [ ] **Step 4: Implement the formula and repayment service**
+- [x] **Step 4: Implement the formula and repayment service**
 
 Validate positive safe-integer principal, rate between 0 and 1, and term of 1–25 years. Return zero and do not create a missing-repayment warning when `assessmentIncomeYear === loanIncomeYear`; start the minimum repayment schedule in the next income year. Store repayments as integer cents in JSON. Use the repayment due date 30 June for shortfall/day countdown presentation and keep agreement-signed status visible.
 
-- [ ] **Step 5: Run the mandatory Div 7A test and panel flow**
+- [x] **Step 5: Run the mandatory Div 7A test and panel flow**
 
 Run: `npm test -- tests/unit/div7a.test.ts && npm run build`
 
 Open `/div7a`, create a sample loan, and verify minimum repayment, actual repayment, shortfall and agreement status.
+
+Gate 5 preflight entered the historical sample into the live ATO calculator and recorded the returned `$17,470.34` as `1,747,034` cents in `tests/fixtures/div7a/ato-baseline.json`. The source URL and Melbourne-local retrieval date (`2026-08-27`) are retained in the fixture and test comment; the test does not use an implementation-derived expected value.
 
 ### Task 5.3: Implement super panel, backup/restore, and final regression
 
@@ -1137,11 +1141,11 @@ Open `/div7a`, create a sample loan, and verify minimum repayment, actual repaym
 - `createBackupArchive(): Promise<ReadableStream>` includes a consistent SQLite backup and `data/files/` without secrets.
 - `restoreBackupArchive(file): Promise<void>` validates archive paths and schema before replacing local data in a recoverable transaction/temporary directory.
 
-- [ ] **Step 1: Write failing super and backup tests**
+- [x] **Step 1: Write failing super and backup tests**
 
 ```ts
 test("shows the FY2026-27 concessional cap in integer cents", async () => {
-  expect((await getSuperProgress("self", "2026-27")).capCents).toBe(3_250_000);
+  expect((await getSuperProgress("self", "2026-27")).capCents).toBe(3_000_000);
 });
 
 test("backup manifest excludes env files and includes database/files metadata", async () => {
@@ -1151,29 +1155,33 @@ test("backup manifest excludes env files and includes database/files metadata", 
 });
 ```
 
-- [ ] **Step 2: Run focused tests to verify failure**
+- [x] **Step 2: Run focused tests to verify failure**
 
 Run: `npm test -- tests/unit/super.test.ts tests/unit/backup.test.ts`
 
 Expected: FAIL because super and backup services are absent.
 
-- [ ] **Step 3: Implement super progress and notice workflow**
+- [x] **Step 3: Implement super progress and notice workflow**
 
 Track paid contributions, cap, notice submitted date and the manual carry-forward hint when the prior 30 June balance is below $500,000. The UI must show that the notice is a separate task and cannot infer it from the payment alone.
 
-- [ ] **Step 4: Implement safe backup and restore**
+- [x] **Step 4: Implement safe backup and restore**
 
 Use a temporary archive path, include SQLite data and files, exclude `.env*`, and reject absolute paths or `..` entries on restore. Do not delete the current database until the archive validates and a rollback copy exists.
 
-- [ ] **Step 5: Run final unit, build and browser regression**
+- [x] **Step 5: Run final unit, build and browser regression**
 
 Run: `npm test && npm run lint && npm run build && npm run test:e2e -- tests/e2e/final-regression.spec.ts`
 
 The final browser flow must cover settings persistence, Gate 1 due-date display, CSV import, Inbox confirmation, BAS worksheet/lock, news source link, annual worksheet, Div 7A panel, super panel, and backup download. It must not include real external ATO/ASIC submission.
 
-- [ ] **Step 6: Stop and request Gate 5 acceptance**
+- [x] **Step 6: Stop and request Gate 5 acceptance**
 
 Report all test/build/browser evidence, all six Gate outcomes, known manual tasks, and the explicit non-goals. Do not claim the system is fully accepted until the user signs off Gate 5.
+
+**Gate 5 implementation status:** the annual, Div 7A, super and backup/restore slices are implemented and verified locally. Full unit tests pass (29 files / 140 tests after the explicit income-year regression), lint and production build pass, and the Playwright regression passes against a dedicated Gate 5 evidence database. The actual backup evidence includes an HTTP `/api/backup` ZIP download, restore into a cleared temporary database, and a subsequent `/api/restore` route health check. Gate 5 remains unaccepted until user review.
+
+**Gate 5 non-blocking backlog:** Gate 4's real ATO run left 38 of 100 ATO items without a confirmed `published_at`. The current behavior keeps those dates `NULL` and outside the recent main list. A later pass may follow article links to obtain explicit publication dates; this is intentionally not part of Gate 5.
 
 ## Plan self-review
 
@@ -1183,6 +1191,6 @@ Report all test/build/browser evidence, all six Gate outcomes, known manual task
 - Gate 2 covers all four entrances, including multipart/base64 email ingestion with `INGEST_TOKEN`, CSV mapping, integer money, duplicate marking, document hash, Inbox and keyboard flow; real phone camera is explicitly excluded from automated claims.
 - Gate 3 covers the mandatory GST mapping unit test, Simpler BAS G1/1A/1B-only instructions, internal G10/G11 labels, manual PAYG 5A/5B input, `gstNetCents` versus `statementTotalCents`, warning gate, atomic lock/snapshot, nil BAS, instructions and PDF/CSV export.
 - Gate 4 covers `audit_log`/`ai_cache` availability from Gate 0, AI redaction/cache/fallback, four methods, asynchronous news and explicit user confirmation for news-created todos.
-- Gate 5 covers company/trust/personal worksheets, an ATO-official-baseline Div 7A test or explicitly skipped manual-check item, the loan-origination-year zero-repayment rule, super contributions/notice, backup/restore and final regression.
+- Gate 5 covers company/trust/personal worksheets aggregated by `income_year`, an ATO-official-baseline Div 7A test, the loan-origination-year zero-repayment rule, manually sourced/configurable super caps and separate contribution/notice tasks, backup/restore and final regression.
 - No step uses `TBD`, `TODO`, or a generic “handle edge cases” instruction; each implementation boundary has a file, interface, test, and expected verification command.
 - The only external date uncertainty is the 2027 AFL Grand Final Friday, which the official Victorian calendar currently leaves subject to the AFL schedule; the code will not guess it and will carry an annual update note.

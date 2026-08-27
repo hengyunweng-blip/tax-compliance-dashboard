@@ -119,6 +119,9 @@ export function DashboardClient({ entities, obligations }: Props) {
           <a href="/upload" className="nav-item">上传</a>
           <a href="/import" className="nav-item">CSV 导入</a>
           <a href="/inbox" className="nav-item">Inbox</a>
+          <a href="/annual" className="nav-item">年度底稿</a>
+          <a href="/div7a" className="nav-item">Div 7A</a>
+          <a href="/super" className="nav-item">养老金</a>
           <a href="/news" className="nav-item">资讯</a>
           <a href="/settings" className="nav-item">设置</a>
         </nav>

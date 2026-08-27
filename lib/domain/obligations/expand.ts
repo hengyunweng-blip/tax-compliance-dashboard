@@ -6,6 +6,7 @@ import {
   calculateBasDueDates,
   calculateLicenceWindowDue,
   calculateSuperContributionDue,
+  calculateSuperNoticeDue,
   calculateTrustDistributionDue,
   type BasQuarter,
 } from "@/lib/domain/obligations/calculator";
@@ -189,6 +190,20 @@ export function expandObligations({ fy, entities = [], licence, context, adjustm
         deadlineFy: due.deadlineFy,
         statutoryDue: due.statutoryDue,
         effectiveDue: due.effectiveDue,
+        status: "todo",
+      }));
+
+      const noticeDue = calculateSuperNoticeDue(fy, adjustmentDirectionFor("super_notice", adjustmentDirections));
+      inputs.push(makeInput({
+        ruleId: "super_notice",
+        entityId: entity.id,
+        periodLabel: PERIOD_LABELS.annual(noticeDue.incomeYear),
+        periodStart: null,
+        periodEnd: null,
+        incomeYear: noticeDue.incomeYear,
+        deadlineFy: noticeDue.deadlineFy,
+        statutoryDue: noticeDue.statutoryDue,
+        effectiveDue: noticeDue.effectiveDue,
         status: "todo",
       }));
     }

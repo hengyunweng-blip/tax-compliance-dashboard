@@ -7,7 +7,7 @@ import { schema } from "@/lib/db/schema";
 let database: Database.Database | undefined;
 let drizzleDatabase: BetterSQLite3Database<typeof schema> | undefined;
 
-function databasePath() {
+export function getDatabaseFilePath() {
   const configuredPath = process.env.DATABASE_PATH ?? "./data/app.db";
   return path.isAbsolute(configuredPath)
     ? configuredPath
@@ -16,7 +16,7 @@ function databasePath() {
 
 export function getRawDb() {
   if (!database) {
-    const filePath = databasePath();
+    const filePath = getDatabaseFilePath();
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     database = new Database(filePath);
     database.pragma("foreign_keys = ON");
@@ -37,4 +37,13 @@ export function getDb(): BetterSQLite3Database<typeof schema> {
   }
 
   return drizzleDatabase;
+}
+
+/** Close and forget the singleton so a validated backup can replace the file safely. */
+export function closeDatabase() {
+  if (database) {
+    database.close();
+  }
+  database = undefined;
+  drizzleDatabase = undefined;
 }
