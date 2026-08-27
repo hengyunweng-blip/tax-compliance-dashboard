@@ -23,6 +23,7 @@ export function NewsCard({ item, onDismiss, onCreateTodo, confirming }: Props) {
     <article className={`news-card news-impact-${impact}`} data-testid={`news-card-${item.id}`}>
       <div className="news-card-topline"><span>{item.sourceName}</span><time dateTime={item.publishedAt ?? undefined}>{displayDate(item.publishedAt)}</time></div>
       <h2>{item.title}</h2>
+      <p className="news-match-keywords" data-testid={`news-match-keywords-${item.id}`}>命中关键词：{item.matchedKeywords.join("、")}</p>
       {item.analysis ? <p className="news-summary">{item.analysis.summary}</p> : <p className="news-summary">已保存来源信息；关键词预筛后等待分析。</p>}
       {item.analysis?.recommendations.length ? <ul className="news-recommendations">{item.analysis.recommendations.map((recommendation) => <li key={recommendation}>{recommendation}</li>)}</ul> : null}
       <div className="news-card-actions">

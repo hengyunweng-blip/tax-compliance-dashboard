@@ -2,7 +2,8 @@ import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { summarizeNews } from "@/lib/ai/adapter";
 import type { NewsAnalysis } from "@/lib/ai/types";
-import { prescreenNewsItem } from "@/lib/news/prescreen";
+import { getNewsWindowStart } from "@/lib/news/config";
+import { matchedNewsKeywords, prescreenNewsItem } from "@/lib/news/prescreen";
 import { formatMelbourneDateTime } from "@/lib/time/melbourne";
 
 export type NewsFeedItem = {
@@ -15,6 +16,7 @@ export type NewsFeedItem = {
   publishedAt: string | null;
   rawText: string;
   fetchedAt: string;
+  matchedKeywords: string[];
   analysisId: number | null;
   dismissedAt: string | null;
   analysis: NewsAnalysis | null;
@@ -69,6 +71,7 @@ function mapFeedRow(row: FeedRow): NewsFeedItem {
     publishedAt: row.published_at,
     rawText: row.raw_text,
     fetchedAt: row.fetched_at,
+    matchedKeywords: matchedNewsKeywords({ title: row.title, rawText: row.raw_text }),
     analysisId: row.analysis_id,
     dismissedAt: row.dismissed_at,
     analysis: readAnalysis(row.summary_json),
@@ -76,7 +79,9 @@ function mapFeedRow(row: FeedRow): NewsFeedItem {
   };
 }
 
-function feedRows(includeDismissed: boolean): FeedRow[] {
+function feedRows(includeDismissed: boolean, windowStart: string): FeedRow[] {
+  const filters = ["s.active = 1", "n.published_at IS NOT NULL", "n.published_at >= ?"];
+  if (!includeDismissed) filters.push("a.dismissed_at IS NULL");
   const rows = getRawDb().prepare(`
     SELECT n.id, n.source_id, s.name AS source_name, s.url AS source_url,
       n.title, n.url, n.published_at, n.raw_text, n.fetched_at,
@@ -86,22 +91,25 @@ function feedRows(includeDismissed: boolean): FeedRow[] {
     INNER JOIN news_sources s ON s.id = n.source_id
     LEFT JOIN news_analyses a ON a.news_item_id = n.id
     LEFT JOIN news_todos t ON t.news_analysis_id = a.id
-    ${includeDismissed ? "" : "WHERE a.dismissed_at IS NULL"}
+    WHERE ${filters.join(" AND ")}
     ORDER BY CASE json_extract(a.summary_json, '$.impactLevel') WHEN 'action' THEN 0 WHEN 'watch' THEN 1 ELSE 2 END,
       COALESCE(n.published_at, n.fetched_at) DESC, n.id DESC
-  `).all() as FeedRow[];
-  return rows;
+  `).all(windowStart) as FeedRow[];
+  return rows.filter((row) => matchedNewsKeywords({ title: row.title, rawText: row.raw_text }).length > 0);
 }
 
-export async function analyseNewsItems(): Promise<void> {
+export async function analyseNewsItems(now = new Date()): Promise<void> {
   runMigrations();
+  const windowStart = getNewsWindowStart(now);
   const rows = getRawDb().prepare(`
     SELECT n.id, n.source_id, n.title, n.url, n.published_at, n.raw_text, n.fetched_at
     FROM news_items n
+    INNER JOIN news_sources s ON s.id = n.source_id
     LEFT JOIN news_analyses a ON a.news_item_id = n.id
-    WHERE a.id IS NULL AND a.dismissed_at IS NULL
+    WHERE s.active = 1 AND a.id IS NULL AND a.dismissed_at IS NULL
+      AND n.published_at IS NOT NULL AND n.published_at >= ?
     ORDER BY n.id
-  `).all() as NewsRow[];
+  `).all(windowStart) as NewsRow[];
   const relevant = rows.filter((row) => prescreenNewsItem({ title: row.title, rawText: row.raw_text }));
   if (!relevant.length) return;
   const suggestions = await summarizeNews(relevant.map((row) => ({ id: row.id, title: row.title, rawText: row.raw_text })), {});
@@ -118,9 +126,9 @@ export async function analyseNewsItems(): Promise<void> {
   write();
 }
 
-export function listNewsFeed(includeDismissed = false): NewsFeedItem[] {
+export function listNewsFeed(includeDismissed = false, now = new Date()): NewsFeedItem[] {
   runMigrations();
-  return feedRows(includeDismissed).map(mapFeedRow);
+  return feedRows(includeDismissed, getNewsWindowStart(now)).map(mapFeedRow);
 }
 
 async function ensureAnalysisForItem(newsItemId: number) {

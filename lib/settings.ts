@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getRawDb } from "@/lib/db/client";
+import { parseNewsWindowDays, NEWS_WINDOW_SETTING_KEY } from "@/lib/news/config";
 import type { DateOnly } from "@/lib/time/melbourne";
 
 const entityConfigurationSchema = z.object({
@@ -16,6 +17,8 @@ const licenceConfigurationSchema = z.object({
   licenceNumber: z.string().trim().max(80).nullable().optional(),
   anniversaryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 }).strict();
+
+const newsWindowDaysSchema = z.number().int().min(1).max(3650);
 
 export type EntityConfigurationInput = z.input<typeof entityConfigurationSchema>;
 export type LicenceConfigurationInput = z.input<typeof licenceConfigurationSchema>;
@@ -162,6 +165,7 @@ export function saveSettings(input: unknown) {
   const parsed = z.object({
     entities: z.array(entityConfigurationSchema).optional(),
     licence: licenceConfigurationSchema.optional(),
+    newsWindowDays: newsWindowDaysSchema.optional(),
   }).strict().parse(input);
 
   const db = getRawDb();
@@ -171,6 +175,14 @@ export function saveSettings(input: unknown) {
     }
     if (parsed.licence) {
       applyLicenceConfiguration(db, parsed.licence);
+    }
+    if (parsed.newsWindowDays !== undefined) {
+      const days = parseNewsWindowDays(parsed.newsWindowDays);
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES (?, ?, datetime('now'))
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+      `).run(NEWS_WINDOW_SETTING_KEY, String(days));
     }
   });
   transaction();

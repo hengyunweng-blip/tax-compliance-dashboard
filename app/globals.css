@@ -396,6 +396,37 @@ textarea {
   font-weight: 650;
 }
 
+.news-settings-form {
+  padding: 22px 24px 25px;
+}
+
+.news-settings-form label {
+  display: grid;
+  max-width: 360px;
+  gap: 7px;
+}
+
+.news-settings-form label > span {
+  color: #687386;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.news-settings-form input {
+  min-height: 38px;
+  border: 1px solid #cfd6e1;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #172033;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.news-settings-form small {
+  color: #8a94a4;
+  font-size: 11px;
+}
+
 .empty-state {
   margin: 0;
   padding: 24px;
@@ -1600,6 +1631,13 @@ textarea {
   margin: 9px 0 0;
   color: #172033;
   font-size: 16px;
+}
+
+.news-match-keywords {
+  margin: 8px 0 0;
+  color: #8a5600;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .news-summary {

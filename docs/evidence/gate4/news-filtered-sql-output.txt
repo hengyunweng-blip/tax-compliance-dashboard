@@ -1,0 +1,14 @@
+Database: ./data/gate4-news-real-20260827.db
+Query: SELECT source_id, title, published_at, url FROM news_items LIMIT 10;
+
+source_id | title                                                                                         | published_at | url
+1         | Small business tax questions answered by joining ATO Community | Australian Taxation Office | 2026-08-07 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/small-business-tax-questions-answered-by-joining-ato-community
+1         | Did you miss the final quarterly super payment? | Australian Taxation Office                       | 2026-08-06 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/did-you-miss-the-final-quarterly-super-payment
+1         | Paying super for independent contactors | Australian Taxation Office                         | 2026-08-05 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/paying-super-for-independent-contactors
+1         | Does your payroll provider support Payday Super? | Australian Taxation Office                        | 2026-08-04 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/does-your-payroll-provider-support-payday-super
+1         | Top tips to meet the Payday Super 7 business day timeframe | Australian Taxation Office                | 2026-08-03 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/top-tips-to-meet-the-payday-super-7-business-day-timeframe
+1         | Final reminder: TPAR due 28 August | Australian Taxation Office                             | 2026-08-03 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/final-reminder-tpar-due-28-august
+1         | New guidance on Renewable Energy compensation payments | Australian Taxation Office                    | 2026-08-03 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/new-guidance-on-renewable-energy-compensation-payments
+1         | Fuel tax credit rates have changed again on 3 August | Australian Taxation Office                    | 2026-08-03 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/fuel-tax-credit-rates-have-changed-again-on-3-august
+1         | Are you a provider under the Government Payments Program? | Australian Taxation Office                    | 2026-08-03 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/are-you-a-provider-under-the-government-payments-program
+1         | Early stage innovation company (ESIC) reports due 31 July | Australian Taxation Office                   | 2026-07-29 | https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom/early-stage-innovation-company-reports-due-31-july

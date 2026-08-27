@@ -64,6 +64,15 @@ test("saves combined settings atomically", () => {
   expect(row.acn).toBeNull();
 });
 
+test("saves the configurable news window with the other local settings", () => {
+  seedDatabase();
+
+  saveSettings({ newsWindowDays: 45 });
+
+  expect(getRawDb().prepare("SELECT value FROM settings WHERE key = 'news_window_days'").get()).toEqual({ value: "45" });
+  saveSettings({ newsWindowDays: 90 });
+});
+
 test("individual and trust entities are never blocked by missing company identifiers", () => {
   expect(getEntityConfigurationStatus({ type: "individual", acn: null, asicReviewDate: null })).toBe("ready");
   expect(getEntityConfigurationStatus({ type: "trust", acn: null, asicReviewDate: null })).toBe("ready");

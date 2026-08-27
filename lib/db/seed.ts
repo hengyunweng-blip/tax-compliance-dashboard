@@ -115,10 +115,10 @@ const OBLIGATION_RULE_SEEDS = [
 ] as const;
 
 const NEWS_SOURCE_SEEDS = [
-  { name: "ATO 小企业资讯", url: "https://www.ato.gov.au/businesses-and-organisations/gst-excise-and-indirect-taxes/gst/in-detail/managing-gst-in-your-business/reporting-paying-and-activity-statements/correcting-gst-errors", fetchType: "html_article" },
+  { name: "ATO 小企业资讯", url: "https://www.ato.gov.au/businesses-and-organisations/small-business-newsroom", fetchType: "html_listing_ato", active: true },
   { name: "ASIC 公告", url: "https://asic.gov.au/newsroom/", fetchType: "html_listing_asic" },
-  { name: "Consumer Affairs Victoria 房产中介", url: "https://www.consumer.vic.gov.au/latest-news", fetchType: "html_listing_cav" },
-  { name: "Treasury 政策发布", url: "https://treasury.gov.au/media-release", fetchType: "html_listing_treasury" },
+  { name: "Consumer Affairs Victoria 房产中介", url: "https://www.consumer.vic.gov.au/latest-news?Keyword=%7B131B3520-4AFE-4D3B-8967-E1781F982526%7D", fetchType: "html_listing_cav", active: true },
+  { name: "Treasury 政策发布", url: "https://treasury.gov.au/media-release", fetchType: "html_listing_treasury", active: false },
 ] as const;
 
 export function seedDatabase() {
@@ -188,15 +188,16 @@ export function seedDatabase() {
       );
     }
 
-    const updateSource = db.prepare("UPDATE news_sources SET url = ?, fetch_type = ?, active = 1, updated_at = datetime('now') WHERE name = ?");
+    const updateSource = db.prepare("UPDATE news_sources SET url = ?, fetch_type = ?, active = ?, last_fetched_at = NULL, last_error = NULL, updated_at = datetime('now') WHERE name = ?");
     const insertSource = db.prepare(`
       INSERT INTO news_sources (name, url, fetch_type, active)
-      SELECT ?, ?, ?, 1
+      SELECT ?, ?, ?, ?
       WHERE NOT EXISTS (SELECT 1 FROM news_sources WHERE name = ?)
     `);
     for (const source of NEWS_SOURCE_SEEDS) {
-      updateSource.run(source.url, source.fetchType, source.name);
-      insertSource.run(source.name, source.url, source.fetchType, source.name);
+      const active = "active" in source ? Number(source.active) : 1;
+      updateSource.run(source.url, source.fetchType, active, source.name);
+      insertSource.run(source.name, source.url, source.fetchType, active, source.name);
     }
 
     const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
@@ -204,6 +205,7 @@ export function seedDatabase() {
     insertSetting.run("fy_start", "2026-07-01");
     insertSetting.run("concessional_cap_cents", "3250000");
     insertSetting.run("ai_enabled", "false");
+    insertSetting.run("news_window_days", "90");
   });
   transaction();
 }

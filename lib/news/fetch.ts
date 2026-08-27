@@ -84,6 +84,19 @@ type ParsedNewsItem = {
   contentHash: string;
 };
 
+type AtoCoveoResult = {
+  title?: unknown;
+  printableUri?: unknown;
+  clickUri?: unknown;
+  excerpt?: unknown;
+  summary?: unknown;
+  raw?: Record<string, unknown>;
+};
+
+type AtoCoveoResponse = {
+  results?: unknown;
+};
+
 function buildParsedItem(source: NewsSource, title: string, url: string, publishedAt: string | null, rawText: string, now: Date): ParsedNewsItem {
   const normalizedTitle = textFromHtml(title) || source.name;
   const normalizedUrl = resolveUrl(source, url);
@@ -148,6 +161,67 @@ function parseTreasuryListing(source: NewsSource, html: string, now: Date): Pars
   return entries;
 }
 
+function epochToPublishedAt(value: unknown): string | null {
+  const milliseconds = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return null;
+  const date = new Date(milliseconds);
+  return Number.isNaN(date.getTime()) ? null : formatDateOnly(date);
+}
+
+function parseAtoListing(source: NewsSource, payload: AtoCoveoResponse, now: Date): ParsedNewsItem[] {
+  if (!Array.isArray(payload.results)) return [];
+  const entries: ParsedNewsItem[] = [];
+  for (const candidate of payload.results) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const result = candidate as AtoCoveoResult;
+    const title = typeof result.title === "string" ? result.title : "";
+    const printableUri = typeof result.printableUri === "string" ? result.printableUri : typeof result.clickUri === "string" ? result.clickUri : "";
+    if (!title || !printableUri || (!printableUri.startsWith("/") && !/https:\/\/www\.ato\.gov\.au\//i.test(printableUri))) continue;
+    const raw = result.raw ?? {};
+    const publishedAt = epochToPublishedAt(raw.dateupdated) ?? epochToPublishedAt(raw.date) ?? null;
+    const rawText = [result.excerpt, result.summary, raw.description, title]
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .join(" ");
+    entries.push(buildParsedItem(source, title, printableUri, publishedAt, rawText, now));
+  }
+  return entries;
+}
+
+function extractAtoSearchConfiguration(html: string) {
+  const organizationId = firstMatch(html, [
+    /"organizationId":\{"value":"([^"]+)"\}/i,
+  ]);
+  const searchToken = firstMatch(html, [
+    /"name":"ATOGov SmallBusiness"[\s\S]{0,1200}?"key":\{"value":"([^"]+)"\}/i,
+    /"name":"ATOGov WhatsNew"[\s\S]{0,1200}?"key":\{"value":"([^"]+)"\}/i,
+  ]);
+  if (!organizationId || !searchToken) {
+    throw new Error("ATO list search configuration was not found");
+  }
+  return { organizationId, searchToken };
+}
+
+async function fetchAtoListing(source: NewsSource, fetchImpl: FetchImplementation, now: Date): Promise<ParsedNewsItem[]> {
+  const pageResponse = await fetchImpl(source.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
+  if (!pageResponse.ok) throw new Error(`ATO list HTTP ${pageResponse.status}`);
+  const pageHtml = await pageResponse.text();
+  const { organizationId, searchToken } = extractAtoSearchConfiguration(pageHtml);
+  const apiUrl = `https://${organizationId}.org.coveo.com/rest/search/v2?organizationId=${encodeURIComponent(organizationId)}`;
+  const apiResponse = await fetchImpl(apiUrl, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${searchToken}` },
+    body: JSON.stringify({
+      q: "",
+      numberOfResults: 100,
+      sortCriteria: "dateupdated descending",
+      fieldsToInclude: ["title", "printableuri", "clickuri", "description", "excerpt", "date", "dateupdated"],
+    }),
+  });
+  if (!apiResponse.ok) throw new Error(`ATO list search HTTP ${apiResponse.status}`);
+  const payload = await apiResponse.json() as AtoCoveoResponse;
+  return parseAtoListing(source, payload, now);
+}
+
 function parseNewsItems(source: NewsSource, html: string, now: Date): ParsedNewsItem[] {
   const items = source.fetchType === "html_listing_asic"
     ? parseAsicListing(source, html, now)
@@ -164,9 +238,14 @@ export async function refreshSource(sourceId: number | string, fetchImpl: FetchI
   const source = getNewsSource(sourceId);
   if (!source || !source.active || isFresh(source.lastFetchedAt, now)) return;
   try {
-    const response = await fetchImpl(source.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const articles = parseNewsItems(source, await response.text(), now);
+    const articles = source.fetchType === "html_listing_ato"
+      ? await fetchAtoListing(source, fetchImpl, now)
+      : await (async () => {
+        const response = await fetchImpl(source.url, { headers: { Accept: "text/html,application/xhtml+xml" } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return parseNewsItems(source, await response.text(), now);
+      })();
+    if (!articles.length) throw new Error(`Source returned no parseable news items (${source.fetchType})`);
     const db = getRawDb();
     const insert = db.prepare(`
       INSERT OR IGNORE INTO news_items (source_id, title, url, published_at, raw_text, content_hash, fetched_at)

@@ -3,16 +3,23 @@
   "model": "tax-compliance-local",
   "timeoutMs": 5000,
   "keywords": [
-    "ato",
+    "business activity statement",
     "gst",
     "bas",
-    "payg",
-    "asic",
-    "tax",
-    "super",
+    "payg instalment",
+    "division 7a",
+    "tax return",
+    "superannuation",
+    "annual review",
+    "company annual review",
     "estate agent",
-    "licence",
-    "licensing",
-    "treasury"
+    "estate agents",
+    "estate agency",
+    "estate agencies",
+    "renting taskforce",
+    "underquoting",
+    "agents' representative",
+    "trust account",
+    "vcat"
   ]
 }

@@ -41,6 +41,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
   const [activeTab, setActiveTab] = useState<"entities" | "licence">("entities");
   const [entities, setEntities] = useState(initialSnapshot.entities);
   const [licence, setLicence] = useState(initialSnapshot.licence);
+  const [newsWindowDays, setNewsWindowDays] = useState(Number(initialSnapshot.settings.news_window_days ?? "90"));
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   function updateEntity(id: string, patch: Partial<Entity>) {
@@ -67,6 +68,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
           licenceNumber: licence.licenceNumber || null,
           anniversaryDate: licence.anniversaryDate || null,
         } : undefined,
+        newsWindowDays,
       }),
     });
 
@@ -78,6 +80,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
     const next = await response.json() as Snapshot;
     setEntities(next.entities);
     setLicence(next.licence);
+    setNewsWindowDays(Number(next.settings.news_window_days ?? newsWindowDays));
     setSaveState("saved");
   }
 
@@ -236,6 +239,30 @@ export function SettingsForm({ initialSnapshot }: Props) {
             ) : <p className="empty-state">尚未生成牌照配置。</p>}
           </section>
         )}
+
+        <section className="settings-panel news-settings-panel" aria-label="资讯设置">
+          <div className="panel-heading">
+            <div>
+              <h2>资讯设置</h2>
+              <p>相关资讯主列表按发布日期筛选；默认只显示近 90 天，并且必须先命中收紧后的关键词。</p>
+            </div>
+          </div>
+          <div className="news-settings-form">
+            <label>
+              <span>相关资讯窗口（天）</span>
+              <input
+                aria-label="相关资讯窗口（天）"
+                type="number"
+                min={1}
+                max={3650}
+                step={1}
+                value={newsWindowDays}
+                onChange={(event) => { setNewsWindowDays(Number(event.target.value)); setSaveState("idle"); }}
+              />
+              <small>按 `published_at` 计算；允许 1–3650 天。</small>
+            </label>
+          </div>
+        </section>
 
         <div className="settings-actions">
           <div aria-live="polite" className="save-message">
