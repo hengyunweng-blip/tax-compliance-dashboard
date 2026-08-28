@@ -39,6 +39,18 @@ Gate 5 仍未完成的事项是用户验收，以及下方“待办与边界”�
 9. `blocked` 必须逐义务判断，不能由一个主体缺失的字段扩散到该主体的其他义务。
 10. 非工作日顺延必须显式区分 `adjustment_direction`：`forward` 调整到下一个工作日，`backward` 调整到上一个工作日。
 
+### 2.1 前期 Gate 约束的测试依据
+
+以下约束同样不可违反；括号内列出当前对应的测试文件：
+
+11. Simpler BAS 操作指引只能列 G1、1A、1B；G10/G11 只能作为内部核算字段，并明确标注“不填入 ATO 表单”。（`tests/unit/bas-instructions.test.ts`、`tests/unit/gst-bas-mapping.test.ts`、`tests/e2e/gate3-bas.spec.ts`）
+12. 指引必须包含：填写 G1 后，对“该金额是否含 GST”选择“是”。（`tests/unit/bas-instructions.test.ts`、`tests/e2e/gate3-bas.spec.ts`）
+13. PAYG 必须拆分为 5A 应缴与 5B 贷记，公式为 `statementTotal = gstNet + 5A - 5B`；总额允许为负并显示为退税。（`tests/unit/bas-generator.test.ts`、`tests/unit/gst-bas-mapping.test.ts`、`tests/e2e/gate3-bas.spec.ts`）
+14. 必须存在“本期无 PAYG 分期”的显式选项；勾选后 nil BAS 可以完成 `draft_ready → lodged → paid`。（`tests/unit/bas-generator.test.ts`、`tests/e2e/gate3-bas.spec.ts`）
+15. 前期更正必须在底稿页面、CSV 导出和 PDF 导出中显示汇总行，并保留原属期间及原 worksheet 追溯信息。（`tests/unit/closed-period-transactions.test.ts`、`tests/unit/bas-export.test.ts`、`tests/e2e/gate4-closed-period.spec.ts`）
+16. CSV 导入必须提供 `DD/MM/YYYY`、`YYYY-MM-DD`、`MM/DD/YYYY` 三种日期格式选择，预览显示解析后的 `DD MMM YYYY` 日期；去重键必须包含完整原始行（含描述）的 SHA-256、解析日期和金额分。（`tests/unit/csv-import.test.ts`、`tests/e2e/gate2-csv.spec.ts`）
+17. 资讯主列表必须同时应用默认 90 天窗口和关键词命中过滤；无雇员时排除 payroll、STP、Payday Super、SBSCH、燃油税抵免等主题；无法取得发布日期时写入 `NULL`，不得回落到抓取日。（`tests/unit/news.test.ts`、`tests/e2e/gate4-ai-disabled.spec.ts`）
+
 ## 3. 验收协议
 
 - 每完成一个 Gate 必须硬停止，等待用户逐项验收；未获验收不得跨 Gate 开发或打后续标签。
