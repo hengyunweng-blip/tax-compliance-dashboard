@@ -2,7 +2,7 @@ import { getRawDb } from "@/lib/db/client";
 import { ACCOUNT_SEEDS } from "@/lib/constants/accounts";
 import { ENTITY_SEEDS, LICENCE_SEED } from "@/lib/constants/entities";
 import { runMigrations } from "@/lib/db/migrate";
-import { DEFAULT_SUPER_CONFIGURATION, SUPER_SETTING_KEYS } from "@/lib/domain/super/constants";
+import { DEFAULT_SUPER_CONFIGURATION, SUPER_CAP_SEEDS, SUPER_SETTING_KEYS } from "@/lib/domain/super/constants";
 
 const OBLIGATION_RULE_SEEDS = [
   {
@@ -189,6 +189,33 @@ export function seedDatabase() {
       );
     }
 
+    const insertSuperCap = db.prepare(`
+      INSERT INTO super_caps
+        (income_year, concessional_cap_cents, non_concessional_cap_cents,
+         concessional_source_url, concessional_retrieved_at,
+         non_concessional_source_url, non_concessional_retrieved_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(income_year) DO UPDATE SET
+        concessional_cap_cents = excluded.concessional_cap_cents,
+        non_concessional_cap_cents = excluded.non_concessional_cap_cents,
+        concessional_source_url = excluded.concessional_source_url,
+        concessional_retrieved_at = excluded.concessional_retrieved_at,
+        non_concessional_source_url = excluded.non_concessional_source_url,
+        non_concessional_retrieved_at = excluded.non_concessional_retrieved_at,
+        updated_at = datetime('now')
+    `);
+    for (const cap of SUPER_CAP_SEEDS) {
+      insertSuperCap.run(
+        cap.incomeYear,
+        cap.concessionalCapCents,
+        cap.nonConcessionalCapCents,
+        cap.concessionalSourceUrl,
+        cap.concessionalRetrievedAt,
+        cap.nonConcessionalSourceUrl,
+        cap.nonConcessionalRetrievedAt,
+      );
+    }
+
     const updateSource = db.prepare("UPDATE news_sources SET url = ?, fetch_type = ?, active = ?, last_fetched_at = NULL, last_error = NULL, updated_at = datetime('now') WHERE name = ?");
     const insertSource = db.prepare(`
       INSERT INTO news_sources (name, url, fetch_type, active)
@@ -204,15 +231,6 @@ export function seedDatabase() {
     const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
     insertSetting.run("timezone", "Australia/Melbourne");
     insertSetting.run("fy_start", "2026-07-01");
-    insertSetting.run(SUPER_SETTING_KEYS.concessionalCapCents, String(DEFAULT_SUPER_CONFIGURATION.concessionalCapCents));
-    // 3,250,000 was the unverified pre-Gate-5 placeholder. Preserve an
-    // intentional user override, but migrate that legacy seed value.
-    db.prepare("UPDATE settings SET value = ? WHERE key = ? AND value = '3250000'").run(
-      String(DEFAULT_SUPER_CONFIGURATION.concessionalCapCents),
-      SUPER_SETTING_KEYS.concessionalCapCents,
-    );
-    insertSetting.run(SUPER_SETTING_KEYS.concessionalCapSourceUrl, DEFAULT_SUPER_CONFIGURATION.concessionalCapSourceUrl);
-    insertSetting.run(SUPER_SETTING_KEYS.concessionalCapRetrievedAt, DEFAULT_SUPER_CONFIGURATION.concessionalCapRetrievedAt);
     insertSetting.run(SUPER_SETTING_KEYS.carryForwardYears, String(DEFAULT_SUPER_CONFIGURATION.carryForwardYears));
     insertSetting.run(SUPER_SETTING_KEYS.carryForwardTsbLimitCents, String(DEFAULT_SUPER_CONFIGURATION.carryForwardTsbLimitCents));
     insertSetting.run(SUPER_SETTING_KEYS.carryForwardSourceUrl, DEFAULT_SUPER_CONFIGURATION.carryForwardSourceUrl);

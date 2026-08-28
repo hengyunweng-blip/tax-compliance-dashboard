@@ -1014,9 +1014,9 @@ Start only after Gate 4 acceptance. This is the final Gate and still requires a 
 test("company worksheet reports integer profit and named manual supplements", async () => {
   const worksheet = await buildCompanyTaxWorksheet("boyun_co", "2026-27");
   expect(Number.isSafeInteger(worksheet.netProfitCents)).toBe(true);
-  expect(worksheet.manualItems).toEqual(expect.arrayContaining([
-    "折旧", "亏损结转", "franking account", "Div 7A 余额",
-  ]));
+  expect(worksheet.manualItems).toEqual([
+    "折旧", "结转亏损", "franking account 余额", "Div 7A 借款余额",
+  ]);
 });
 ```
 
@@ -1028,11 +1028,11 @@ Expected: FAIL because annual services do not exist.
 
 - [x] **Step 3: Implement aggregators and text-template generation**
 
-Aggregate only confirmed transactions by FY, preserve transaction IDs for traceability, and keep manual supplements visibly separate from calculated numbers. Trust distribution output is a draft for user signature, not an electronic filing.
+Aggregate only confirmed transactions by `income_year`, preserve transaction IDs for traceability, and keep manual supplements visibly separate from calculated numbers. The manual list is type-specific: company = depreciation, loss carry-forward, franking account balance and Div 7A loan balance; trust = depreciation, loss carry-forward and trust FTE status; individual = depreciation and loss carry-forward only. Trust distribution output is a draft for user signature, not an electronic filing.
 
 - [x] **Step 4: Implement annual page and exports**
 
-Show company, trust and personal tabs, editable manual data, a distribution decision template, and source transaction links. Do not offer an automatic filing action.
+Show company, trust and personal tabs, editable manual data, a distribution decision template, and source transaction links. Generate the manual supplement list by entity type: company = depreciation/loss carry-forward/franking account/Div 7A balance; trust = depreciation/loss carry-forward/FTE status; individual = depreciation/loss carry-forward only. Do not offer an automatic filing action.
 
 - [x] **Step 5: Run tests and browser flow**
 
@@ -1054,7 +1054,7 @@ The implementation and browser flow use the `income_year` selector for aggregati
 
 **Interfaces:**
 - `calculateMinimumYearlyRepaymentCents(input: { principalCents: number; benchmarkRate: string; remainingTermYears: number; loanIncomeYear: string; assessmentIncomeYear: string }): number` returns `0` in the loan origination income year and a safe integer from the ATO formula from the next income year onward.
-- `getDiv7aLoanSummary(loanId, fy): Div7aSummary` returns principal, minimum repayment, actual repayments, shortfall and days to 30 June.
+- `getDiv7aLoanSummary(loanId, fy): Div7aSummary` returns the stored original term, the derived current remaining term, the previous-income-year-end balance, minimum repayment, actual repayments, shortfall, repayment status and days to 30 June. The origination year has no minimum repayment; after the final scheduled repayment year the summary is `expired` with no due date or minimum repayment.
 
 - [x] **Step 1: Gate 5 entry preflight — obtain an official ATO baseline before writing the implementation**
 
@@ -1103,7 +1103,7 @@ test("does not require a minimum repayment in the loan origination income year",
 });
 ```
 
-The formula implementation is the ATO minimum yearly repayment formula: `P × I / (1 - (1 / (1 + I))^T)`, where `P` is the unpaid balance at the end of the previous income year, `I` is the benchmark rate, and `T` is the remaining term. Use Decimal.js for the rate/power calculation and round only the final dollar result to the nearest cent with half-up rounding. The official-output assertion is the baseline; the formula itself is not allowed to supply its own expected test value. The implementation reference is the [ATO Division 7A calculator and decision tool](https://www.ato.gov.au/calculators-and-tools/division-7a-calculator-and-decision-tool?page=1).
+The formula implementation is the ATO minimum yearly repayment formula: `P × I / (1 - (1 / (1 + I))^T)`, where `P` is the unpaid balance at the end of the previous income year, `I` is the benchmark rate, and `T` is the current remaining term derived from the original contractual term and elapsed repayment years. Use Decimal.js for the rate/power calculation and round only the final dollar result to the nearest cent with half-up rounding. The official-output assertion is the baseline; the formula itself is not allowed to supply its own expected test value. The implementation reference is the [ATO Division 7A calculator and decision tool](https://www.ato.gov.au/calculators-and-tools/division-7a-calculator-and-decision-tool?page=1).
 
 - [x] **Step 3: Run tests to verify failure**
 
@@ -1121,7 +1121,7 @@ Run: `npm test -- tests/unit/div7a.test.ts && npm run build`
 
 Open `/div7a`, create a sample loan, and verify minimum repayment, actual repayment, shortfall and agreement status.
 
-Gate 5 preflight entered the historical sample into the live ATO calculator and recorded the returned `$17,470.34` as `1,747,034` cents in `tests/fixtures/div7a/ato-baseline.json`. The source URL and Melbourne-local retrieval date (`2026-08-27`) are retained in the fixture and test comment; the test does not use an implementation-derived expected value.
+Gate 5 preflight entered the historical sample into the live ATO calculator and recorded the returned `$17,470.34` as `1,747,034` cents in `tests/fixtures/div7a/ato-baseline.json`. The source URL and Melbourne-local retrieval date (`2026-08-27`) are retained in the fixture and test comment; the test does not use an implementation-derived expected value. The later regression also checks three unequal annual repayments from changing prior-year balances and remaining terms, followed by an expired state after FY2023–24 for the 15 May 2017 / seven-year sample.
 
 ### Task 5.3: Implement super panel, backup/restore, and final regression
 
@@ -1137,15 +1137,16 @@ Gate 5 preflight entered the historical sample into the live ATO calculator and 
 - Create: `tests/e2e/final-regression.spec.ts`
 
 **Interfaces:**
-- `getSuperProgress(person, fy): { contributedCents, capCents, remainingCents, noticeStatus, carryForwardHint }`.
+- `getSuperProgress(person, fy): { incomeYear, contributedCents, capCents, nonConcessionalCapCents, remainingCents, noticeStatus, carryForwardHint, capSourceUrl, capRetrievedAt }`; cap values come from the per-income-year `super_caps` table and can be explicitly unconfigured.
 - `createBackupArchive(): Promise<ReadableStream>` includes a consistent SQLite backup and `data/files/` without secrets.
 - `restoreBackupArchive(file): Promise<void>` validates archive paths and schema before replacing local data in a recoverable transaction/temporary directory.
 
 - [x] **Step 1: Write failing super and backup tests**
 
 ```ts
-test("shows the FY2026-27 concessional cap in integer cents", async () => {
-  expect((await getSuperProgress("self", "2026-27")).capCents).toBe(3_000_000);
+test("shows the per-income-year concessional cap in integer cents", async () => {
+  expect((await getSuperProgress("self", "2025-26")).capCents).toBe(3_000_000);
+  expect((await getSuperProgress("self", "2026-27")).capCents).toBe(3_250_000);
 });
 
 test("backup manifest excludes env files and includes database/files metadata", async () => {
@@ -1179,7 +1180,7 @@ The final browser flow must cover settings persistence, Gate 1 due-date display,
 
 Report all test/build/browser evidence, all six Gate outcomes, known manual tasks, and the explicit non-goals. Do not claim the system is fully accepted until the user signs off Gate 5.
 
-**Gate 5 implementation status:** the annual, Div 7A, super and backup/restore slices are implemented and verified locally. Full unit tests pass (29 files / 140 tests after the explicit income-year regression), lint and production build pass, and the Playwright regression passes against a dedicated Gate 5 evidence database. The actual backup evidence includes an HTTP `/api/backup` ZIP download, restore into a cleared temporary database, and a subsequent `/api/restore` route health check. Gate 5 remains unaccepted until user review.
+**Gate 5 implementation status:** the annual, Div 7A, super and backup/restore slices are implemented. This round corrects the per-income-year super caps, the Div 7A annual balance/remaining-term schedule and expiry state, the type-specific annual manual checklist, and the Div 7A assessment-year refresh race. Fresh test/build/browser counts are recorded in `docs/evidence/gate5/report.md`; Gate 5 remains unaccepted until user review and has no `gate-5` tag.
 
 **Gate 5 non-blocking backlog:** Gate 4's real ATO run left 38 of 100 ATO items without a confirmed `published_at`. The current behavior keeps those dates `NULL` and outside the recent main list. A later pass may follow article links to obtain explicit publication dates; this is intentionally not part of Gate 5.
 

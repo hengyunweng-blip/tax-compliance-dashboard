@@ -1,6 +1,6 @@
 import { getRawDb } from "@/lib/db/client";
 import { assertIntegerCents } from "@/lib/money";
-import { ANNUAL_MANUAL_ITEMS, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
+import { annualManualItemsForEntityType, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
 
 export type PersonalTaxSummary = {
   entityId: string;
@@ -50,6 +50,6 @@ export function buildPersonalTaxSummary(person: string, incomeYear: string): Per
     frankingCreditsCents: 0,
     concessionalContributionsCents: row.contributed_cents,
     noticeSubmitted: Boolean(row.notice_submitted_at),
-    manualItems: [...ANNUAL_MANUAL_ITEMS],
+    manualItems: annualManualItemsForEntityType(entity.type),
   };
 }

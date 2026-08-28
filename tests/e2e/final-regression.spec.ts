@@ -25,13 +25,18 @@ test("Gate 5 annual, Div 7A, super and backup flows render with fixed dates", as
   await page.getByLabel("本金（AUD）").fill("100000.00");
   await page.getByLabel("基准利率（手动，小数或百分比）").fill("5.30%");
   await page.getByRole("button", { name: "保存贷款" }).click();
+  await expect(page.getByText("Div 7A 贷款已保存", { exact: false })).toBeVisible();
+  await page.getByLabel("评估所得年度").selectOption("FY2017-18");
   await expect(page.getByText("$17,470.34", { exact: true }).last()).toBeVisible();
   await expect(page.getByText(/15 May 2017/).first()).toBeVisible();
+  await page.getByLabel("评估所得年度").selectOption("FY2026-27");
+  await expect(page.getByText("已到期").first()).toBeVisible();
   await page.screenshot({ path: "docs/evidence/gate5/div7a-official-baseline.png", fullPage: true });
 
   await page.goto("/super");
   await expect(page.getByTestId("super-progress")).toBeVisible();
-  await expect(page.getByText("$30,000.00", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("$32,500.00", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("$130,000.00", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "1 · 供款到账" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "2 · 抵扣意向通知" })).toBeVisible();
   await expect(page.getByTestId("backup-controls")).toBeVisible();

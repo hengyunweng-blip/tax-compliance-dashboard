@@ -8,17 +8,23 @@ import { calculateSuperContributionDue } from "@/lib/domain/obligations/calculat
 beforeEach(() => {
   seedDatabase();
   const db = getRawDb();
-  db.prepare("UPDATE settings SET value = '3000000' WHERE key = 'concessional_cap_cents'").run();
   db.exec("DELETE FROM super_contributions; DELETE FROM reminders; DELETE FROM obligations;");
   expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
 });
 
-test("uses the ATO-sourced configurable cap in integer cents", () => {
-  const progress = getSuperProgress("self", "FY2026-27");
-  expect(progress.capCents).toBe(3_000_000);
-  expect(progress.capSourceUrl).toContain("ato.gov.au");
-  expect(progress.capRetrievedAt).toBe("2026-08-27");
-  expect(progress.contributedCents).toBe(0);
+test("uses the ATO-sourced cap for each income year in integer cents", () => {
+  const priorYear = getSuperProgress("self", "FY2025-26");
+  expect(priorYear.capCents).toBe(3_000_000);
+  expect(priorYear.nonConcessionalCapCents).toBe(12_000_000);
+  expect(priorYear.capSourceUrl).toContain("ato.gov.au");
+  expect(priorYear.capRetrievedAt).toBe("2026-08-29");
+
+  const currentYear = getSuperProgress("self", "FY2026-27");
+  expect(currentYear.capCents).toBe(3_250_000);
+  expect(currentYear.nonConcessionalCapCents).toBe(13_000_000);
+  expect(currentYear.nonConcessionalCapSourceUrl).toContain("non-concessional-contributions-cap");
+  expect(currentYear.nonConcessionalCapRetrievedAt).toBe("2026-08-29");
+  expect(currentYear.contributedCents).toBe(0);
 });
 
 test("payment and notice are independent tasks", () => {
@@ -46,6 +52,10 @@ test("revalidates backward payment timing so a Saturday 30 June stays in June", 
 });
 
 test("shows an explicit unconfigured state when the cap setting is blank", () => {
-  getRawDb().prepare("UPDATE settings SET value = '' WHERE key = 'concessional_cap_cents'").run();
-  expect(getSuperProgress("self", "FY2026-27")).toMatchObject({ capCents: null, capConfigured: false });
+  getRawDb().prepare("DELETE FROM super_caps WHERE income_year = '2026-27'").run();
+  expect(getSuperProgress("self", "FY2026-27")).toMatchObject({
+    capCents: null,
+    nonConcessionalCapCents: null,
+    capConfigured: false,
+  });
 });

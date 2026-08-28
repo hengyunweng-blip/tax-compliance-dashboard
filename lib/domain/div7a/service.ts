@@ -16,6 +16,9 @@ export type Div7aLoan = {
   loanDate: DateOnly;
   loanIncomeYear: string;
   principalCents: number;
+  /** Original contractual term persisted in div7a_loans.term_years. */
+  originalTermYears: number;
+  /** Backwards-compatible alias for the original contractual term. */
   termYears: number;
   benchmarkRate: string;
   repayments: StoredRepayment[];
@@ -24,17 +27,53 @@ export type Div7aLoan = {
 
 export type Div7aSummary = Div7aLoan & {
   assessmentIncomeYear: string;
+  elapsedRepaymentYears: number;
+  /** Derived remaining term for this assessment year, not the stored original term. */
+  remainingTermYears: number;
+  balanceAtPreviousYearEndCents: number;
+  repaymentStatus: "origination" | "active" | "expired";
+  isExpired: boolean;
   minimumRepaymentCents: number;
   actualRepaymentCents: number;
   shortfallCents: number;
-  repaymentDue: DateOnly;
-  daysUntilRepaymentDue: number;
+  repaymentDue: DateOnly | null;
+  daysUntilRepaymentDue: number | null;
 };
 
 function normalizeFy(value: string) {
   const normalized = value.trim().replace(/^FY/, "");
   if (!/^\d{4}-\d{2}$/.test(normalized)) throw new Error(`Invalid income year: ${value}`);
   return `FY${normalized}`;
+}
+
+function incomeYearStart(value: string) {
+  return Number(normalizeFy(value).slice(2, 6));
+}
+
+function repaymentSchedule(loanIncomeYear: string, assessmentIncomeYear: string, originalTermYears: number) {
+  const elapsedRepaymentYears = incomeYearStart(assessmentIncomeYear) - incomeYearStart(loanIncomeYear);
+  if (elapsedRepaymentYears <= 0) {
+    return {
+      elapsedRepaymentYears: 0,
+      remainingTermYears: originalTermYears,
+      repaymentStatus: "origination" as const,
+      isExpired: false,
+    };
+  }
+  if (elapsedRepaymentYears > originalTermYears) {
+    return {
+      elapsedRepaymentYears,
+      remainingTermYears: 0,
+      repaymentStatus: "expired" as const,
+      isExpired: true,
+    };
+  }
+  return {
+    elapsedRepaymentYears,
+    remainingTermYears: originalTermYears - elapsedRepaymentYears + 1,
+    repaymentStatus: "active" as const,
+    isExpired: false,
+  };
 }
 
 function parseDate(value: string): DateOnly {
@@ -80,11 +119,24 @@ function mapLoan(row: {
     loanDate: row.loan_date,
     loanIncomeYear: normalizeFy(deriveFiscalPeriod(row.loan_date).fy),
     principalCents: row.principal_cents,
+    originalTermYears: row.term_years,
     termYears: row.term_years,
     benchmarkRate: String(row.benchmark_rate),
     repayments: readRepayments(row.repayments_json),
     agreementSigned: Boolean(row.agreement_signed),
   };
+}
+
+function balanceAtPreviousYearEndCents(loan: Div7aLoan, assessmentIncomeYear: string) {
+  const assessmentStart = incomeYearStart(assessmentIncomeYear);
+  let balance = loan.principalCents;
+  for (const repayment of loan.repayments) {
+    if (incomeYearStart(deriveFiscalPeriod(repayment.date).fy) < assessmentStart) {
+      balance = Math.max(0, balance - repayment.amountCents);
+    }
+  }
+  assertIntegerCents(balance);
+  return balance;
 }
 
 export function listDiv7aLoans(): Div7aLoan[] {
@@ -176,21 +228,37 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
   if (!row) throw new Error(`Div 7A loan not found: ${loanId}`);
   const loan = mapLoan(row);
   const normalizedAssessment = normalizeFy(assessmentIncomeYear);
-  const minimumRepaymentCents = calculateMinimumYearlyRepaymentCents({
-    principalCents: loan.principalCents,
-    benchmarkRate: loan.benchmarkRate,
-    remainingTermYears: loan.termYears,
-    loanIncomeYear: loan.loanIncomeYear,
-    assessmentIncomeYear: normalizedAssessment,
-  });
+  const schedule = repaymentSchedule(loan.loanIncomeYear, normalizedAssessment, loan.originalTermYears);
+  const balanceAtPreviousYearEnd = balanceAtPreviousYearEndCents(loan, normalizedAssessment);
+  const minimumRepaymentCents = schedule.repaymentStatus === "active" && balanceAtPreviousYearEnd > 0
+    ? calculateMinimumYearlyRepaymentCents({
+      principalCents: balanceAtPreviousYearEnd,
+      benchmarkRate: loan.benchmarkRate,
+      remainingTermYears: schedule.remainingTermYears,
+      loanIncomeYear: loan.loanIncomeYear,
+      assessmentIncomeYear: normalizedAssessment,
+    })
+    : 0;
   const actualRepaymentCents = loan.repayments
     .filter((repayment) => normalizeFy(deriveFiscalPeriod(repayment.date).fy) === normalizedAssessment)
     .reduce((total, repayment) => total + repayment.amountCents, 0);
   assertIntegerCents(actualRepaymentCents);
   const shortfallCents = Math.max(0, minimumRepaymentCents - actualRepaymentCents);
   assertIntegerCents(shortfallCents);
-  const startYear = Number(normalizedAssessment.slice(2, 6));
-  const repaymentDue = `${startYear + 1}-06-30` as DateOnly;
-  const daysUntilRepaymentDue = differenceInCalendarDays(parseMelbourneDate(repaymentDue), parseMelbourneDate(todayInMelbourne()));
-  return { ...loan, assessmentIncomeYear: normalizedAssessment, minimumRepaymentCents, actualRepaymentCents, shortfallCents, repaymentDue, daysUntilRepaymentDue };
+  const startYear = incomeYearStart(normalizedAssessment);
+  const repaymentDue = schedule.isExpired ? null : `${startYear + 1}-06-30` as DateOnly;
+  const daysUntilRepaymentDue = repaymentDue
+    ? differenceInCalendarDays(parseMelbourneDate(repaymentDue), parseMelbourneDate(todayInMelbourne()))
+    : null;
+  return {
+    ...loan,
+    assessmentIncomeYear: normalizedAssessment,
+    ...schedule,
+    balanceAtPreviousYearEndCents: balanceAtPreviousYearEnd,
+    minimumRepaymentCents,
+    actualRepaymentCents,
+    shortfallCents,
+    repaymentDue,
+    daysUntilRepaymentDue,
+  };
 }

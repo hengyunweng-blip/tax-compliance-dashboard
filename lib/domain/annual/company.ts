@@ -1,5 +1,5 @@
 import { getRawDb } from "@/lib/db/client";
-import { ANNUAL_MANUAL_ITEMS, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
+import { annualManualItemsForEntityType, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
 
 export type CompanyTaxWorksheet = {
   entityId: string;
@@ -37,6 +37,6 @@ export function buildCompanyTaxWorksheet(entityId: string, incomeYear: string): 
     operatingExpenseCents,
     capitalPurchaseCents,
     netProfitCents: sumCents([incomeCents, operatingExpenseCents]),
-    manualItems: [...ANNUAL_MANUAL_ITEMS],
+    manualItems: annualManualItemsForEntityType(entity.type),
   };
 }

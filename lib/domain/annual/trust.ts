@@ -1,5 +1,5 @@
 import { getRawDb } from "@/lib/db/client";
-import { ANNUAL_MANUAL_ITEMS, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
+import { annualManualItemsForEntityType, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
 
 export type TrustDistributionDraft = {
   entityId: string;
@@ -32,6 +32,6 @@ export function buildTrustDistributionDraft(entityId: string, incomeYear: string
     distributableIncomeCents: sumCents([income, expenses]),
     beneficiaryAllocations: [],
     resolutionText: `FY${normalizedIncomeYear.replace(/^FY/, "").replace("-", "–")} 信托分配决议草稿\n\n本决议须由受托人核对受益人、金额及 FTE 状态后签署并留存。系统不会自动签署或提交。`,
-    manualItems: [...ANNUAL_MANUAL_ITEMS],
+    manualItems: annualManualItemsForEntityType(entity.type),
   };
 }

@@ -42,13 +42,12 @@ test("company worksheet aggregates by income_year and keeps manual supplements v
   expect(worksheet.incomeYear).toBe("FY2026-27");
   expect(worksheet.netProfitCents).toBe(88_000);
   expect(worksheet.transactionIds).toEqual([income.id, expect.any(Number)]);
-  expect(worksheet.manualItems).toEqual(expect.arrayContaining([
+  expect(worksheet.manualItems).toEqual([
     "折旧",
     "结转亏损",
     "franking account 余额",
     "Div 7A 借款余额",
-    "信托 FTE 状态",
-  ]));
+  ]);
 });
 
 test("trust draft is a separate editable decision template for the same income year", () => {
@@ -56,7 +55,11 @@ test("trust draft is a separate editable decision template for the same income y
   expect(draft.incomeYear).toBe("FY2025-26");
   expect(draft.resolutionText).toContain("FY2025–26");
   expect(draft.beneficiaryAllocations).toEqual([]);
-  expect(draft.manualItems).toContain("信托 FTE 状态");
+  expect(draft.manualItems).toEqual([
+    "折旧",
+    "结转亏损",
+    "信托 FTE 状态",
+  ]);
 });
 
 test("annual aggregation uses the transaction income year, not the deadline financial year", () => {
@@ -83,11 +86,11 @@ test("personal summary includes contributions without closing the separate notic
   const summary = buildPersonalTaxSummary("self", "FY2026-27");
   expect(summary.incomeYear).toBe("FY2026-27");
   expect(summary.concessionalContributionsCents).toBe(1_000_000);
-  expect(summary.manualItems).toEqual(expect.arrayContaining([
+  expect(summary.manualItems).toEqual([
     "折旧",
     "结转亏损",
-    "franking account 余额",
-    "Div 7A 借款余额",
-    "信托 FTE 状态",
-  ]));
+  ]);
+  expect(summary.manualItems).not.toContain("franking account 余额");
+  expect(summary.manualItems).not.toContain("Div 7A 借款余额");
+  expect(summary.manualItems).not.toContain("信托 FTE 状态");
 });

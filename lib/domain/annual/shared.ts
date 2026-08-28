@@ -9,6 +9,21 @@ export const ANNUAL_MANUAL_ITEMS = [
   "信托 FTE 状态",
 ] as const;
 
+const ANNUAL_COMMON_MANUAL_ITEMS = ["折旧", "结转亏损"] as const;
+
+export function annualManualItemsForEntityType(entityType: string): string[] {
+  if (entityType === "company") {
+    return [...ANNUAL_COMMON_MANUAL_ITEMS, "franking account 余额", "Div 7A 借款余额"];
+  }
+  if (entityType === "trust") {
+    return [...ANNUAL_COMMON_MANUAL_ITEMS, "信托 FTE 状态"];
+  }
+  if (entityType === "individual") {
+    return [...ANNUAL_COMMON_MANUAL_ITEMS];
+  }
+  throw new Error(`Unsupported annual entity type: ${entityType}`);
+}
+
 export type AnnualTransactionLine = {
   id: number;
   date: string;

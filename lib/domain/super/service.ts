@@ -9,10 +9,13 @@ export type SuperProgress = {
   incomeYear: string;
   contributedCents: number;
   capCents: number | null;
+  nonConcessionalCapCents: number | null;
   remainingCents: number | null;
   capConfigured: boolean;
   capSourceUrl: string | null;
   capRetrievedAt: string | null;
+  nonConcessionalCapSourceUrl: string | null;
+  nonConcessionalCapRetrievedAt: string | null;
   carryForwardAvailableCents: number | null;
   carryForwardYears: number | null;
   carryForwardTsbLimitCents: number | null;
@@ -25,9 +28,13 @@ export type SuperProgress = {
 };
 
 export type SuperConfiguration = {
+  incomeYear: string;
   capCents: number | null;
+  nonConcessionalCapCents: number | null;
   capSourceUrl: string | null;
   capRetrievedAt: string | null;
+  nonConcessionalCapSourceUrl: string | null;
+  nonConcessionalCapRetrievedAt: string | null;
   carryForwardAvailableCents: number | null;
   carryForwardYears: number | null;
   carryForwardTsbLimitCents: number | null;
@@ -53,12 +60,38 @@ function optionalTextSetting(key: string): string | null {
   return row?.value.trim() || null;
 }
 
-export function getSuperConfiguration(): SuperConfiguration {
+export function getSuperConfiguration(incomeYear = "FY2026-27"): SuperConfiguration {
   runMigrations();
+  const fy = normalizeFy(incomeYear);
+  const cap = getRawDb().prepare(`
+    SELECT income_year, concessional_cap_cents, non_concessional_cap_cents,
+      concessional_source_url, concessional_retrieved_at,
+      non_concessional_source_url, non_concessional_retrieved_at
+    FROM super_caps
+    WHERE income_year = ?
+  `).get(fy) as {
+    income_year: string;
+    concessional_cap_cents: number;
+    non_concessional_cap_cents: number;
+    concessional_source_url: string;
+    concessional_retrieved_at: string;
+    non_concessional_source_url: string;
+    non_concessional_retrieved_at: string;
+  } | undefined;
+
+  if (cap) {
+    assertIntegerCents(cap.concessional_cap_cents);
+    assertIntegerCents(cap.non_concessional_cap_cents);
+  }
+
   return {
-    capCents: optionalIntegerSetting(SUPER_SETTING_KEYS.concessionalCapCents),
-    capSourceUrl: optionalTextSetting(SUPER_SETTING_KEYS.concessionalCapSourceUrl),
-    capRetrievedAt: optionalTextSetting(SUPER_SETTING_KEYS.concessionalCapRetrievedAt),
+    incomeYear: `FY${fy}`,
+    capCents: cap?.concessional_cap_cents ?? null,
+    nonConcessionalCapCents: cap?.non_concessional_cap_cents ?? null,
+    capSourceUrl: cap?.concessional_source_url ?? null,
+    capRetrievedAt: cap?.concessional_retrieved_at ?? null,
+    nonConcessionalCapSourceUrl: cap?.non_concessional_source_url ?? null,
+    nonConcessionalCapRetrievedAt: cap?.non_concessional_retrieved_at ?? null,
     carryForwardAvailableCents: optionalIntegerSetting(SUPER_SETTING_KEYS.carryForwardAvailableCents),
     carryForwardYears: optionalIntegerSetting(SUPER_SETTING_KEYS.carryForwardYears),
     carryForwardTsbLimitCents: optionalIntegerSetting(SUPER_SETTING_KEYS.carryForwardTsbLimitCents),
@@ -87,7 +120,7 @@ function carryForwardHint(configuration: SuperConfiguration) {
 
 export function getSuperProgress(person: string, incomeYear: string): SuperProgress {
   const fy = normalizeFy(incomeYear);
-  const configuration = getSuperConfiguration();
+  const configuration = getSuperConfiguration(fy);
   const row = getRawDb().prepare(`
     SELECT COALESCE(SUM(CASE WHEN paid_at IS NOT NULL THEN amount_cents ELSE 0 END), 0) AS contributed_cents,
       MAX(notice_submitted_at) AS notice_submitted_at
@@ -105,10 +138,13 @@ export function getSuperProgress(person: string, incomeYear: string): SuperProgr
     incomeYear: `FY${fy}`,
     contributedCents: row.contributed_cents,
     capCents: configuration.capCents,
+    nonConcessionalCapCents: configuration.nonConcessionalCapCents,
     remainingCents,
     capConfigured: configuration.capCents !== null,
     capSourceUrl: configuration.capSourceUrl,
     capRetrievedAt: configuration.capRetrievedAt,
+    nonConcessionalCapSourceUrl: configuration.nonConcessionalCapSourceUrl,
+    nonConcessionalCapRetrievedAt: configuration.nonConcessionalCapRetrievedAt,
     carryForwardAvailableCents: configuration.carryForwardAvailableCents,
     carryForwardYears: configuration.carryForwardYears,
     carryForwardTsbLimitCents: configuration.carryForwardTsbLimitCents,
@@ -128,7 +164,7 @@ export function recordSuperContribution(input: { person: string; fy: string; amo
   assertIntegerCents(input.amountCents);
   if (input.amountCents < 0) throw new Error("Contribution cannot be negative");
   const paidAt = normalizeDate(input.paidAt);
-  const configuration = getSuperConfiguration();
+  const configuration = getSuperConfiguration(fy);
   getRawDb().prepare(`
     INSERT INTO super_contributions (person, fy, amount_cents, paid_at, notice_submitted_at, cap_cents, carry_forward_note)
     VALUES (?, ?, ?, ?, NULL, ?, ?)
@@ -150,7 +186,7 @@ export function markSuperNoticeSubmitted(input: { person: string; fy: string; su
   const submittedAt = normalizeDate(input.submittedAt);
   if (!submittedAt) throw new Error("Notice date is required");
   const db = getRawDb();
-  const configuration = getSuperConfiguration();
+  const configuration = getSuperConfiguration(fy);
   const result = db.prepare(`
     UPDATE super_contributions
     SET notice_submitted_at = ?, updated_at = datetime('now')

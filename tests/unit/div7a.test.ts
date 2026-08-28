@@ -5,7 +5,7 @@ import { beforeEach } from "vitest";
 import { getRawDb } from "@/lib/db/client";
 import { seedDatabase } from "@/lib/db/seed";
 import { calculateMinimumYearlyRepaymentCents } from "@/lib/domain/div7a/formula";
-import { createDiv7aLoan, getDiv7aLoanSummary } from "@/lib/domain/div7a/service";
+import { createDiv7aLoan, getDiv7aLoanSummary, recordDiv7aRepayment } from "@/lib/domain/div7a/service";
 
 beforeEach(() => {
   seedDatabase();
@@ -88,4 +88,56 @@ test("loan summary has no origination-year minimum and starts in the following y
   });
   expect(getDiv7aLoanSummary(loanId, "FY2026-27").minimumRepaymentCents).toBe(0);
   expect(getDiv7aLoanSummary(loanId, "FY2027-28").minimumRepaymentCents).toBeGreaterThan(0);
+});
+
+test("recomputes each year from the prior year-end balance and derived remaining term", () => {
+  const loanId = createDiv7aLoan({
+    lenderEntityId: "boyun_co",
+    borrower: "Annual schedule test borrower",
+    loanDate: "2017-05-15",
+    principalCents: 10_000_000,
+    termYears: 7,
+    benchmarkRate: "0.053",
+  });
+
+  const first = getDiv7aLoanSummary(loanId, "FY2017-18");
+  recordDiv7aRepayment({ loanId, date: "2018-06-30", amountCents: 1_000_000 });
+  const second = getDiv7aLoanSummary(loanId, "FY2018-19");
+  const third = getDiv7aLoanSummary(loanId, "FY2019-20");
+
+  expect(first.originalTermYears).toBe(7);
+  expect(first.remainingTermYears).toBe(7);
+  expect(first.balanceAtPreviousYearEndCents).toBe(10_000_000);
+  expect(second.remainingTermYears).toBe(6);
+  expect(second.balanceAtPreviousYearEndCents).toBe(9_000_000);
+  expect(third.remainingTermYears).toBe(5);
+  expect(third.balanceAtPreviousYearEndCents).toBe(9_000_000);
+  expect(new Set([
+    first.minimumRepaymentCents,
+    second.minimumRepaymentCents,
+    third.minimumRepaymentCents,
+  ]).size).toBe(3);
+});
+
+test("marks a loan as expired after the final scheduled repayment year", () => {
+  const loanId = createDiv7aLoan({
+    lenderEntityId: "boyun_co",
+    borrower: "Expired loan test borrower",
+    loanDate: "2017-05-15",
+    principalCents: 10_000_000,
+    termYears: 7,
+    benchmarkRate: "0.053",
+  });
+
+  expect(getDiv7aLoanSummary(loanId, "FY2023-24")).toMatchObject({
+    isExpired: false,
+    repaymentStatus: "active",
+    remainingTermYears: 1,
+  });
+  expect(getDiv7aLoanSummary(loanId, "FY2024-25")).toMatchObject({
+    isExpired: true,
+    repaymentStatus: "expired",
+    minimumRepaymentCents: 0,
+    remainingTermYears: 0,
+  });
 });

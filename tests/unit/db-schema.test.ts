@@ -16,6 +16,7 @@ test("schema contains all required business and audit tables", () => {
     "bas_worksheets",
     "div7a_loans",
     "super_contributions",
+    "super_caps",
     "news_sources",
     "news_items",
     "news_analyses",
@@ -78,4 +79,23 @@ test("BAS worksheets keep nullable integer PAYG 5A and 5B fields", () => {
 
   expect(columns.find((column) => column.name === "payg_5a_cents")).toMatchObject({ type: "INTEGER", notnull: 0 });
   expect(columns.find((column) => column.name === "payg_5b_cents")).toMatchObject({ type: "INTEGER", notnull: 0 });
+});
+
+test("super caps are stored by income year with both cap types and provenance", () => {
+  runMigrations();
+  const columns = getRawDb()
+    .prepare("PRAGMA table_info(super_caps)")
+    .all() as Array<{ name: string; type: string; notnull: number }>;
+
+  expect(columns.map((column) => column.name)).toEqual(expect.arrayContaining([
+    "income_year",
+    "concessional_cap_cents",
+    "non_concessional_cap_cents",
+    "concessional_source_url",
+    "concessional_retrieved_at",
+    "non_concessional_source_url",
+    "non_concessional_retrieved_at",
+  ]));
+  expect(columns.find((column) => column.name === "concessional_cap_cents")).toMatchObject({ type: "INTEGER", notnull: 1 });
+  expect(columns.find((column) => column.name === "non_concessional_cap_cents")).toMatchObject({ type: "INTEGER", notnull: 1 });
 });

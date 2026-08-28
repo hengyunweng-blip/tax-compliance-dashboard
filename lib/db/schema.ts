@@ -207,6 +207,18 @@ export const superContributions = sqliteTable("super_contributions", {
   updatedAt: updatedAt(),
 });
 
+export const superCaps = sqliteTable("super_caps", {
+  incomeYear: text("income_year").primaryKey(),
+  concessionalCapCents: integer("concessional_cap_cents").notNull(),
+  nonConcessionalCapCents: integer("non_concessional_cap_cents").notNull(),
+  concessionalSourceUrl: text("concessional_source_url").notNull(),
+  concessionalRetrievedAt: text("concessional_retrieved_at").notNull(),
+  nonConcessionalSourceUrl: text("non_concessional_source_url").notNull(),
+  nonConcessionalRetrievedAt: text("non_concessional_retrieved_at").notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
 export const newsSources = sqliteTable("news_sources", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -312,6 +324,7 @@ export const schema = {
   basWorksheets,
   div7aLoans,
   superContributions,
+  superCaps,
   newsSources,
   newsItems,
   newsAnalyses,
@@ -334,6 +347,7 @@ export const tableNames = [
   "bas_worksheets",
   "div7a_loans",
   "super_contributions",
+  "super_caps",
   "news_sources",
   "news_items",
   "news_analyses",
