@@ -5,10 +5,15 @@ import { assertIntegerCents } from "@/lib/money";
 import { calculateAnnualInterestCents, calculateMinimumYearlyRepaymentCents } from "@/lib/domain/div7a/formula";
 import { getBenchmarkRateForIncomeYear } from "@/lib/domain/div7a/rates";
 import { DIV7A_CUTOVER_DATE, getDiv7aOpeningBalance, type AgreementTermsStatus, type SecurityType } from "@/lib/domain/div7a/opening-balances";
+import {
+  detectRepaymentValidityRisks,
+  qualifiedRepaymentCentsForIncomeYear,
+  type RepaymentReviewStatus,
+  type RepaymentValidityRisk,
+  type StoredDiv7aRepayment,
+} from "@/lib/domain/div7a/repayment-validity";
 import { deriveFiscalPeriod } from "@/lib/ingest/transactions";
 import { assertDateOnly, formatDateOnly, parseMelbourneDate, todayInMelbourne, type DateOnly } from "@/lib/time/melbourne";
-
-type StoredRepayment = { date: DateOnly; amountCents: number };
 
 export type Div7aLoan = {
   id: number;
@@ -25,7 +30,7 @@ export type Div7aLoan = {
   /** Legacy rate retained for migration/display diagnostics only. */
   benchmarkRate: string;
   legacyBenchmarkRate: string;
-  repayments: StoredRepayment[];
+  repayments: StoredDiv7aRepayment[];
   agreementSigned: boolean;
   agreementSignedAt: DateOnly | null;
   agreementDocumentId: number | null;
@@ -48,6 +53,9 @@ export type Div7aSummary = Div7aLoan & {
   isExpired: boolean;
   minimumRepaymentCents: number | null;
   actualRepaymentCents: number | null;
+  /** Total recorded payments before s109R risk review. */
+  recordedRepaymentCents: number | null;
+  repaymentValidityRisks: RepaymentValidityRisk[];
   /** Closing balance after current-year interest and recorded repayments. */
   closingBalanceCents: number | null;
   /** Non-null when the scheduled term ended with an unresolved balance. */
@@ -113,15 +121,21 @@ function parseDate(value: string): DateOnly {
   return date;
 }
 
-function readRepayments(value: string): StoredRepayment[] {
+function readRepayments(value: string): StoredDiv7aRepayment[] {
   try {
     const parsed = JSON.parse(value) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.flatMap((item) => {
+    return parsed.flatMap((item, index) => {
       if (!item || typeof item !== "object") return [];
-      const candidate = item as { date?: unknown; amountCents?: unknown };
+      const candidate = item as { repaymentId?: unknown; date?: unknown; amountCents?: unknown; reviewStatus?: unknown };
       if (typeof candidate.date !== "string" || typeof candidate.amountCents !== "number" || !Number.isSafeInteger(candidate.amountCents)) return [];
-      return [{ date: parseDate(candidate.date), amountCents: candidate.amountCents }];
+      const repaymentId = typeof candidate.repaymentId === "string" && candidate.repaymentId.trim()
+        ? candidate.repaymentId
+        : `legacy-${index + 1}`;
+      const reviewStatus: RepaymentReviewStatus = candidate.reviewStatus === "confirmed_valid" || candidate.reviewStatus === "excluded"
+        ? candidate.reviewStatus
+        : "unreviewed";
+      return [{ repaymentId, date: parseDate(candidate.date), amountCents: candidate.amountCents, reviewStatus }];
     });
   } catch {
     return [];
@@ -177,7 +191,7 @@ function incomeYearForStart(year: number) {
   return `FY${year}-${String(year + 1).slice(-2)}`;
 }
 
-function actualRepaymentCentsForIncomeYear(loan: Div7aLoan, incomeYear: string) {
+function recordedRepaymentCentsForIncomeYear(loan: Div7aLoan, incomeYear: string) {
   const normalizedIncomeYear = normalizeFy(incomeYear);
   let total = 0;
   for (const repayment of loan.repayments) {
@@ -186,6 +200,12 @@ function actualRepaymentCentsForIncomeYear(loan: Div7aLoan, incomeYear: string) 
     total += repayment.amountCents;
     assertIntegerCents(total);
   }
+  return total;
+}
+
+function qualifiedRepaymentCentsForYear(loan: Div7aLoan, incomeYear: string, risks: RepaymentValidityRisk[]) {
+  const total = qualifiedRepaymentCentsForIncomeYear(loan.repayments, incomeYear, risks);
+  assertIntegerCents(total);
   return total;
 }
 
@@ -198,7 +218,7 @@ function currentYearRate(incomeYear: string) {
   return getBenchmarkRateForIncomeYear(incomeYear);
 }
 
-function balanceAtPreviousYearEndCents(loan: Div7aLoan, assessmentIncomeYear: string): RollForwardResult {
+function balanceAtPreviousYearEndCents(loan: Div7aLoan, assessmentIncomeYear: string, risks: RepaymentValidityRisk[]): RollForwardResult {
   const assessmentStart = incomeYearStart(assessmentIncomeYear);
   const loanStart = incomeYearStart(loan.loanIncomeYear);
   if (assessmentStart <= loanStart) return { balanceCents: loan.principalCents, missingReason: null };
@@ -226,7 +246,7 @@ function balanceAtPreviousYearEndCents(loan: Div7aLoan, assessmentIncomeYear: st
       return { balanceCents: null, missingReason: `无法判断 / ${incomeYear} 基准利率未配置` };
     }
     const interestCents = rate ? calculateAnnualInterestCents(balance, rate.rateText) : 0;
-    const actualRepaymentCents = actualRepaymentCentsForIncomeYear(loan, incomeYear);
+    const actualRepaymentCents = qualifiedRepaymentCentsForYear(loan, incomeYear, risks);
     balance = Math.max(0, balance + interestCents - actualRepaymentCents);
     assertIntegerCents(balance);
   }
@@ -332,7 +352,7 @@ export function createDiv7aLoan(input: {
   return Number(result.lastInsertRowid);
 }
 
-export function recordDiv7aRepayment(input: { loanId: number; date: string; amountCents: number }) {
+export function recordDiv7aRepayment(input: { loanId: number; date: string; amountCents: number }): { repaymentId: string } {
   runMigrations();
   assertIntegerCents(input.amountCents);
   if (input.amountCents < 0) throw new Error("Repayment cannot be negative");
@@ -341,8 +361,43 @@ export function recordDiv7aRepayment(input: { loanId: number; date: string; amou
   const row = db.prepare("SELECT repayments_json FROM div7a_loans WHERE id = ?").get(input.loanId) as { repayments_json: string } | undefined;
   if (!row) throw new Error(`Div 7A loan not found: ${input.loanId}`);
   const repayments = readRepayments(row.repayments_json);
-  repayments.push({ date, amountCents: input.amountCents });
+  const repaymentId = `repayment-${input.loanId}-${date}-${repayments.length + 1}`;
+  repayments.push({ repaymentId, date, amountCents: input.amountCents, reviewStatus: "unreviewed" });
   db.prepare("UPDATE div7a_loans SET repayments_json = ?, updated_at = datetime('now') WHERE id = ?").run(JSON.stringify(repayments), input.loanId);
+  return { repaymentId };
+}
+
+export function reviewDiv7aRepayment(input: {
+  loanId: number;
+  repaymentId: string;
+  decision: Exclude<RepaymentReviewStatus, "unreviewed">;
+  reason?: string;
+}) {
+  runMigrations();
+  if (!input.repaymentId.trim()) throw new Error("Repayment id is required");
+  const db = getRawDb();
+  const row = db.prepare("SELECT repayments_json FROM div7a_loans WHERE id = ?").get(input.loanId) as { repayments_json: string } | undefined;
+  if (!row) throw new Error(`Div 7A loan not found: ${input.loanId}`);
+  const repayments = readRepayments(row.repayments_json);
+  const repayment = repayments.find((item) => item.repaymentId === input.repaymentId);
+  if (!repayment) throw new Error(`Repayment not found: ${input.repaymentId}`);
+  const previousStatus = repayment.reviewStatus;
+  repayment.reviewStatus = input.decision;
+  const transaction = db.transaction(() => {
+    db.prepare("UPDATE div7a_loans SET repayments_json = ?, updated_at = datetime('now') WHERE id = ?").run(JSON.stringify(repayments), input.loanId);
+    db.prepare(`
+      INSERT INTO audit_log (target_type, target_id, from_status, to_status, reason, metadata_json)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      "div7a_repayment",
+      input.repaymentId,
+      previousStatus,
+      input.decision,
+      input.reason?.trim() || (input.decision === "confirmed_valid" ? "用户确认还款不存在 s109R 重借风险" : "用户确认该笔还款不计入最低还款"),
+      JSON.stringify({ loanId: input.loanId, repaymentId: input.repaymentId }),
+    );
+  });
+  transaction();
 }
 
 export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string): Div7aSummary {
@@ -375,8 +430,16 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
   const loan = mapLoan(row);
   const normalizedAssessment = normalizeFy(assessmentIncomeYear);
   const schedule = repaymentSchedule(loan.loanIncomeYear, normalizedAssessment, loan.originalTermYears);
-  const actualRepaymentCents = actualRepaymentCentsForIncomeYear(loan, normalizedAssessment);
-  const openingResult = balanceAtPreviousYearEndCents(loan, normalizedAssessment);
+  const allRepaymentValidityRisks = detectRepaymentValidityRisks({
+    loanId: loan.id,
+    lenderEntityId: loan.lenderEntityId,
+    borrower: loan.borrower,
+    repayments: loan.repayments,
+  });
+  const repaymentValidityRisks = allRepaymentValidityRisks.filter((risk) => normalizeFy(deriveFiscalPeriod(risk.repaymentDate).fy) === normalizedAssessment);
+  const recordedRepaymentCents = recordedRepaymentCentsForIncomeYear(loan, normalizedAssessment);
+  const actualRepaymentCents = qualifiedRepaymentCentsForYear(loan, normalizedAssessment, allRepaymentValidityRisks);
+  const openingResult = balanceAtPreviousYearEndCents(loan, normalizedAssessment, allRepaymentValidityRisks);
   const activeRate = schedule.repaymentStatus === "active" ? currentYearRate(normalizedAssessment) : null;
   const missingReason = openingResult.missingReason ?? (schedule.repaymentStatus === "active" && !activeRate
     ? `无法判断 / ${normalizedAssessment} 基准利率未配置`
@@ -427,6 +490,8 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
     interestCents,
     minimumRepaymentCents,
     actualRepaymentCents,
+    recordedRepaymentCents,
+    repaymentValidityRisks,
     closingBalanceCents,
     unresolvedBalanceCents,
     expiryWarning,

@@ -6,6 +6,7 @@ import { getEntityConfigurationStatus } from "@/lib/settings-status";
 import { DateTextInput } from "@/components/date-text-input";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
 import type { Div7aBenchmarkRate } from "@/lib/domain/div7a/rates";
+import { DEFAULT_DIV7A_S109R_WINDOW_DAYS, DIV7A_S109R_WINDOW_BASIS, DIV7A_S109R_WINDOW_SETTING_KEY } from "@/lib/domain/div7a/constants";
 
 type Entity = {
   id: string;
@@ -46,6 +47,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
   const [benchmarkRates, setBenchmarkRates] = useState(initialSnapshot.benchmarkRates);
   const [newsWindowDays, setNewsWindowDays] = useState(Number(initialSnapshot.settings.news_window_days ?? "90"));
   const [excludeIrrelevantTopics, setExcludeIrrelevantTopics] = useState(initialSnapshot.settings.news_exclude_irrelevant_topics !== "false");
+  const [div7aS109rWindowDays, setDiv7aS109rWindowDays] = useState(Number(initialSnapshot.settings[DIV7A_S109R_WINDOW_SETTING_KEY] ?? DEFAULT_DIV7A_S109R_WINDOW_DAYS));
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [rateIncomeYear, setRateIncomeYear] = useState("");
   const [rateText, setRateText] = useState("");
@@ -80,6 +82,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
         } : undefined,
         newsWindowDays,
         excludeIrrelevantTopics,
+        div7aS109rWindowDays,
       }),
     });
 
@@ -94,6 +97,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
     setBenchmarkRates(next.benchmarkRates ?? benchmarkRates);
     setNewsWindowDays(Number(next.settings.news_window_days ?? newsWindowDays));
     setExcludeIrrelevantTopics(next.settings.news_exclude_irrelevant_topics !== "false");
+    setDiv7aS109rWindowDays(Number(next.settings[DIV7A_S109R_WINDOW_SETTING_KEY] ?? div7aS109rWindowDays));
     setSaveState("saved");
   }
 
@@ -312,6 +316,21 @@ export function SettingsForm({ initialSnapshot }: Props) {
               <label className="div7a-rate-notes"><span>备注（可选）</span><input aria-label="Div 7A 利率备注" value={rateNotes} onChange={(event) => setRateNotes(event.target.value)} placeholder="例如：ATO 年度表，人工核对" /></label>
               <button type="button" className="primary-button" onClick={() => void saveRate()} disabled={rateSaveState === "saving"}>{rateSaveState === "saving" ? "保存中…" : "保存年度利率"}</button>
               <p className="form-message" aria-live="polite">{rateSaveState === "saved" ? "年度利率已保存" : rateSaveState === "error" ? "请填写完整并确认 URL 来自 ATO" : ""}</p>
+            </div>
+            <div className="div7a-risk-setting">
+              <label>
+                <span>s109R 风险筛查窗口（天）</span>
+                <input
+                  aria-label="s109R 风险筛查窗口（天）"
+                  type="number"
+                  min={1}
+                  max={365}
+                  step={1}
+                  value={div7aS109rWindowDays}
+                  onChange={(event) => { setDiv7aS109rWindowDays(Number(event.target.value)); setSaveState("idle"); }}
+                />
+              </label>
+              <p className="div7a-rate-notes">{DIV7A_S109R_WINDOW_BASIS}</p>
             </div>
             <div className="table-scroll">
               <table className="settings-table div7a-rate-table">

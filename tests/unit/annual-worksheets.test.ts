@@ -8,11 +8,12 @@ import {
   buildTrustDistributionDraft,
 } from "@/lib/domain/annual";
 import { mapTransactionToBas } from "@/lib/domain/bas/gst-mapping";
+import { createAsset } from "@/lib/domain/assets/service";
 
 beforeEach(() => {
   seedDatabase();
   const db = getRawDb();
-  db.exec("DELETE FROM transactions; DELETE FROM super_contributions; DELETE FROM reminders; DELETE FROM obligations;");
+  db.exec("DELETE FROM transactions; DELETE FROM super_contributions; DELETE FROM reminders; DELETE FROM obligations; DELETE FROM assets;");
 });
 
 function accountId(entityId: string, code: string) {
@@ -64,6 +65,26 @@ test("keeps BAS G1 GST-inclusive while annual income is GST-exclusive", () => {
 
   expect(mapTransactionToBas(transaction)).toMatchObject({ g1Cents: 110_000 });
   expect(buildCompanyTaxWorksheet("boyun_co", "FY2026-27").incomeCents).toBe(100_000);
+});
+
+test("annual worksheet includes GST-exclusive depreciation and private-use adjustment", () => {
+  createAsset({
+    entityId: "boyun_co",
+    name: "Annual asset fixture",
+    assetType: "equipment",
+    purchaseDate: "2026-07-01",
+    availableForUseDate: "2026-07-01",
+    costExGstCents: 1_000_000,
+    usefulLifeYears: 5,
+    method: "prime_cost",
+    privateUsePercent: 30,
+  });
+
+  const worksheet = buildCompanyTaxWorksheet("boyun_co", "FY2026-27");
+
+  expect(worksheet.depreciationCents).toBe(200_000);
+  expect(worksheet.deductibleDepreciationCents).toBe(140_000);
+  expect(worksheet.netProfitCents).toBe(-140_000);
 });
 
 test("annual expenses and capital purchases exclude GST and omit PRIVATE transactions", () => {

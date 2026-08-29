@@ -47,6 +47,18 @@ export function Div7aLoanCard({ loan, onChanged }: { loan: Div7aLoanView; onChan
   const [openingMessage, setOpeningMessage] = useState("");
   const [agreementMessage, setAgreementMessage] = useState("");
 
+  async function reviewRepayment(repaymentId: string, decision: "confirmed_valid" | "excluded") {
+    const response = await fetch("/api/div7a", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "repayment_review", loanId: loan.id, repaymentId, decision }),
+    });
+    const payload = await response.json() as { error?: string };
+    if (!response.ok) { setMessage(payload.error ?? "还款复核保存失败"); return; }
+    setMessage(decision === "confirmed_valid" ? "已记录：用户核对无重借" : "已记录：该笔还款不计入最低还款");
+    onChanged();
+  }
+
   async function addRepayment() {
     if (!date || !amount.trim()) { setMessage("还款日期和金额均为必填"); return; }
     const response = await fetch("/api/div7a", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "repayment", loanId: loan.id, date, amount }) });
@@ -120,7 +132,8 @@ export function Div7aLoanCard({ loan, onChanged }: { loan: Div7aLoanView; onChan
         <div><span>{loan.assessmentIncomeYear.replace("-", "–")} 最低还款</span><strong>{loan.repaymentStatus === "origination" ? "无最低还款要求" : loan.isExpired ? "已到期" : money(loan.minimumRepaymentCents)}</strong></div>
         <div><span>期初余额（上一年度末）</span><strong>{money(loan.openingBalanceCents)}</strong></div>
         <div><span>本年利息</span><strong>{money(loan.interestCents)}</strong></div>
-        <div><span>本年实际还款</span><strong>{money(loan.actualRepaymentCents)}</strong></div>
+        <div><span>本年计入最低还款的实际还款</span><strong>{money(loan.actualRepaymentCents)}</strong></div>
+        {loan.recordedRepaymentCents !== null && loan.recordedRepaymentCents !== loan.actualRepaymentCents ? <div><span>本年已记录还款（待 s109R 复核）</span><strong>{money(loan.recordedRepaymentCents)}</strong></div> : null}
         <div><span>期末余额</span><strong>{money(loan.closingBalanceCents)}</strong></div>
         <div><span>剩余年限</span><strong>{loan.remainingTermYears === null ? "无法判断" : loan.remainingTermYears === 0 ? "已到期" : `${loan.remainingTermYears} 年`}</strong></div>
         <div><span>协议状态</span><strong>{agreementLabel(loan.agreementTermsStatus)}</strong></div>
@@ -132,10 +145,20 @@ export function Div7aLoanCard({ loan, onChanged }: { loan: Div7aLoanView; onChan
         {loan.expiryWarning && loan.unresolvedBalanceCents !== null ? <p className="div7a-due-note danger-text" data-testid="div7a-expiry-warning">{loan.expiryWarning} 未清偿余额：{formatCents(loan.unresolvedBalanceCents)}。</p> : null}
       </> : loan.repaymentStatus === "origination" ? <p className="div7a-due-note">贷款发放年度无需最低还款；从下一所得年度起按上一年度末余额与当前剩余年限计算。</p> : loan.repaymentDue ? <p className="div7a-due-note">还款截止：{formatDueDate(loan.repaymentDue)} · {loan.daysUntilRepaymentDue !== null && loan.daysUntilRepaymentDue < 0 ? `已过 ${Math.abs(loan.daysUntilRepaymentDue)} 天` : `${loan.daysUntilRepaymentDue ?? 0} 天后`}</p> : null}
       {loan.shortfallCents !== null && loan.shortfallCents > 0 ? <p className="div7a-due-note danger-text" data-testid="div7a-shortfall-warning">最低还款缺口：{formatCents(loan.shortfallCents)}。缺口部分可能产生视同股息后果，请人工核对 ATO 规则。系统不自动创建分红记录。</p> : null}
+      {loan.repaymentValidityRisks.length ? <section className="div7a-repayment-validity" aria-label="s109R 还款有效性复核" data-testid="div7a-repayment-validity">
+        <h3>还款有效性复核</h3>
+        <p className="div7a-due-note">系统仅按相邻借款活动提示风险，不自动判断 s109R，也不会把未复核还款扣入最低还款。</p>
+        {loan.repaymentValidityRisks.map((risk) => <article key={risk.repaymentId} className={risk.reviewStatus === "unreviewed" ? "div7a-validity-warning" : "div7a-validity-reviewed"}>
+          <strong>{risk.reviewStatus === "unreviewed" ? risk.message : risk.reviewStatus === "confirmed_valid" ? "已核对无重借" : "确认不计入"}</strong>
+          <span>{formatDueDate(risk.repaymentDate)} · {formatCents(risk.amountCents)} · 筛查窗口 {risk.windowDays} 天</span>
+          {risk.relatedTransactions.map((transaction) => <small key={`transaction-${transaction.id}`}>相关支出：{formatDueDate(transaction.date)} · {formatCents(transaction.amountCents)} · {transaction.description}</small>)}
+          {risk.relatedLoans.map((relatedLoan) => <small key={`loan-${relatedLoan.id}`}>相关新增贷款：{formatDueDate(relatedLoan.loanDate)} · {formatCents(relatedLoan.principalCents)} · 贷款 {relatedLoan.id}</small>)}
+          {risk.reviewStatus === "unreviewed" ? <div className="div7a-form-actions"><button type="button" className="secondary-button" onClick={() => void reviewRepayment(risk.repaymentId, "confirmed_valid")}>已核对无重借</button><button type="button" className="secondary-button" onClick={() => void reviewRepayment(risk.repaymentId, "excluded")}>确认不计入</button></div> : null}
+        </article>)}
+      </section> : null}
 
       <details className="div7a-schedule-details" open>
-        <summary>逐年余额与最低还款明细</summary>
-        <div className="table-scroll"><table className="div7a-schedule-table"><thead><tr><th>所得年度</th><th>利率 / 来源</th><th>期初余额</th><th>利息</th><th>最低还款</th><th>实际还款</th><th>期末余额</th><th>剩余年限</th><th>协议</th><th>还款截止</th></tr></thead><tbody>{loan.schedule.map((row) => <tr key={row.assessmentIncomeYear}><td>{row.assessmentIncomeYear.replace("-", "–")}</td><td>{row.benchmarkRateText ?? "未配置"}{row.benchmarkRateSourceUrl ? <a href={row.benchmarkRateSourceUrl} target="_blank" rel="noreferrer">来源</a> : null}</td><td>{scheduleValue(row, row.openingBalanceCents)}</td><td>{scheduleValue(row, row.interestCents)}</td><td>{row.repaymentStatus === "origination" ? "无最低还款要求" : row.repaymentStatus === "expired" ? "—" : scheduleValue(row, row.minimumRepaymentCents)}</td><td>{scheduleValue(row, row.actualRepaymentCents)}</td><td>{scheduleValue(row, row.closingBalanceCents)}</td><td>{row.remainingTermYears === null ? "无法判断" : row.remainingTermYears === 0 ? "已到期" : `${row.remainingTermYears} 年`}</td><td>{agreementLabel(row.agreementTermsStatus)}</td><td>{row.repaymentDue ? formatDueDate(row.repaymentDue) : "—"}</td></tr>)}</tbody></table></div>
+        <div className="table-scroll"><table className="div7a-schedule-table"><thead><tr><th>所得年度</th><th>利率 / 来源</th><th>期初余额</th><th>利息</th><th>最低还款</th><th>实际还款</th><th>期末余额</th><th>剩余年限</th><th>协议</th><th>还款截止</th><th>s109R</th></tr></thead><tbody>{loan.schedule.map((row) => <tr key={row.assessmentIncomeYear}><td>{row.assessmentIncomeYear.replace("-", "–")}</td><td>{row.benchmarkRateText ?? "未配置"}{row.benchmarkRateSourceUrl ? <a href={row.benchmarkRateSourceUrl} target="_blank" rel="noreferrer">来源</a> : null}</td><td>{scheduleValue(row, row.openingBalanceCents)}</td><td>{scheduleValue(row, row.interestCents)}</td><td>{row.repaymentStatus === "origination" ? "无最低还款要求" : row.repaymentStatus === "expired" ? "—" : scheduleValue(row, row.minimumRepaymentCents)}</td><td>{scheduleValue(row, row.actualRepaymentCents)}</td><td>{scheduleValue(row, row.closingBalanceCents)}</td><td>{row.remainingTermYears === null ? "无法判断" : row.remainingTermYears === 0 ? "已到期" : `${row.remainingTermYears} 年`}</td><td>{agreementLabel(row.agreementTermsStatus)}</td><td>{row.repaymentDue ? formatDueDate(row.repaymentDue) : "—"}</td><td>{row.repaymentValidityRisks.length ? row.repaymentValidityRisks.map((risk) => <span key={risk.repaymentId} className={risk.reviewStatus === "unreviewed" ? "danger-text" : ""}>{risk.reviewStatus === "unreviewed" ? "需复核" : risk.reviewStatus === "confirmed_valid" ? "已核对" : "不计入"}</span>) : "无提示"}</td></tr>)}</tbody></table></div>
       </details>
 
       <details className="div7a-opening-details">

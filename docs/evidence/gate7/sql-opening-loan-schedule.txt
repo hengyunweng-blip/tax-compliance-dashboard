@@ -1,0 +1,6 @@
+id  lender_entity_id  borrower  loan_date   original_income_year  term_years  principal_cents  security_type
+--  ----------------  --------  ----------  --------------------  ----------  ---------------  -------------
+1   boyun_co          self      2019-07-01  FY2019-20             7           10000000         unsecured    
+entity_id  reference_type  reference_id  category            amount_cents  as_of_date  source_description   entered_by  entered_at
+---------  --------------  ------------  ------------------  ------------  ----------  -------------------  ----------  ----------
+boyun_co   loan            loan:1        div7a_loan_balance  10000000      2026-06-30  会计 FY2025–26 底稿  self        2026-08-30

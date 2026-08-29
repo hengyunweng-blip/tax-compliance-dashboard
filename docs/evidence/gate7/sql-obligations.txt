@@ -1,0 +1,33 @@
+entity_id         period_label        rule_id                                status   statutory_due  effective_due  income_year  deadline_fy  scope_key
+----------------  ------------------  -------------------------------------  -------  -------------  -------------  -----------  -----------  ---------
+boyun_co          FY2025-26           company_tax_return                     paid     2027-02-28     2027-03-01     FY2025-26    FY2026-27    entity   
+boyun_co          FY2026-27           asic_annual_review                     paid     2026-09-15     2026-09-15     FY2026-27    FY2026-27    entity   
+boyun_co          FY2026-27 Q1        bas_quarterly                          paid     2026-10-28     2026-11-11     FY2026-27    FY2026-27    entity   
+boyun_co          FY2026-27 Q2        bas_quarterly                          paid     2027-02-28     2027-03-01     FY2026-27    FY2026-27    entity   
+boyun_co          FY2026-27 Q3        bas_quarterly                          paid     2027-04-28     2027-05-12     FY2026-27    FY2026-27    entity   
+boyun_co          FY2026-27 Q4        bas_quarterly                          paid     2027-07-28     2027-08-11     FY2026-27    FY2026-27    entity   
+boyun_co          FY2026-27 · 贷款 1  div7a_loan_agreement                   blocked  2028-02-28     2028-02-28     FY2026-27    FY2027-28    loan:1   
+boyun_co          FY2026-27 · 贷款 2  div7a_loan_agreement                   blocked  2028-02-28     2028-02-28     FY2026-27    FY2027-28    loan:2   
+boyun_trust       FY2025-26           trust_tax_return                       paid     2026-10-31     2026-11-02     FY2025-26    FY2026-27    entity   
+boyun_trust       FY2026-27           trust_distribution_resolution          paid     2027-06-30     2027-06-30     FY2026-27    FY2026-27    entity   
+neighbourhood_co  FY2025-26           company_tax_return                     paid     2027-02-28     2027-03-01     FY2025-26    FY2026-27    entity   
+neighbourhood_co  FY2026-27           asic_annual_review                     paid     2026-09-15     2026-09-15     FY2026-27    FY2026-27    entity   
+neighbourhood_co  FY2026-27 Q1        bas_quarterly                          paid     2026-10-28     2026-11-11     FY2026-27    FY2026-27    entity   
+neighbourhood_co  FY2026-27 Q2        bas_quarterly                          paid     2027-02-28     2027-03-01     FY2026-27    FY2026-27    entity   
+neighbourhood_co  FY2026-27 Q3        bas_quarterly                          paid     2027-04-28     2027-05-12     FY2026-27    FY2026-27    entity   
+neighbourhood_co  FY2026-27 Q4        bas_quarterly                          paid     2027-07-28     2027-08-11     FY2026-27    FY2026-27    entity   
+neighbourhood_co  FY2026-27 · 贷款 4  div7a_loan_agreement                   blocked  2028-02-28     2028-02-28     FY2026-27    FY2027-28    loan:4   
+self              FY2025-26           individual_tax_return                  paid     2026-10-31     2026-11-02     FY2025-26    FY2026-27    entity   
+self              FY2025-26           super_notice                           paid     2026-10-31     2026-11-02     FY2025-26    FY2026-27    entity   
+self              FY2026-27           estate_agent_licence_annual_statement  paid     2026-08-15     2026-08-14     FY2026-27    FY2026-27    entity   
+self              FY2026-27           super_contribution                     paid     2027-06-30     2027-06-30     FY2026-27    FY2026-27    entity   
+spouse            FY2025-26           individual_tax_return                  paid     2026-10-31     2026-11-02     FY2025-26    FY2026-27    entity   
+spouse            FY2025-26           super_notice                           paid     2026-10-31     2026-11-02     FY2025-26    FY2026-27    entity   
+spouse            FY2026-27           super_contribution                     paid     2027-06-30     2027-06-30     FY2026-27    FY2026-27    entity   
+yeeliving_co      FY2025-26           company_tax_return                     paid     2027-02-28     2027-03-01     FY2025-26    FY2026-27    entity   
+yeeliving_co      FY2026-27           asic_annual_review                     paid     2026-09-15     2026-09-15     FY2026-27    FY2026-27    entity   
+yeeliving_co      FY2026-27 Q1        bas_quarterly                          paid     2026-10-28     2026-11-11     FY2026-27    FY2026-27    entity   
+yeeliving_co      FY2026-27 Q2        bas_quarterly                          paid     2027-02-28     2027-03-01     FY2026-27    FY2026-27    entity   
+yeeliving_co      FY2026-27 Q3        bas_quarterly                          paid     2027-04-28     2027-05-12     FY2026-27    FY2026-27    entity   
+yeeliving_co      FY2026-27 Q4        bas_quarterly                          paid     2027-07-28     2027-08-11     FY2026-27    FY2026-27    entity   
+yeeliving_co      FY2026-27 · 贷款 3  div7a_loan_agreement                   blocked  2028-02-28     2028-02-28     FY2026-27    FY2027-28    loan:3   

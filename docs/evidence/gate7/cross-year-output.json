@@ -1,0 +1,897 @@
+{
+  "generatedAt": "2026-08-29T14:31:47.213Z",
+  "databasePath": "/tmp/tax-gate7-evidence.wlXcTQ/cross-year-evidence.db",
+  "c1FiscalYearRollover": {
+    "status": "failed",
+    "error": "Unsupported annual tax financial year: 2027-28"
+  },
+  "workflows": {
+    "basByCompany": {
+      "boyun_co": {
+        "rows": [
+          {
+            "entityId": "boyun_co",
+            "periodLabel": "FY2026-27 Q1",
+            "g1_cents": 160000,
+            "a1_cents": 10000,
+            "b1_cents": 12000,
+            "g10_cents": 110000,
+            "g11_cents": 22000,
+            "statement_total_cents": 500
+          },
+          {
+            "entityId": "boyun_co",
+            "periodLabel": "FY2026-27 Q2",
+            "g1_cents": 320000,
+            "a1_cents": 20000,
+            "b1_cents": 24000,
+            "g10_cents": 220000,
+            "g11_cents": 44000,
+            "statement_total_cents": -1500
+          },
+          {
+            "entityId": "boyun_co",
+            "periodLabel": "FY2026-27 Q3",
+            "g1_cents": 480000,
+            "a1_cents": 30000,
+            "b1_cents": 36000,
+            "g10_cents": 330000,
+            "g11_cents": 66000,
+            "statement_total_cents": -3500
+          },
+          {
+            "entityId": "boyun_co",
+            "periodLabel": "FY2026-27 Q4",
+            "g1_cents": 640000,
+            "a1_cents": 40000,
+            "b1_cents": 48000,
+            "g10_cents": 440000,
+            "g11_cents": 88000,
+            "statement_total_cents": -5500
+          }
+        ],
+        "g1TotalCents": 1600000,
+        "a1TotalCents": 100000,
+        "gstExclusiveBasIncomeCents": 1500000,
+        "annualIncomeCents": 1750000,
+        "nonTaxableIncomeIncludedInAnnualCents": 250000,
+        "differenceCents": -250000,
+        "consistencyNote": "严格按 G1 - 1A 只覆盖含 GST 销售；年度收入另包含 GST-free/NO_GST 收入，因此本场景的差额应等于这些非应税收入。"
+      },
+      "yeeliving_co": {
+        "rows": [
+          {
+            "entityId": "yeeliving_co",
+            "periodLabel": "FY2026-27 Q1",
+            "g1_cents": 320000,
+            "a1_cents": 20000,
+            "b1_cents": 24000,
+            "g10_cents": 220000,
+            "g11_cents": 44000,
+            "statement_total_cents": -1500
+          },
+          {
+            "entityId": "yeeliving_co",
+            "periodLabel": "FY2026-27 Q2",
+            "g1_cents": 640000,
+            "a1_cents": 40000,
+            "b1_cents": 48000,
+            "g10_cents": 440000,
+            "g11_cents": 88000,
+            "statement_total_cents": -5500
+          },
+          {
+            "entityId": "yeeliving_co",
+            "periodLabel": "FY2026-27 Q3",
+            "g1_cents": 960000,
+            "a1_cents": 60000,
+            "b1_cents": 72000,
+            "g10_cents": 660000,
+            "g11_cents": 132000,
+            "statement_total_cents": -9500
+          },
+          {
+            "entityId": "yeeliving_co",
+            "periodLabel": "FY2026-27 Q4",
+            "g1_cents": 1280000,
+            "a1_cents": 80000,
+            "b1_cents": 96000,
+            "g10_cents": 880000,
+            "g11_cents": 176000,
+            "statement_total_cents": -13500
+          }
+        ],
+        "g1TotalCents": 3200000,
+        "a1TotalCents": 200000,
+        "gstExclusiveBasIncomeCents": 3000000,
+        "annualIncomeCents": 3500000,
+        "nonTaxableIncomeIncludedInAnnualCents": 500000,
+        "differenceCents": -500000,
+        "consistencyNote": "严格按 G1 - 1A 只覆盖含 GST 销售；年度收入另包含 GST-free/NO_GST 收入，因此本场景的差额应等于这些非应税收入。"
+      },
+      "neighbourhood_co": {
+        "rows": [
+          {
+            "entityId": "neighbourhood_co",
+            "periodLabel": "FY2026-27 Q1",
+            "g1_cents": 0,
+            "a1_cents": 0,
+            "b1_cents": 0,
+            "g10_cents": 0,
+            "g11_cents": 0,
+            "statement_total_cents": 0
+          },
+          {
+            "entityId": "neighbourhood_co",
+            "periodLabel": "FY2026-27 Q2",
+            "g1_cents": 0,
+            "a1_cents": 0,
+            "b1_cents": 0,
+            "g10_cents": 0,
+            "g11_cents": 0,
+            "statement_total_cents": 0
+          },
+          {
+            "entityId": "neighbourhood_co",
+            "periodLabel": "FY2026-27 Q3",
+            "g1_cents": 0,
+            "a1_cents": 0,
+            "b1_cents": 0,
+            "g10_cents": 0,
+            "g11_cents": 0,
+            "statement_total_cents": 0
+          },
+          {
+            "entityId": "neighbourhood_co",
+            "periodLabel": "FY2026-27 Q4",
+            "g1_cents": 0,
+            "a1_cents": 0,
+            "b1_cents": 0,
+            "g10_cents": 0,
+            "g11_cents": 0,
+            "statement_total_cents": 0
+          }
+        ],
+        "g1TotalCents": 0,
+        "a1TotalCents": 0,
+        "gstExclusiveBasIncomeCents": 0,
+        "annualIncomeCents": 0,
+        "nonTaxableIncomeIncludedInAnnualCents": 0,
+        "differenceCents": 0,
+        "consistencyNote": "严格按 G1 - 1A 只覆盖含 GST 销售；年度收入另包含 GST-free/NO_GST 收入，因此本场景的差额应等于这些非应税收入。"
+      }
+    },
+    "companyAnnualRows": [
+      {
+        "entityId": "boyun_co",
+        "id": 13,
+        "status": "paid",
+        "lodged_at": "2027-02-15",
+        "paid_at": "2027-02-20",
+        "incomeCents": 1750000
+      },
+      {
+        "entityId": "yeeliving_co",
+        "id": 19,
+        "status": "paid",
+        "lodged_at": "2027-02-15",
+        "paid_at": "2027-02-20",
+        "incomeCents": 3500000
+      },
+      {
+        "entityId": "neighbourhood_co",
+        "id": 25,
+        "status": "paid",
+        "lodged_at": "2027-02-15",
+        "paid_at": "2027-02-20",
+        "incomeCents": 0
+      }
+    ],
+    "trust": {
+      "distributableIncomeCents": 250000,
+      "proposedDistributions": [
+        {
+          "beneficiary": "self",
+          "amountCents": 125000
+        },
+        {
+          "beneficiary": "spouse",
+          "amountCents": 125000
+        }
+      ],
+      "distributionTotalCents": 250000,
+      "differenceCents": 0
+    },
+    "personal": [
+      {
+        "entityId": "self",
+        "trustDistributionCents": 0,
+        "incomeCents": 0
+      },
+      {
+        "entityId": "spouse",
+        "trustDistributionCents": 0,
+        "incomeCents": 0
+      }
+    ],
+    "superProgress": [
+      {
+        "person": "self",
+        "incomeYear": "FY2026-27",
+        "contributedCents": 1000000,
+        "capCents": 3250000,
+        "nonConcessionalCapCents": 13000000,
+        "remainingCents": 2250000,
+        "capConfigured": true,
+        "capSourceUrl": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+        "capRetrievedAt": "2026-08-29",
+        "nonConcessionalCapSourceUrl": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+        "nonConcessionalCapRetrievedAt": "2026-08-29",
+        "carryForwardAvailableCents": null,
+        "carryForwardYears": 5,
+        "carryForwardTsbLimitCents": 50000000,
+        "carryForwardSourceUrl": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions",
+        "carryForwardRetrievedAt": "2026-08-27",
+        "carryForwardHint": "追补额度未配置；需人工核对最近 5 个所得年度的未用额度。",
+        "paymentComplete": true,
+        "noticeComplete": false,
+        "noticeSubmittedAt": null
+      },
+      {
+        "person": "spouse",
+        "incomeYear": "FY2026-27",
+        "contributedCents": 0,
+        "capCents": 3250000,
+        "nonConcessionalCapCents": 13000000,
+        "remainingCents": 3250000,
+        "capConfigured": true,
+        "capSourceUrl": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+        "capRetrievedAt": "2026-08-29",
+        "nonConcessionalCapSourceUrl": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+        "nonConcessionalCapRetrievedAt": "2026-08-29",
+        "carryForwardAvailableCents": null,
+        "carryForwardYears": 5,
+        "carryForwardTsbLimitCents": 50000000,
+        "carryForwardSourceUrl": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions",
+        "carryForwardRetrievedAt": "2026-08-27",
+        "carryForwardHint": "追补额度未配置；需人工核对最近 5 个所得年度的未用额度。",
+        "paymentComplete": false,
+        "noticeComplete": true,
+        "noticeSubmittedAt": "2027-06-20"
+      }
+    ],
+    "assets": [
+      {
+        "assetId": 1,
+        "entityId": "boyun_co",
+        "totalDepreciationCents": 200000,
+        "openingBookValueCents": 1000000,
+        "closingBookValueCents": 800000,
+        "bookValueDecreaseCents": 200000,
+        "differenceCents": 0
+      },
+      {
+        "assetId": 2,
+        "entityId": "yeeliving_co",
+        "totalDepreciationCents": 800000,
+        "openingBookValueCents": 2000000,
+        "closingBookValueCents": 1200000,
+        "bookValueDecreaseCents": 800000,
+        "differenceCents": 0
+      },
+      {
+        "assetId": 3,
+        "entityId": "neighbourhood_co",
+        "totalDepreciationCents": 100000,
+        "openingBookValueCents": 500000,
+        "closingBookValueCents": 400000,
+        "bookValueDecreaseCents": 100000,
+        "differenceCents": 0
+      }
+    ],
+    "div7a": [
+      {
+        "loanId": 1,
+        "entityId": "boyun_co",
+        "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+        "openingPlusInterestMinusRepaymentsCents": 10000000,
+        "closingBalanceCents": 10000000,
+        "differenceCents": 0,
+        "recordedRepaymentCents": 0
+      },
+      {
+        "loanId": 2,
+        "entityId": "boyun_co",
+        "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+        "openingPlusInterestMinusRepaymentsCents": 2000000,
+        "closingBalanceCents": 2000000,
+        "differenceCents": 0,
+        "recordedRepaymentCents": 0
+      },
+      {
+        "loanId": 3,
+        "entityId": "yeeliving_co",
+        "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+        "openingPlusInterestMinusRepaymentsCents": 11000000,
+        "closingBalanceCents": 11000000,
+        "differenceCents": 0,
+        "recordedRepaymentCents": 0
+      },
+      {
+        "loanId": 4,
+        "entityId": "neighbourhood_co",
+        "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+        "openingPlusInterestMinusRepaymentsCents": 12000000,
+        "closingBalanceCents": 12000000,
+        "differenceCents": 0,
+        "recordedRepaymentCents": 0
+      }
+    ],
+    "obligations": [
+      {
+        "id": 14,
+        "entity_id": "boyun_co",
+        "rule_id": "asic_annual_review",
+        "period_label": "FY2026-27",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-09-15",
+        "effective_due": "2026-09-15",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 9,
+        "entity_id": "boyun_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q1",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-28",
+        "effective_due": "2026-11-11",
+        "status": "paid",
+        "lodged_at": "2026-10-20",
+        "paid_at": "2026-10-20"
+      },
+      {
+        "id": 10,
+        "entity_id": "boyun_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q2",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-02-28",
+        "effective_due": "2027-03-01",
+        "status": "paid",
+        "lodged_at": "2027-02-20",
+        "paid_at": "2027-02-20"
+      },
+      {
+        "id": 11,
+        "entity_id": "boyun_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q3",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-04-28",
+        "effective_due": "2027-05-12",
+        "status": "paid",
+        "lodged_at": "2027-04-20",
+        "paid_at": "2027-04-20"
+      },
+      {
+        "id": 12,
+        "entity_id": "boyun_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q4",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-07-28",
+        "effective_due": "2027-08-11",
+        "status": "paid",
+        "lodged_at": "2027-07-20",
+        "paid_at": "2027-07-20"
+      },
+      {
+        "id": 13,
+        "entity_id": "boyun_co",
+        "rule_id": "company_tax_return",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-02-28",
+        "effective_due": "2027-03-01",
+        "status": "paid",
+        "lodged_at": "2027-02-15",
+        "paid_at": "2027-02-20"
+      },
+      {
+        "id": 28,
+        "entity_id": "boyun_co",
+        "rule_id": "div7a_loan_agreement",
+        "period_label": "FY2026-27 · 贷款 1",
+        "scope_key": "loan:1",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2027-28",
+        "statutory_due": "2028-02-28",
+        "effective_due": "2028-02-28",
+        "status": "blocked",
+        "lodged_at": null,
+        "paid_at": null
+      },
+      {
+        "id": 29,
+        "entity_id": "boyun_co",
+        "rule_id": "div7a_loan_agreement",
+        "period_label": "FY2026-27 · 贷款 2",
+        "scope_key": "loan:2",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2027-28",
+        "statutory_due": "2028-02-28",
+        "effective_due": "2028-02-28",
+        "status": "blocked",
+        "lodged_at": null,
+        "paid_at": null
+      },
+      {
+        "id": 8,
+        "entity_id": "boyun_trust",
+        "rule_id": "trust_distribution_resolution",
+        "period_label": "FY2026-27",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-06-30",
+        "effective_due": "2027-06-30",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 7,
+        "entity_id": "boyun_trust",
+        "rule_id": "trust_tax_return",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-31",
+        "effective_due": "2026-11-02",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 26,
+        "entity_id": "neighbourhood_co",
+        "rule_id": "asic_annual_review",
+        "period_label": "FY2026-27",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-09-15",
+        "effective_due": "2026-09-15",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 21,
+        "entity_id": "neighbourhood_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q1",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-28",
+        "effective_due": "2026-11-11",
+        "status": "paid",
+        "lodged_at": "2026-10-20",
+        "paid_at": "2026-10-20"
+      },
+      {
+        "id": 22,
+        "entity_id": "neighbourhood_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q2",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-02-28",
+        "effective_due": "2027-03-01",
+        "status": "paid",
+        "lodged_at": "2027-02-20",
+        "paid_at": "2027-02-20"
+      },
+      {
+        "id": 23,
+        "entity_id": "neighbourhood_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q3",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-04-28",
+        "effective_due": "2027-05-12",
+        "status": "paid",
+        "lodged_at": "2027-04-20",
+        "paid_at": "2027-04-20"
+      },
+      {
+        "id": 24,
+        "entity_id": "neighbourhood_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q4",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-07-28",
+        "effective_due": "2027-08-11",
+        "status": "paid",
+        "lodged_at": "2027-07-20",
+        "paid_at": "2027-07-20"
+      },
+      {
+        "id": 25,
+        "entity_id": "neighbourhood_co",
+        "rule_id": "company_tax_return",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-02-28",
+        "effective_due": "2027-03-01",
+        "status": "paid",
+        "lodged_at": "2027-02-15",
+        "paid_at": "2027-02-20"
+      },
+      {
+        "id": 31,
+        "entity_id": "neighbourhood_co",
+        "rule_id": "div7a_loan_agreement",
+        "period_label": "FY2026-27 · 贷款 4",
+        "scope_key": "loan:4",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2027-28",
+        "statutory_due": "2028-02-28",
+        "effective_due": "2028-02-28",
+        "status": "blocked",
+        "lodged_at": null,
+        "paid_at": null
+      },
+      {
+        "id": 27,
+        "entity_id": "self",
+        "rule_id": "estate_agent_licence_annual_statement",
+        "period_label": "FY2026-27",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-08-15",
+        "effective_due": "2026-08-14",
+        "status": "paid",
+        "lodged_at": "2026-08-15",
+        "paid_at": "2026-08-15"
+      },
+      {
+        "id": 1,
+        "entity_id": "self",
+        "rule_id": "individual_tax_return",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-31",
+        "effective_due": "2026-11-02",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 2,
+        "entity_id": "self",
+        "rule_id": "super_contribution",
+        "period_label": "FY2026-27",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-06-30",
+        "effective_due": "2027-06-30",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 3,
+        "entity_id": "self",
+        "rule_id": "super_notice",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-31",
+        "effective_due": "2026-11-02",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 4,
+        "entity_id": "spouse",
+        "rule_id": "individual_tax_return",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-31",
+        "effective_due": "2026-11-02",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 5,
+        "entity_id": "spouse",
+        "rule_id": "super_contribution",
+        "period_label": "FY2026-27",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-06-30",
+        "effective_due": "2027-06-30",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 6,
+        "entity_id": "spouse",
+        "rule_id": "super_notice",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-31",
+        "effective_due": "2026-11-02",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 20,
+        "entity_id": "yeeliving_co",
+        "rule_id": "asic_annual_review",
+        "period_label": "FY2026-27",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-09-15",
+        "effective_due": "2026-09-15",
+        "status": "paid",
+        "lodged_at": "2027-06-20",
+        "paid_at": "2027-06-20"
+      },
+      {
+        "id": 15,
+        "entity_id": "yeeliving_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q1",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2026-10-28",
+        "effective_due": "2026-11-11",
+        "status": "paid",
+        "lodged_at": "2026-10-20",
+        "paid_at": "2026-10-20"
+      },
+      {
+        "id": 16,
+        "entity_id": "yeeliving_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q2",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-02-28",
+        "effective_due": "2027-03-01",
+        "status": "paid",
+        "lodged_at": "2027-02-20",
+        "paid_at": "2027-02-20"
+      },
+      {
+        "id": 17,
+        "entity_id": "yeeliving_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q3",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-04-28",
+        "effective_due": "2027-05-12",
+        "status": "paid",
+        "lodged_at": "2027-04-20",
+        "paid_at": "2027-04-20"
+      },
+      {
+        "id": 18,
+        "entity_id": "yeeliving_co",
+        "rule_id": "bas_quarterly",
+        "period_label": "FY2026-27 Q4",
+        "scope_key": "entity",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-07-28",
+        "effective_due": "2027-08-11",
+        "status": "paid",
+        "lodged_at": "2027-07-20",
+        "paid_at": "2027-07-20"
+      },
+      {
+        "id": 19,
+        "entity_id": "yeeliving_co",
+        "rule_id": "company_tax_return",
+        "period_label": "FY2025-26",
+        "scope_key": "entity",
+        "income_year": "FY2025-26",
+        "deadline_fy": "FY2026-27",
+        "statutory_due": "2027-02-28",
+        "effective_due": "2027-03-01",
+        "status": "paid",
+        "lodged_at": "2027-02-15",
+        "paid_at": "2027-02-20"
+      },
+      {
+        "id": 30,
+        "entity_id": "yeeliving_co",
+        "rule_id": "div7a_loan_agreement",
+        "period_label": "FY2026-27 · 贷款 3",
+        "scope_key": "loan:3",
+        "income_year": "FY2026-27",
+        "deadline_fy": "FY2027-28",
+        "statutory_due": "2028-02-28",
+        "effective_due": "2028-02-28",
+        "status": "blocked",
+        "lodged_at": null,
+        "paid_at": null
+      }
+    ],
+    "futureYearModuleProbe": {
+      "incomeYear": "FY2027-28",
+      "company": [
+        {
+          "entityId": "boyun_co",
+          "incomeCents": 0,
+          "depreciationCents": 200000,
+          "assetDepreciationStatus": "ready"
+        },
+        {
+          "entityId": "yeeliving_co",
+          "incomeCents": 0,
+          "depreciationCents": 480000,
+          "assetDepreciationStatus": "ready"
+        },
+        {
+          "entityId": "neighbourhood_co",
+          "incomeCents": 0,
+          "depreciationCents": 100000,
+          "assetDepreciationStatus": "ready"
+        }
+      ],
+      "trust": {
+        "distributableIncomeCents": 0,
+        "manualItems": [
+          "折旧",
+          "结转亏损",
+          "信托 FTE 状态"
+        ]
+      },
+      "personal": [
+        {
+          "entityId": "self",
+          "incomeCents": 0
+        },
+        {
+          "entityId": "spouse",
+          "incomeCents": 0
+        }
+      ]
+    }
+  },
+  "backup": {
+    "archiveEntries": [
+      "app.db",
+      "manifest.json",
+      "files/",
+      "files/gate7-evidence.txt"
+    ],
+    "manifest": {
+      "format": "tax-compliance-backup",
+      "version": 1,
+      "createdAt": "2026-08-29T14:31:47.188Z",
+      "timezone": "Australia/Melbourne",
+      "includesDatabase": true,
+      "includesFiles": true
+    },
+    "sourceFilesSha256": "6f96ff4c90982f9558628f23ab3d6cb5c1b948601ec58ea157331960f9d2986e",
+    "restoredFilesPresent": true,
+    "tableDiffExitCodes": {
+      "entities": 0,
+      "transactions": 0,
+      "obligations": 0,
+      "bas_worksheets": 0,
+      "div7a_loans": 0,
+      "assets": 0,
+      "opening_balances": 0
+    },
+    "allDiffExitCode": 0,
+    "before": {
+      "entities": {
+        "rowCount": 6,
+        "sha256": "2263ac3ce27cdde7b6aca9b431a64c35b2c8f35dc7f827a1ec806516950c91d4"
+      },
+      "transactions": {
+        "rowCount": 42,
+        "sha256": "eea71db16d2f7f2ae68c014a338a7d08b61af7b537e279bf9b7963cfb7a5bad7"
+      },
+      "obligations": {
+        "rowCount": 31,
+        "sha256": "5216cffe311f5502218fa5426c18a1aa5c3ada6c125b4af5b85d940f2fc6c521"
+      },
+      "bas_worksheets": {
+        "rowCount": 12,
+        "sha256": "05737b5db8cbf45be3872c63d3d91d9881d75ab46d2be3068bc8b30827a69f6e"
+      },
+      "div7a_loans": {
+        "rowCount": 4,
+        "sha256": "eebbc30eecaf7aed2d08ddd517d0aeef89552967d7b9f8bdfd2010f589603687"
+      },
+      "assets": {
+        "rowCount": 3,
+        "sha256": "e95422acab6ba3f3f512c378d4f06c245374cc6757ff0ec59d0e294e348294e0"
+      },
+      "opening_balances": {
+        "rowCount": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "after": {
+      "entities": {
+        "rowCount": 6,
+        "sha256": "2263ac3ce27cdde7b6aca9b431a64c35b2c8f35dc7f827a1ec806516950c91d4"
+      },
+      "transactions": {
+        "rowCount": 42,
+        "sha256": "eea71db16d2f7f2ae68c014a338a7d08b61af7b537e279bf9b7963cfb7a5bad7"
+      },
+      "obligations": {
+        "rowCount": 31,
+        "sha256": "5216cffe311f5502218fa5426c18a1aa5c3ada6c125b4af5b85d940f2fc6c521"
+      },
+      "bas_worksheets": {
+        "rowCount": 12,
+        "sha256": "05737b5db8cbf45be3872c63d3d91d9881d75ab46d2be3068bc8b30827a69f6e"
+      },
+      "div7a_loans": {
+        "rowCount": 4,
+        "sha256": "eebbc30eecaf7aed2d08ddd517d0aeef89552967d7b9f8bdfd2010f589603687"
+      },
+      "assets": {
+        "rowCount": 3,
+        "sha256": "e95422acab6ba3f3f512c378d4f06c245374cc6757ff0ec59d0e294e348294e0"
+      },
+      "opening_balances": {
+        "rowCount": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "restoredDatabasePath": "/tmp/tax-gate7-restore-9tQlt5/restored.db"
+  }
+}

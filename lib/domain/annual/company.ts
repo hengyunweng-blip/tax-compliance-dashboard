@@ -1,4 +1,5 @@
 import { getRawDb } from "@/lib/db/client";
+import { getAssetDepreciationForEntity } from "@/lib/domain/assets/service";
 import { annualManualItemsForEntityType, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
 
 export type CompanyTaxWorksheet = {
@@ -10,7 +11,11 @@ export type CompanyTaxWorksheet = {
   incomeCents: number;
   operatingExpenseCents: number;
   capitalPurchaseCents: number;
-  netProfitCents: number;
+  depreciationCents: number | null;
+  deductibleDepreciationCents: number | null;
+  assetDepreciationStatus: "ready" | "manual_review";
+  assetDepreciationRows: ReturnType<typeof getAssetDepreciationForEntity>["rows"];
+  netProfitCents: number | null;
   manualItems: string[];
 };
 
@@ -26,6 +31,10 @@ export function buildCompanyTaxWorksheet(entityId: string, incomeYear: string): 
   const capitalPurchaseCents = sumCents(transactions
     .filter((item) => item.gstCode === "GST_CAPITAL" || item.accountCode === "510")
     .map((item) => Math.abs(item.amountExcludingGstCents)));
+  const assetDepreciation = getAssetDepreciationForEntity(entityId, normalizedIncomeYear);
+  const netProfitCents = assetDepreciation.deductibleDepreciationCents === null
+    ? null
+    : sumCents([incomeCents, operatingExpenseCents, -assetDepreciation.deductibleDepreciationCents]);
 
   return {
     entityId,
@@ -36,7 +45,11 @@ export function buildCompanyTaxWorksheet(entityId: string, incomeYear: string): 
     incomeCents,
     operatingExpenseCents,
     capitalPurchaseCents,
-    netProfitCents: sumCents([incomeCents, operatingExpenseCents]),
+    depreciationCents: assetDepreciation.totalDepreciationCents,
+    deductibleDepreciationCents: assetDepreciation.deductibleDepreciationCents,
+    assetDepreciationStatus: assetDepreciation.status,
+    assetDepreciationRows: assetDepreciation.rows,
+    netProfitCents,
     manualItems: annualManualItemsForEntityType(entity.type),
   };
 }

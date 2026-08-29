@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { parseMoneyToCents } from "@/lib/money";
-import { createDiv7aLoan, getDiv7aLoanSchedule, getDiv7aLoanSummary, listDiv7aLoans, recordDiv7aRepayment } from "@/lib/domain/div7a/service";
+import { createDiv7aLoan, getDiv7aLoanSchedule, getDiv7aLoanSummary, listDiv7aLoans, recordDiv7aRepayment, reviewDiv7aRepayment } from "@/lib/domain/div7a/service";
 import { saveDiv7aAgreement, saveDiv7aOpeningBalance } from "@/lib/domain/div7a/opening-balances";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +31,14 @@ const repaymentSchema = z.object({
   message: "amount or amountCents is required",
   path: ["amountCents"],
 });
+
+const repaymentReviewSchema = z.object({
+  action: z.literal("repayment_review"),
+  loanId: z.number().int().positive(),
+  repaymentId: z.string().min(1),
+  decision: z.enum(["confirmed_valid", "excluded"]),
+  reason: z.string().trim().max(500).optional(),
+}).strict();
 
 const openingBalanceSchema = z.object({
   action: z.literal("opening_balance"),
@@ -100,10 +108,15 @@ export async function POST(request: Request) {
       saveDiv7aAgreement(parsed);
       return Response.json({ loans: listDiv7aLoans() });
     }
+    if (typeof body === "object" && body !== null && "action" in body && body.action === "repayment_review") {
+      const parsed = repaymentReviewSchema.parse(body);
+      reviewDiv7aRepayment(parsed);
+      return Response.json({ loans: listDiv7aLoans() });
+    }
     const parsed = repaymentSchema.parse(body);
     const amountCents = parsed.amountCents ?? parseMoneyToCents(parsed.amount as string);
-    recordDiv7aRepayment({ ...parsed, amountCents });
-    return Response.json({ loans: listDiv7aLoans() });
+    const repayment = recordDiv7aRepayment({ ...parsed, amountCents });
+    return Response.json({ repaymentId: repayment.repaymentId, loans: listDiv7aLoans() });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Div 7A 保存失败" }, { status: 400 });
   }

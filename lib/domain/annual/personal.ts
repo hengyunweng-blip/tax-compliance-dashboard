@@ -1,5 +1,6 @@
 import { getRawDb } from "@/lib/db/client";
 import { assertIntegerCents } from "@/lib/money";
+import { getAssetDepreciationForEntity } from "@/lib/domain/assets/service";
 import { annualManualItemsForEntityType, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
 
 export type PersonalTaxSummary = {
@@ -10,6 +11,10 @@ export type PersonalTaxSummary = {
   transactions: AnnualTransactionLine[];
   incomeCents: number;
   expenseCents: number;
+  depreciationCents: number | null;
+  deductibleDepreciationCents: number | null;
+  assetDepreciationStatus: "ready" | "manual_review";
+  assetDepreciationRows: ReturnType<typeof getAssetDepreciationForEntity>["rows"];
   trustDistributionCents: number;
   dividendCents: number;
   frankingCreditsCents: number;
@@ -34,6 +39,7 @@ export function buildPersonalTaxSummary(person: string, incomeYear: string): Per
     WHERE person = ? AND fy = ?
   `).get(person, normalizedIncomeYear.replace(/^FY/, "")) as { contributed_cents: number; notice_submitted_at: string | null };
   assertIntegerCents(row.contributed_cents);
+  const assetDepreciation = getAssetDepreciationForEntity(person, normalizedIncomeYear);
 
   return {
     entityId: person,
@@ -43,6 +49,10 @@ export function buildPersonalTaxSummary(person: string, incomeYear: string): Per
     transactions,
     incomeCents,
     expenseCents,
+    depreciationCents: assetDepreciation.totalDepreciationCents,
+    deductibleDepreciationCents: assetDepreciation.deductibleDepreciationCents,
+    assetDepreciationStatus: assetDepreciation.status,
+    assetDepreciationRows: assetDepreciation.rows,
     // These are intentionally manual until the source data model has explicit
     // distribution/dividend documents; no annual filing is generated here.
     trustDistributionCents: 0,

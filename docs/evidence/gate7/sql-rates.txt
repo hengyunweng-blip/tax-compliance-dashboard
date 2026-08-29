@@ -1,0 +1,4 @@
+income_year  rate_text  source_url                                                                      retrieved_at
+-----------  ---------  ------------------------------------------------------------------------------  ------------
+FY2025-26    8.37%      https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate  2026-08-29  
+FY2026-27    8.77%      https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate  2026-08-29  

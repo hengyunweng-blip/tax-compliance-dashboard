@@ -237,23 +237,34 @@ export type Div7aYearBreakdown = {
 - [x] **Step 5: Execute the focused/full tests, random-order full tests, lint and build; capture clean-clone results in the Gate 6 report.**
 - [x] **Step 6: Inspect every screenshot and SQL output; write the Gate 6 report; stop and wait for acceptance.** No `gate-6` tag is created.
 
-## Gate 7 — 车辆 FBT/Div 7A 事实分析（原 Gate 8 前移；无自动判定代码）
+## Gate 7 — Div 7A 补强与轻量资产登记（须在 30 Jun 2027 前完成）
 
-### Task 4: Deliver the analysis artifact and evidence template
+### Task 4: Div 7A repayment validity and amalgamated-loan display
 
 **Files:**
-- Create: `docs/superpowers/specs/2026-08-29-vehicle-tax-analysis.md`
+- Create: `lib/domain/div7a/constants.ts`
+- Create: `lib/domain/div7a/repayment-validity.ts`
+- Create: `lib/domain/div7a/amalgamated.ts`
+- Modify: `lib/domain/div7a/service.ts`
+- Modify: `app/api/div7a/route.ts`
+- Modify: `components/annual/div7a-loan-card.tsx`
+- Modify: `components/annual/div7a-page-client.tsx`
+- Create: `tests/unit/div7a-repayment-validity.test.ts`
+- Create: `tests/unit/div7a-amalgamated.test.ts`
 - Create: `docs/evidence/gate7/report.md`
-- Create: `docs/evidence/gate7/vehicle-analysis.png`
-- Modify: `docs/superpowers/specs/2026-08-29-ai-accounting-extension-design.md` only if an official source URL or retrieval date must be corrected
 
-**Interfaces:** None; this Gate is documentation and review of the user-filled fact checklist only. No `fbt_annual_return` row, route, or automatic path selection is implemented here.
+- [x] **Step 1:** Record the official s109R and amalgamated-loan sources with retrieval date 2026-08-30; make the 30-calendar-day window an explicitly configurable internal screening default, not a statutory safe harbour.
+- [x] **Step 2:** Add tests for an equal post-repayment draw, no-follow-on-draw, user review/audit, and same-borrower/year/maximum-term grouping.
+- [x] **Step 3:** Implement warnings without automatically counting an unreviewed repayment or creating a dividend record; keep each agreement obligation scoped to its own loan.
+- [x] **Step 4:** Show the grouped loans, yearly breakdown, review status and source link in the Div 7A UI.
 
-- [ ] **Step 1: Record the official ATO sources** for FBT year, return/payment deadline, quarterly instalments, logbook/odometer requirements, and Div 7A asset-use payment conditions, with retrieval date 2026-08-29.
-- [ ] **Step 2: Write the two-column analysis** listing trigger, required evidence, annual period, deadline, and uncertainty for FBT and Div 7A; explicitly state that both may need review.
-- [ ] **Step 3: Review the pre-Gate5 printable checklist** after the user fills it, including role, availability, private/business kilometres, costs, employee payment, logbook, odometer and agreement facts.
-- [ ] **Step 4: Run a documentation link check and manually inspect the rendered artifact**; do not write business code.
-- [ ] **Step 5: Submit Gate 7 report and stop for acceptance.**
+### Task 5: Light asset register and depreciation
+
+- [x] **Step 1:** Add the `assets` schema and provenance-aware 30 Jun 2026 opening-balance path.
+- [x] **Step 2:** Add integer-cent prime-cost and diminishing-value formulas with first/disposal-year day proration and private-use adjustment.
+- [x] **Step 3:** Integrate total and deductible depreciation into annual worksheets without adding FBT, CGT, pooling or balancing-adjustment calculations.
+- [x] **Step 4:** Add unit coverage for five-year sequences, proration, private use, opening continuation and missing configuration; provide asset UI evidence.
+- [x] **Step 5:** Run the six-entity cross-year audit, backup/restore comparison, clean-clone regression, and self-audit; write Gate 7 evidence and stop for acceptance.
 
 ## Gate 8 — PSI 定性向导（须在 30 Jun 2027 前完成）
 
@@ -321,9 +332,9 @@ export function assessPsi(input: PsiAssessmentInput): PsiAssessmentResult;
 - [ ] **Step 4: Run e2e, unit, lint and build; inspect the screenshot at desktop and narrow width.**
 - [ ] **Step 5: Write Gate 8 evidence and stop for acceptance.**
 
-## Gate 9 — 轻量资产登记和折旧（须在 30 Jun 2027 前完成）
+## Gate 9 — 轻量资产登记和折旧（已前移并纳入 Gate 7；保留原任务索引）
 
-### Task 7: Asset schema, integer formulas and service
+### Task 7: Asset schema, integer formulas and service（已在 Gate 7 Task 5 执行）
 
 **Files:**
 - Create: `drizzle/0009_assets.sql`
@@ -373,7 +384,7 @@ export function businessUseDepreciationCents(grossCents: number, privateUsePerce
 - [ ] **Step 4: Implement only the declared light formulas** with integer/rational arithmetic and explicit `manual_review` for special depreciation regimes; do not add CGT, pooling or balancing adjustments.
 - [ ] **Step 5: Run focused tests, migration smoke test and lint**; commit `feat: add light asset register`.
 
-### Task 8: Annual worksheet integration and UI
+### Task 8: Annual worksheet integration and UI（已在 Gate 7 Task 5 执行）
 
 **Files:**
 - Modify: `lib/domain/annual/shared.ts`
@@ -534,7 +545,7 @@ Evidence paths are immutable after acceptance. New screenshots go only under the
 
 ## Plan self-review
 
-- Scope coverage: Div 7A is Gate 6; vehicle facts/analysis Gate 7; PSI Gate 8; assets Gate 9; the three planning scenarios and conservative AI controls Gate 10; reminders/licences/instructions/news and conditional FBT integration Gate 11; the three previously authorized Gate 5 fixes are Task 0.
+- Scope coverage: Div 7A is Gate 6 plus the Gate 7 repayment-validity supplement; vehicle facts were delivered before Gate 5 and remain a user-facing analysis artifact; assets are Gate 7; PSI is Gate 8; the three planning scenarios and conservative AI controls are Gate 10; reminders/licences/instructions/news and conditional FBT integration are Gate 11; the three previously authorized Gate 5 fixes are Task 0.
 - Omitted by design: dividends/share classes/solvency/board drafts, trust-to-company distributions and UPE (the Trust beneficiaries are confirmed as `self` and `spouse` only), CGT, complete policy-version database, automatic ATO/ASIC filing, payroll/STP, and any automatic choice between FBT and Div 7A. A future beneficiary-structure change requires a new scope assessment.
 - Type consistency: all later tasks consume `PlanningScenarioResult`, `PsiAssessmentResult`, `Div7aYearBreakdown`, and `DepreciationResult` defined in earlier task interfaces; all amount fields end in `Cents` and are integers.
 - No task is allowed to substitute a self-calculated number for an official ATO benchmark; missing official data produces an explicit unresolved state.

@@ -7,6 +7,7 @@ import {
   setNewsIrrelevantTopicExclusionEnabled,
 } from "@/lib/news/config";
 import type { DateOnly } from "@/lib/time/melbourne";
+import { DIV7A_S109R_WINDOW_SETTING_KEY, parseSection109RWindowDays } from "@/lib/domain/div7a/repayment-validity";
 
 const entityConfigurationSchema = z.object({
   entityId: z.string().min(1),
@@ -172,6 +173,7 @@ export function saveSettings(input: unknown) {
     licence: licenceConfigurationSchema.optional(),
     newsWindowDays: newsWindowDaysSchema.optional(),
     excludeIrrelevantTopics: z.boolean().optional(),
+    div7aS109rWindowDays: z.number().int().min(1).max(365).optional(),
   }).strict().parse(input);
 
   const db = getRawDb();
@@ -192,6 +194,14 @@ export function saveSettings(input: unknown) {
     }
     if (parsed.excludeIrrelevantTopics !== undefined) {
       setNewsIrrelevantTopicExclusionEnabled(parsed.excludeIrrelevantTopics);
+    }
+    if (parsed.div7aS109rWindowDays !== undefined) {
+      const days = parseSection109RWindowDays(parsed.div7aS109rWindowDays);
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES (?, ?, datetime('now'))
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+      `).run(DIV7A_S109R_WINDOW_SETTING_KEY, String(days));
     }
   });
   transaction();

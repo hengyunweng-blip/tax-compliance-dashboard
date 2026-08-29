@@ -3,6 +3,10 @@ import type { CompanyTaxWorksheet } from "@/lib/domain/annual/company";
 import { displayIncomeYear } from "@/lib/domain/annual/labels";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
 
+function annualMoney(value: number | null) {
+  return value === null ? "无法判断" : formatCents(value);
+}
+
 export function CompanyWorksheet({ worksheet }: { worksheet: CompanyTaxWorksheet }) {
   return (
     <section className="annual-worksheet-card" data-testid="company-worksheet">
@@ -17,8 +21,12 @@ export function CompanyWorksheet({ worksheet }: { worksheet: CompanyTaxWorksheet
         <div><span>收入（不含 GST）</span><strong>{formatCents(worksheet.incomeCents)}</strong></div>
         <div><span>运营费用（不含 GST）</span><strong>{formatCents(worksheet.operatingExpenseCents)}</strong></div>
         <div><span>资本采购（不含 GST，内部）</span><strong>{formatCents(worksheet.capitalPurchaseCents)}</strong></div>
-        <div><span>账面净利润（不含 GST）</span><strong>{formatCents(worksheet.netProfitCents)}</strong></div>
+        <div><span>总折旧额（不含 GST）</span><strong>{annualMoney(worksheet.depreciationCents)}</strong></div>
+        <div><span>可抵扣折旧额（按私人使用调整，不含 GST）</span><strong>{annualMoney(worksheet.deductibleDepreciationCents)}</strong></div>
+        <div><span>账面净利润（不含 GST）</span><strong>{annualMoney(worksheet.netProfitCents)}</strong></div>
       </div>
+      {worksheet.assetDepreciationStatus === "manual_review" ? <p className="annual-independent-note danger-text">资产折旧无法判断：期初余额或人工参数未配置，系统未假设为零。</p> : null}
+      {worksheet.assetDepreciationRows.some((row) => row.vehicleWarning) ? <p className="annual-independent-note">车辆提示：私人使用可能另有 FBT 或 Div 7A 后果，尚未评估；请先查看<a href="/vehicle-fact-checklist" target="_blank" rel="noreferrer">车辆事实清单</a>。</p> : null}
       <ManualItems items={worksheet.manualItems} />
       <TransactionList transactions={worksheet.transactions} />
     </section>

@@ -250,6 +250,28 @@ export const superContributions = sqliteTable("super_contributions", {
   updatedAt: updatedAt(),
 });
 
+export const assets = sqliteTable("assets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  entityId: text("entity_id").notNull().references(() => entities.id),
+  name: text("name").notNull(),
+  assetType: text("asset_type"),
+  purchaseDate: text("purchase_date").notNull(),
+  availableForUseDate: text("available_for_use_date"),
+  costExGstCents: integer("cost_ex_gst_cents").notNull(),
+  usefulLifeYears: integer("useful_life_years"),
+  method: text("method"),
+  privateUsePercent: integer("private_use_percent"),
+  openingAccumulatedDepreciationCents: integer("opening_accumulated_depreciation_cents"),
+  openingBookValueCents: integer("opening_book_value_cents"),
+  disposalDate: text("disposal_date"),
+  disposalAmountCents: integer("disposal_amount_cents"),
+  notes: text("notes"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (table) => ({
+  entityDateIndex: index("assets_entity_purchase_date_idx").on(table.entityId, table.purchaseDate),
+}));
+
 export const superCaps = sqliteTable("super_caps", {
   incomeYear: text("income_year").primaryKey(),
   concessionalCapCents: integer("concessional_cap_cents").notNull(),
@@ -368,6 +390,7 @@ export const schema = {
   div7aLoans,
   div7aBenchmarkRates,
   openingBalances,
+  assets,
   superContributions,
   superCaps,
   newsSources,
@@ -393,6 +416,7 @@ export const tableNames = [
   "div7a_loans",
   "div7a_benchmark_rates",
   "opening_balances",
+  "assets",
   "super_contributions",
   "super_caps",
   "news_sources",
@@ -422,6 +446,10 @@ export const amountColumns = [
   "div7a_loans.principal_cents",
   "div7a_loans.min_repayment_fy_cents",
   "opening_balances.amount_cents",
+  "assets.cost_ex_gst_cents",
+  "assets.opening_accumulated_depreciation_cents",
+  "assets.opening_book_value_cents",
+  "assets.disposal_amount_cents",
   "super_contributions.amount_cents",
   "super_contributions.cap_cents",
 ].map((name) => ({ name, dataType: "number" as const, columnType: "INTEGER" as const }));

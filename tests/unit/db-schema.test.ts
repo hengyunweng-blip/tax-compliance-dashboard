@@ -24,6 +24,7 @@ test("schema contains all required business and audit tables", () => {
     "audit_log",
     "ai_cache",
     "csv_mapping_templates",
+    "assets",
   ]));
 });
 
