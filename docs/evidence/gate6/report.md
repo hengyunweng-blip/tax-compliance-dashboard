@@ -92,7 +92,29 @@
 
 ### 干净 clone 复现
 
-本节在提交 Gate 6 实现后，从仓库 clone 到新的临时目录，执行 `npm ci`、`npm run db:migrate`、`npm run db:seed`，再连续执行一次普通顺序和一次 `--sequence.shuffle` 的全量测试，随后执行 lint/build。两次测试结果、lint 和 build 的实际输出在最终证据提交前补录于本节；如有差异按实际结果报告，不调整断言迎合历史基线。
+本节在提交 Gate 6 实现的 commit `eb0636959fb8ac5fb8ba565066e36d753e8da30e` 后，从仓库 clone 到新的临时目录 `/tmp/tax-gate6-clean.qWLJqH/repo`，没有使用当前工作树的 `data/`。以下命令均实际成功：
+
+```text
+npm ci
+npm run db:migrate
+npm run db:seed
+npm test -- --run
+npm test -- --run --sequence.shuffle
+npm run lint
+npm run build
+```
+
+实际结果：
+
+| 项目 | 实际结果 |
+|---|---|
+| 普通顺序全量测试 | 32 个 Test Files / 168 个 Tests，168 通过，0 失败 |
+| 随机顺序全量测试 | 32 个 Test Files / 168 个 Tests，168 通过，0 失败；Vitest seed `1787998869463` |
+| 数据库 | `db:migrate`、`db:seed` 均成功 |
+| lint | 通过 |
+| build | 通过；Next.js 15.5.24，所有路由编译、类型检查和静态生成成功 |
+
+`npm ci` 输出 8 个依赖漏洞（5 moderate、3 high）；本轮按授权没有执行 `npm audit fix`，也没有借此修改依赖版本。
 
 ## 9. 自审
 
