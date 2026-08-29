@@ -2,7 +2,8 @@
 
 交接日期：2026-08-29（Australia/Melbourne）  
 仓库分支：`main`  
-Gate 5 实现与证据提交：`2cf10f8b723fce0d815ff801720e24acac149814`  
+Gate 5 原始实现与证据提交：`2cf10f8b723fce0d815ff801720e24acac149814`
+本轮三项修复提交：`a6681bafe351bd68d642e1e8e1b3e26ba8a45ec8`
 Gate 5 尚未验收，因此没有 `gate-5` 标签。
 
 ## 1. 当前状态
@@ -14,12 +15,15 @@ Gate 5 尚未验收，因此没有 `gate-5` 标签。
 | Gate 2 | 已验收 | `gate-2` | `0607d4aee92e8c46f538cd1b7a5497f66daa4e50` |
 | Gate 3 | 已验收 | `gate-3` | `78e7c1762c150e7a9167c1e0fcdd654721ef0fb9` |
 | Gate 4 | 已验收 | `gate-4` | `691ba4854acdd977dc09e143101eb432e672f592` |
-| Gate 5 | 已实现并完成本地验证，待用户验收 | 无标签 | `2cf10f8b723fce0d815ff801720e24acac149814` |
+| Gate 5 | 已实现并完成本地验证，待用户验收 | 无标签 | `a6681bafe351bd68d642e1e8e1b3e26ba8a45ec8` |
 
 Gate 5 已实现并验证：
 
 - 年度公司、信托、个人底稿按 `income_year` 聚合，待人工补充项按主体类型区分。
+- 年度收入、运营费用和资本采购按不含 GST 口径计算；BAS G1 保持含 GST，年度页面标明口径。
 - Div 7A 使用 ATO 官方计算器基准，贷款发放年度最低还款为零，按上一年度末余额和当前剩余年限逐年重算，期限结束后显示“已到期”。
+- Div 7A 余额逐年滚动计入手动基准利息并扣除已记录还款；`term_years` 是原始合同期限，`remainingTermYears` 是评估年度推导值。
+- 已递交与已缴款状态分别保存用户输入的 `lodged_at` / `paid_at`，不使用当前日期默认值。
 - 养老金 concessional / non-concessional 上限按所得年度存储，FY2026–27 为 $32,500 / $130,000。
 - 备份 ZIP 与还原流程已完成实际验证。
 - Div 7A 年度切换的前端请求乱序问题已修复。
@@ -148,7 +152,7 @@ AI_TIMEOUT_MS
 
 ## 6. 当前验证基线
 
-- Vitest：29 个单元测试文件，143 个用例，全部通过。
+- Vitest：29 个单元测试文件，149 个用例，全部通过（干净 clone 普通顺序与随机顺序均通过）。
 - Playwright：9 个 E2E 文件，14 个 test declarations；Gate 5 最终回归 `1 passed`。
 - `npm run lint`：通过。
 - `npm run build`：通过，Next.js 15.5.24 production compile、lint/typecheck 和静态页面生成通过。
