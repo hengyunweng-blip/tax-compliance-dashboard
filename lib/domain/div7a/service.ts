@@ -41,6 +41,10 @@ export type Div7aSummary = Div7aLoan & {
   actualRepaymentCents: number;
   /** Closing balance after current-year interest and recorded repayments. */
   closingBalanceCents: number;
+  /** Non-null when the scheduled term ended with an unresolved balance. */
+  unresolvedBalanceCents: number | null;
+  /** Manual-review warning for an expired loan that still has a balance. */
+  expiryWarning: string | null;
   shortfallCents: number;
   repaymentDue: DateOnly | null;
   daysUntilRepaymentDue: number | null;
@@ -67,9 +71,9 @@ function repaymentSchedule(loanIncomeYear: string, assessmentIncomeYear: string,
     };
   }
   // The seven-year term is counted from the first repayment income year.
-  // Once that seventh income year is reached, the contractual schedule has
-  // ended and no minimum repayment is due for that assessment year.
-  if (elapsedRepaymentYears >= originalTermYears) {
+  // The seventh repayment income year is still active; expiry begins in the
+  // following income year.
+  if (elapsedRepaymentYears > originalTermYears) {
     return {
       elapsedRepaymentYears,
       remainingTermYears: 0,
@@ -279,6 +283,10 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
     : 0;
   const shortfallCents = Math.max(0, minimumRepaymentCents - actualRepaymentCents);
   assertIntegerCents(shortfallCents);
+  const unresolvedBalanceCents = schedule.isExpired && closingBalanceCents > 0 ? closingBalanceCents : null;
+  const expiryWarning = unresolvedBalanceCents === null
+    ? null
+    : `贷款已到期但仍有 ${unresolvedBalanceCents} 分未清偿余额，请人工核对清偿及税务处理。系统不会自动创建分红记录。`;
   const startYear = incomeYearStart(normalizedAssessment);
   const repaymentDue = schedule.isExpired ? null : `${startYear + 1}-06-30` as DateOnly;
   const daysUntilRepaymentDue = repaymentDue
@@ -294,6 +302,8 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
     minimumRepaymentCents,
     actualRepaymentCents,
     closingBalanceCents,
+    unresolvedBalanceCents,
+    expiryWarning,
     shortfallCents,
     repaymentDue,
     daysUntilRepaymentDue,

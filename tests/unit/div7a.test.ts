@@ -159,16 +159,70 @@ test("marks a loan as expired when the final scheduled income year is reached", 
     benchmarkRate: "0.053",
   });
 
+  for (let year = 2017; year <= 2022; year += 1) {
+    const incomeYear = `FY${year}-${String(year + 1).slice(-2)}`;
+    const summary = getDiv7aLoanSummary(loanId, incomeYear);
+    recordDiv7aRepayment({ loanId, date: `${year + 1}-06-30`, amountCents: summary.minimumRepaymentCents });
+  }
+
   expect(getDiv7aLoanSummary(loanId, "FY2023-24")).toMatchObject({
+    isExpired: false,
+    repaymentStatus: "active",
+    minimumRepaymentCents: 1_747_034,
+    remainingTermYears: 1,
+  });
+  expect(getDiv7aLoanSummary(loanId, "FY2024-25")).toMatchObject({
     isExpired: true,
     repaymentStatus: "expired",
     minimumRepaymentCents: 0,
     remainingTermYears: 0,
   });
-  expect(getDiv7aLoanSummary(loanId, "FY2026-27")).toMatchObject({
-    isExpired: true,
-    repaymentStatus: "expired",
-    minimumRepaymentCents: 0,
-    remainingTermYears: 0,
+});
+
+test("repays the final scheduled year and closes the balance at zero", () => {
+  const loanId = createDiv7aLoan({
+    lenderEntityId: "boyun_co",
+    borrower: "Final repayment test borrower",
+    loanDate: "2017-05-15",
+    principalCents: 10_000_000,
+    termYears: 7,
+    benchmarkRate: "0.053",
   });
+
+  for (let year = 2017; year <= 2023; year += 1) {
+    const incomeYear = `FY${year}-${String(year + 1).slice(-2)}`;
+    const summary = getDiv7aLoanSummary(loanId, incomeYear);
+    expect(summary.repaymentStatus).toBe("active");
+    recordDiv7aRepayment({ loanId, date: `${year + 1}-06-30`, amountCents: summary.minimumRepaymentCents });
+  }
+
+  const finalYear = getDiv7aLoanSummary(loanId, "FY2023-24");
+  expect(finalYear).toMatchObject({
+    repaymentStatus: "active",
+    minimumRepaymentCents: 1_747_034,
+    actualRepaymentCents: 1_747_034,
+    closingBalanceCents: 0,
+  });
+});
+
+test("keeps an unresolved balance visible after expiry instead of silently closing it", () => {
+  const loanId = createDiv7aLoan({
+    lenderEntityId: "boyun_co",
+    borrower: "Expired balance test borrower",
+    loanDate: "2017-05-15",
+    principalCents: 10_000_000,
+    termYears: 7,
+    benchmarkRate: "0.053",
+  });
+
+  const expired = getDiv7aLoanSummary(loanId, "FY2024-25");
+
+  expect(expired).toMatchObject({
+    repaymentStatus: "expired",
+    isExpired: true,
+    minimumRepaymentCents: 0,
+  });
+  expect(expired.closingBalanceCents).toBeGreaterThan(0);
+  expect(expired.unresolvedBalanceCents).toBe(expired.closingBalanceCents);
+  expect(expired.expiryWarning).toContain("人工核对");
 });
