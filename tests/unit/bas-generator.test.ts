@@ -5,6 +5,7 @@ import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
 import { generateBasWorksheet, markBasLodged, updateBasPaygInstalments } from "@/lib/domain/bas/generator";
 import { createTransaction } from "@/lib/ingest/transactions";
 import { transitionObligation } from "@/lib/domain/obligations/state-machine";
+import { POST as basPost } from "@/app/api/bas/[obligationId]/route";
 
 beforeEach(() => {
   seedDatabase();
@@ -64,8 +65,8 @@ test("keeps PAYG manual, resolves statement total, and compares lodged amount to
 
   const updated = updateBasPaygInstalments(obligationId, { payg5aCents: 2500, payg5bCents: 0 });
   expect(updated).toMatchObject({ payg5aCents: 2500, payg5bCents: 0, paygInstalmentCents: 2500, gstNetCents: 0, statementTotalCents: 2500, statementType: "payable" });
-  expect(() => markBasLodged(obligationId, "ATO-RECEIPT-1", 0)).toThrow(/2500/);
-  expect(markBasLodged(obligationId, "ATO-RECEIPT-1", 2500)).toMatchObject({ id: obligationId, status: "lodged" });
+  expect(() => markBasLodged(obligationId, "ATO-RECEIPT-1", 0, "2027-01-15")).toThrow(/2500/);
+  expect(markBasLodged(obligationId, "ATO-RECEIPT-1", 2500, "2027-01-15")).toMatchObject({ id: obligationId, status: "lodged" });
   expect(getRawDb().prepare("SELECT to_status, reason FROM audit_log WHERE target_id = ? ORDER BY id DESC LIMIT 1").get(String(obligationId))).toMatchObject({
     to_status: "lodged",
   });
@@ -78,6 +79,26 @@ test("creates a zero nil BAS worksheet when no confirmed rows exist", () => {
   expect(result.worksheet.snapshotJson).toContain("nil BAS");
 });
 
+test("persists the user-entered lodged date instead of the current date", async () => {
+  const obligationId = q1ObligationId();
+  generateBasWorksheet(obligationId);
+  updateBasPaygInstalments(obligationId, { payg5aCents: 0, payg5bCents: 0 });
+
+  const response = await basPost(new Request("http://localhost/api/bas/1", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "lodge",
+      receiptNumber: "ATO-DATE-1",
+      lodgedAmountCents: 0,
+      lodgedAt: "2027-01-15",
+    }),
+  }), { params: Promise.resolve({ obligationId: String(obligationId) }) });
+
+  expect(response.status).toBe(200);
+  expect(getRawDb().prepare("SELECT lodged_at FROM obligations WHERE id = ?").get(obligationId)).toEqual({ lodged_at: "2027-01-15" });
+});
+
 test("allows a nil BAS with no PAYG to be lodged and paid", () => {
   const obligationId = q1ObligationId();
   const generated = generateBasWorksheet(obligationId);
@@ -85,6 +106,6 @@ test("allows a nil BAS with no PAYG to be lodged and paid", () => {
 
   expect(generated.worksheet.isNil).toBe(true);
   expect(updated).toMatchObject({ payg5aCents: 0, payg5bCents: 0, statementTotalCents: 0 });
-  expect(markBasLodged(obligationId, "ATO-NIL-1", 0)).toMatchObject({ status: "lodged" });
-  expect(transitionObligation({ obligationId, to: "paid", reason: "Nil BAS paid" })).toMatchObject({ status: "paid" });
+  expect(markBasLodged(obligationId, "ATO-NIL-1", 0, "2027-01-16")).toMatchObject({ status: "lodged" });
+  expect(transitionObligation({ obligationId, to: "paid", reason: "Nil BAS paid", paidAt: "2027-01-17" })).toMatchObject({ status: "paid" });
 });

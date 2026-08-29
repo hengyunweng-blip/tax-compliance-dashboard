@@ -43,7 +43,7 @@ test("CSV and PDF exports explicitly mark prior-period corrections", async () =>
   createSale("2026-07-04", "Original Q1 sale");
   const q1 = generateBasWorksheet(obligationId("Q1"));
   updateBasPaygInstalments(obligationId("Q1"), { payg5aCents: 0, payg5bCents: 0 });
-  markBasLodged(obligationId("Q1"), "ATO-EXPORT-Q1", 10000);
+  markBasLodged(obligationId("Q1"), "ATO-EXPORT-Q1", 10000, "2027-01-15");
 
   const late = createSale("2026-07-05", "Late Q1 sale");
   const q2 = generateBasWorksheet(obligationId("Q2"), { action: "include_current" });

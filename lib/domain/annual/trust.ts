@@ -20,8 +20,8 @@ export function buildTrustDistributionDraft(entityId: string, incomeYear: string
   if (entity.type !== "trust") throw new Error(`Entity is not a trust: ${entityId}`);
 
   const transactions = annualTransactionLines(entityId, normalizedIncomeYear);
-  const income = sumCents(transactions.filter((item) => item.accountType === "income").map((item) => item.amountCents));
-  const expenses = sumCents(transactions.filter((item) => item.accountType === "expense").map((item) => item.amountCents));
+  const income = sumCents(transactions.filter((item) => item.accountType === "income").map((item) => item.amountExcludingGstCents));
+  const expenses = sumCents(transactions.filter((item) => item.accountType === "expense").map((item) => item.amountExcludingGstCents));
 
   return {
     entityId,

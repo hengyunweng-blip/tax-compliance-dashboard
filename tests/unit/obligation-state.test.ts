@@ -3,6 +3,7 @@ import { getRawDb } from "@/lib/db/client";
 import { seedDatabase } from "@/lib/db/seed";
 import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
 import { transitionObligation } from "@/lib/domain/obligations/state-machine";
+import { PATCH as transitionPatch } from "@/app/api/obligations/[id]/transition/route";
 
 beforeEach(() => {
   seedDatabase();
@@ -36,6 +37,38 @@ test("rejects an invalid obligation state transition", () => {
   const obligation = db.prepare("SELECT id FROM obligations ORDER BY id LIMIT 1").get() as { id: number };
 
   expect(() => transitionObligation({ obligationId: obligation.id, to: "paid", reason: "skip" })).toThrow(/Invalid obligation transition/);
+});
+
+test("requires a user-entered payment date before moving a lodged obligation to paid", async () => {
+  expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
+  const db = getRawDb();
+  const obligation = db.prepare("SELECT id FROM obligations WHERE rule_id = 'bas_quarterly' ORDER BY id LIMIT 1").get() as { id: number };
+  db.prepare("UPDATE obligations SET status = 'lodged', lodged_at = '2027-01-15' WHERE id = ?").run(obligation.id);
+
+  const response = await transitionPatch(new Request("http://localhost/api/obligations/1/transition", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ to: "paid", reason: "Missing date fixture" }),
+  }), { params: Promise.resolve({ id: String(obligation.id) }) });
+
+  expect(response.status).toBe(400);
+  expect(db.prepare("SELECT status, paid_at FROM obligations WHERE id = ?").get(obligation.id)).toEqual({ status: "lodged", paid_at: null });
+});
+
+test("persists the exact user-entered payment date", async () => {
+  expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
+  const db = getRawDb();
+  const obligation = db.prepare("SELECT id FROM obligations WHERE rule_id = 'bas_quarterly' ORDER BY id LIMIT 1").get() as { id: number };
+  db.prepare("UPDATE obligations SET status = 'lodged', lodged_at = '2027-01-15' WHERE id = ?").run(obligation.id);
+
+  const response = await transitionPatch(new Request("http://localhost/api/obligations/1/transition", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ to: "paid", reason: "Exact date fixture", paidAt: "2027-02-03" }),
+  }), { params: Promise.resolve({ id: String(obligation.id) }) });
+
+  expect(response.status).toBe(200);
+  expect(db.prepare("SELECT status, paid_at FROM obligations WHERE id = ?").get(obligation.id)).toEqual({ status: "paid", paid_at: "2027-02-03" });
 });
 
 test("does not remind blocked ASIC, but creates all four BAS reminders for the same company", () => {

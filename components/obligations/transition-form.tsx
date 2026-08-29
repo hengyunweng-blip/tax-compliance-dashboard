@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { ObligationStatus } from "@/lib/domain/obligations/rules";
+import { DateTextInput } from "@/components/date-text-input";
+import type { DateOnly } from "@/lib/time/melbourne";
 
 const STATUS_OPTIONS: Array<{ value: ObligationStatus; label: string }> = [
   { value: "todo", label: "待处理" },
@@ -15,16 +17,21 @@ const STATUS_OPTIONS: Array<{ value: ObligationStatus; label: string }> = [
 export function TransitionForm({ obligationId, status }: { obligationId: number; status: ObligationStatus }) {
   const [to, setTo] = useState<ObligationStatus>(status === "blocked" ? "todo" : "collecting");
   const [reason, setReason] = useState("");
+  const [paidAt, setPaidAt] = useState<DateOnly | null>(null);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function submit() {
+    if (to === "paid" && !paidAt) {
+      setMessage("实际缴款日期为必填");
+      return;
+    }
     setSaving(true);
     setMessage("");
     const response = await fetch(`/api/obligations/${obligationId}/transition`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to, reason }),
+      body: JSON.stringify({ to, reason, ...(to === "paid" ? { paidAt } : {}) }),
     });
     const payload = await response.json() as { error?: string };
     setSaving(false);
@@ -50,7 +57,8 @@ export function TransitionForm({ obligationId, status }: { obligationId: number;
           <span>变更原因</span>
           <input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="例如：已完成复核" />
         </label>
-        <button type="button" className="primary-button" onClick={submit} disabled={saving || !reason.trim()}>
+        {to === "paid" ? <label><span>实际缴款日期（DD/MM/YYYY）</span><DateTextInput ariaLabel="实际缴款日期" value={paidAt} onChange={setPaidAt} /></label> : null}
+        <button type="button" className="primary-button" onClick={submit} disabled={saving || !reason.trim() || (to === "paid" && !paidAt)}>
           {saving ? "保存中…" : "保存状态"}
         </button>
       </div>

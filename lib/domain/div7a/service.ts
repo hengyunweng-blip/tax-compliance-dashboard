@@ -2,7 +2,7 @@ import { differenceInCalendarDays } from "date-fns";
 import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { assertIntegerCents } from "@/lib/money";
-import { calculateMinimumYearlyRepaymentCents } from "@/lib/domain/div7a/formula";
+import { calculateAnnualInterestCents, calculateMinimumYearlyRepaymentCents } from "@/lib/domain/div7a/formula";
 import { deriveFiscalPeriod } from "@/lib/ingest/transactions";
 import { assertDateOnly, formatDateOnly, parseMelbourneDate, todayInMelbourne, type DateOnly } from "@/lib/time/melbourne";
 
@@ -30,11 +30,17 @@ export type Div7aSummary = Div7aLoan & {
   elapsedRepaymentYears: number;
   /** Derived remaining term for this assessment year, not the stored original term. */
   remainingTermYears: number;
+  /** Opening balance for the assessment income year. */
+  openingBalanceCents: number;
   balanceAtPreviousYearEndCents: number;
+  /** Interest for the assessment income year at the manually entered rate. */
+  interestCents: number;
   repaymentStatus: "origination" | "active" | "expired";
   isExpired: boolean;
   minimumRepaymentCents: number;
   actualRepaymentCents: number;
+  /** Closing balance after current-year interest and recorded repayments. */
+  closingBalanceCents: number;
   shortfallCents: number;
   repaymentDue: DateOnly | null;
   daysUntilRepaymentDue: number | null;
@@ -60,7 +66,10 @@ function repaymentSchedule(loanIncomeYear: string, assessmentIncomeYear: string,
       isExpired: false,
     };
   }
-  if (elapsedRepaymentYears > originalTermYears) {
+  // The seven-year term is counted from the first repayment income year.
+  // Once that seventh income year is reached, the contractual schedule has
+  // ended and no minimum repayment is due for that assessment year.
+  if (elapsedRepaymentYears >= originalTermYears) {
     return {
       elapsedRepaymentYears,
       remainingTermYears: 0,
@@ -127,13 +136,36 @@ function mapLoan(row: {
   };
 }
 
+function incomeYearForStart(year: number) {
+  return `FY${year}-${String(year + 1).slice(-2)}`;
+}
+
+function actualRepaymentCentsForIncomeYear(loan: Div7aLoan, incomeYear: string) {
+  const normalizedIncomeYear = normalizeFy(incomeYear);
+  let total = 0;
+  for (const repayment of loan.repayments) {
+    if (normalizeFy(deriveFiscalPeriod(repayment.date).fy) !== normalizedIncomeYear) continue;
+    assertIntegerCents(repayment.amountCents);
+    total += repayment.amountCents;
+    assertIntegerCents(total);
+  }
+  return total;
+}
+
 function balanceAtPreviousYearEndCents(loan: Div7aLoan, assessmentIncomeYear: string) {
   const assessmentStart = incomeYearStart(assessmentIncomeYear);
   let balance = loan.principalCents;
-  for (const repayment of loan.repayments) {
-    if (incomeYearStart(deriveFiscalPeriod(repayment.date).fy) < assessmentStart) {
-      balance = Math.max(0, balance - repayment.amountCents);
-    }
+  const loanStart = incomeYearStart(loan.loanIncomeYear);
+
+  // The origination year has no minimum repayment schedule. Any repayment
+  // recorded in that year still reduces the opening balance of the next year,
+  // but annual benchmark interest starts with the first repayment year.
+  for (let year = loanStart; year < assessmentStart; year += 1) {
+    const incomeYear = incomeYearForStart(year);
+    const interestCents = year === loanStart ? 0 : calculateAnnualInterestCents(balance, loan.benchmarkRate);
+    const actualRepaymentCents = actualRepaymentCentsForIncomeYear(loan, incomeYear);
+    balance = Math.max(0, balance + interestCents - actualRepaymentCents);
+    assertIntegerCents(balance);
   }
   assertIntegerCents(balance);
   return balance;
@@ -229,20 +261,22 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
   const loan = mapLoan(row);
   const normalizedAssessment = normalizeFy(assessmentIncomeYear);
   const schedule = repaymentSchedule(loan.loanIncomeYear, normalizedAssessment, loan.originalTermYears);
-  const balanceAtPreviousYearEnd = balanceAtPreviousYearEndCents(loan, normalizedAssessment);
-  const minimumRepaymentCents = schedule.repaymentStatus === "active" && balanceAtPreviousYearEnd > 0
+  const openingBalanceCents = balanceAtPreviousYearEndCents(loan, normalizedAssessment);
+  const interestCents = schedule.repaymentStatus === "origination"
+    ? 0
+    : calculateAnnualInterestCents(openingBalanceCents, loan.benchmarkRate);
+  const actualRepaymentCents = actualRepaymentCentsForIncomeYear(loan, normalizedAssessment);
+  const closingBalanceCents = Math.max(0, openingBalanceCents + interestCents - actualRepaymentCents);
+  assertIntegerCents(closingBalanceCents);
+  const minimumRepaymentCents = schedule.repaymentStatus === "active" && openingBalanceCents > 0
     ? calculateMinimumYearlyRepaymentCents({
-      principalCents: balanceAtPreviousYearEnd,
+      principalCents: openingBalanceCents,
       benchmarkRate: loan.benchmarkRate,
       remainingTermYears: schedule.remainingTermYears,
       loanIncomeYear: loan.loanIncomeYear,
       assessmentIncomeYear: normalizedAssessment,
     })
     : 0;
-  const actualRepaymentCents = loan.repayments
-    .filter((repayment) => normalizeFy(deriveFiscalPeriod(repayment.date).fy) === normalizedAssessment)
-    .reduce((total, repayment) => total + repayment.amountCents, 0);
-  assertIntegerCents(actualRepaymentCents);
   const shortfallCents = Math.max(0, minimumRepaymentCents - actualRepaymentCents);
   assertIntegerCents(shortfallCents);
   const startYear = incomeYearStart(normalizedAssessment);
@@ -254,9 +288,12 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
     ...loan,
     assessmentIncomeYear: normalizedAssessment,
     ...schedule,
-    balanceAtPreviousYearEndCents: balanceAtPreviousYearEnd,
+    openingBalanceCents,
+    balanceAtPreviousYearEndCents: openingBalanceCents,
+    interestCents,
     minimumRepaymentCents,
     actualRepaymentCents,
+    closingBalanceCents,
     shortfallCents,
     repaymentDue,
     daysUntilRepaymentDue,

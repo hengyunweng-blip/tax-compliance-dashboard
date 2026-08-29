@@ -14,10 +14,10 @@ export function CompanyWorksheet({ worksheet }: { worksheet: CompanyTaxWorksheet
         <span>{worksheet.transactionIds.length} 笔已确认交易</span>
       </div>
       <div className="annual-metric-grid">
-        <div><span>收入</span><strong>{formatCents(worksheet.incomeCents)}</strong></div>
-        <div><span>运营费用</span><strong>{formatCents(worksheet.operatingExpenseCents)}</strong></div>
-        <div><span>资本采购（内部）</span><strong>{formatCents(worksheet.capitalPurchaseCents)}</strong></div>
-        <div><span>账面净利润</span><strong>{formatCents(worksheet.netProfitCents)}</strong></div>
+        <div><span>收入（不含 GST）</span><strong>{formatCents(worksheet.incomeCents)}</strong></div>
+        <div><span>运营费用（不含 GST）</span><strong>{formatCents(worksheet.operatingExpenseCents)}</strong></div>
+        <div><span>资本采购（不含 GST，内部）</span><strong>{formatCents(worksheet.capitalPurchaseCents)}</strong></div>
+        <div><span>账面净利润（不含 GST）</span><strong>{formatCents(worksheet.netProfitCents)}</strong></div>
       </div>
       <ManualItems items={worksheet.manualItems} />
       <TransactionList transactions={worksheet.transactions} />
@@ -32,8 +32,8 @@ export function ManualItems({ items }: { items: string[] }) {
 function TransactionList({ transactions }: { transactions: CompanyTaxWorksheet["transactions"] }) {
   return (
     <details className="annual-transactions">
-      <summary>来源交易（{transactions.length} 条）</summary>
-      {transactions.length ? <ul>{transactions.map((transaction) => <li key={transaction.id}>#{transaction.id} · {formatDueDate(transaction.date as DateOnly)} · {transaction.description} · {formatCents(transaction.amountCents)}</li>)}</ul> : <p>本所得年度没有已确认交易。</p>}
+      <summary>来源交易（金额不含 GST，{transactions.length} 条）</summary>
+      {transactions.length ? <ul>{transactions.map((transaction) => <li key={transaction.id}>#{transaction.id} · {formatDueDate(transaction.date as DateOnly)} · {transaction.description} · {formatCents(transaction.amountExcludingGstCents)}</li>)}</ul> : <p>本所得年度没有已确认交易。</p>}
     </details>
   );
 }

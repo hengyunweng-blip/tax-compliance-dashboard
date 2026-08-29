@@ -21,11 +21,11 @@ export function buildCompanyTaxWorksheet(entityId: string, incomeYear: string): 
   if (entity.type !== "company") throw new Error(`Entity is not a company: ${entityId}`);
 
   const transactions = annualTransactionLines(entityId, normalizedIncomeYear);
-  const incomeCents = sumCents(transactions.filter((item) => item.accountType === "income").map((item) => item.amountCents));
-  const operatingExpenseCents = sumCents(transactions.filter((item) => item.accountType === "expense").map((item) => item.amountCents));
+  const incomeCents = sumCents(transactions.filter((item) => item.accountType === "income").map((item) => item.amountExcludingGstCents));
+  const operatingExpenseCents = sumCents(transactions.filter((item) => item.accountType === "expense").map((item) => item.amountExcludingGstCents));
   const capitalPurchaseCents = sumCents(transactions
     .filter((item) => item.gstCode === "GST_CAPITAL" || item.accountCode === "510")
-    .map((item) => Math.abs(item.amountCents)));
+    .map((item) => Math.abs(item.amountExcludingGstCents)));
 
   return {
     entityId,

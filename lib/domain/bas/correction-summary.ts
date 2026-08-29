@@ -12,6 +12,8 @@ export type PriorPeriodCorrectionSummary = {
 };
 
 export function storedLodgedDateOnly(value: string | null): DateOnly | null {
+  const canonical = /^(\d{4}-\d{2}-\d{2})/.exec(value ?? "")?.[1];
+  if (canonical) return canonical as DateOnly;
   const match = /^(\d{2}) ([A-Za-z]{3}) (\d{4})/.exec(value ?? "");
   if (!match) return null;
   const month = STORED_MONTHS.indexOf(match[2] as typeof STORED_MONTHS[number]) + 1;

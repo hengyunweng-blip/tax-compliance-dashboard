@@ -109,9 +109,9 @@ test("recomputes each year from the prior year-end balance and derived remaining
   expect(first.remainingTermYears).toBe(7);
   expect(first.balanceAtPreviousYearEndCents).toBe(10_000_000);
   expect(second.remainingTermYears).toBe(6);
-  expect(second.balanceAtPreviousYearEndCents).toBe(9_000_000);
+  expect(second.balanceAtPreviousYearEndCents).toBe(9_530_000);
   expect(third.remainingTermYears).toBe(5);
-  expect(third.balanceAtPreviousYearEndCents).toBe(9_000_000);
+  expect(third.balanceAtPreviousYearEndCents).toBe(10_035_090);
   expect(new Set([
     first.minimumRepaymentCents,
     second.minimumRepaymentCents,
@@ -119,7 +119,37 @@ test("recomputes each year from the prior year-end balance and derived remaining
   ]).size).toBe(3);
 });
 
-test("marks a loan as expired after the final scheduled repayment year", () => {
+test("rolls interest and recorded repayments into later-year balances", () => {
+  const paidLoanId = createDiv7aLoan({
+    lenderEntityId: "boyun_co",
+    borrower: "Paid schedule balance fixture",
+    loanDate: "2017-05-15",
+    principalCents: 10_000_000,
+    termYears: 7,
+    benchmarkRate: "0.053",
+  });
+  const unpaidLoanId = createDiv7aLoan({
+    lenderEntityId: "boyun_co",
+    borrower: "Unpaid schedule balance fixture",
+    loanDate: "2017-05-15",
+    principalCents: 10_000_000,
+    termYears: 7,
+    benchmarkRate: "0.053",
+  });
+
+  const paidFirst = getDiv7aLoanSummary(paidLoanId, "FY2017-18");
+  recordDiv7aRepayment({ loanId: paidLoanId, date: "2018-06-30", amountCents: paidFirst.minimumRepaymentCents });
+  const paidSecond = getDiv7aLoanSummary(paidLoanId, "FY2018-19");
+  recordDiv7aRepayment({ loanId: paidLoanId, date: "2019-06-30", amountCents: paidSecond.minimumRepaymentCents });
+  const paidThird = getDiv7aLoanSummary(paidLoanId, "FY2019-20");
+  const unpaidThird = getDiv7aLoanSummary(unpaidLoanId, "FY2019-20");
+
+  expect(paidSecond.balanceAtPreviousYearEndCents).toBe(8_782_966);
+  expect(paidThird.balanceAtPreviousYearEndCents).not.toBe(unpaidThird.balanceAtPreviousYearEndCents);
+  expect(paidThird.minimumRepaymentCents).not.toBe(unpaidThird.minimumRepaymentCents);
+});
+
+test("marks a loan as expired when the final scheduled income year is reached", () => {
   const loanId = createDiv7aLoan({
     lenderEntityId: "boyun_co",
     borrower: "Expired loan test borrower",
@@ -130,11 +160,12 @@ test("marks a loan as expired after the final scheduled repayment year", () => {
   });
 
   expect(getDiv7aLoanSummary(loanId, "FY2023-24")).toMatchObject({
-    isExpired: false,
-    repaymentStatus: "active",
-    remainingTermYears: 1,
+    isExpired: true,
+    repaymentStatus: "expired",
+    minimumRepaymentCents: 0,
+    remainingTermYears: 0,
   });
-  expect(getDiv7aLoanSummary(loanId, "FY2024-25")).toMatchObject({
+  expect(getDiv7aLoanSummary(loanId, "FY2026-27")).toMatchObject({
     isExpired: true,
     repaymentStatus: "expired",
     minimumRepaymentCents: 0,

@@ -5,7 +5,7 @@ import { mapTransactionToBas, summarizeBas, type BasLineContribution, type BasPa
 import { assessGstCorrection } from "@/lib/domain/bas/gst-correction-policy";
 import { storedLodgedDateOnly } from "@/lib/domain/bas/correction-summary";
 import { assertIntegerCents } from "@/lib/money";
-import { formatMelbourneDateTime, type DateOnly } from "@/lib/time/melbourne";
+import { assertDateOnly, formatDateOnly, formatMelbourneDateTime, parseMelbourneDate, type DateOnly } from "@/lib/time/melbourne";
 
 type BasTransactionRow = BasTransactionInput & {
   id: number;
@@ -173,6 +173,14 @@ function mapWorksheetRow(row: BasWorksheetRow): BasWorksheetRecord {
 
 function getWorksheetRowByObligation(obligationId: number) {
   return getRawDb().prepare("SELECT * FROM bas_worksheets WHERE obligation_id = ?").get(obligationId) as BasWorksheetRow | undefined;
+}
+
+function normalizeUserDate(value: string): DateOnly {
+  if (typeof value !== "string" || !value.trim()) throw new Error("实际递交日期为必填");
+  const date = value.trim() as DateOnly;
+  assertDateOnly(date);
+  if (formatDateOnly(parseMelbourneDate(date)) !== date) throw new Error(`实际递交日期无效: ${value}`);
+  return date;
 }
 
 export function getBasWorksheetByObligation(obligationId: number): BasWorksheetRecord | null {
@@ -527,10 +535,12 @@ export function updateBasPaygInstalment(obligationId: number, paygInstalmentCent
     : { payg5aCents: paygInstalmentCents, payg5bCents: 0 });
 }
 
-export function markBasLodged(obligationId: number, receiptNumber: string, lodgedAmountCents: number) {
+export function markBasLodged(obligationId: number, receiptNumber: string, lodgedAmountCents: number, lodgedAtInput: string) {
   runMigrations();
   if (!receiptNumber.trim()) throw new Error("ATO 回执号为必填");
   assertIntegerCents(lodgedAmountCents);
+  const lodgedAt = normalizeUserDate(lodgedAtInput);
+  const changedAt = formatMelbourneDateTime(new Date());
   const db = getRawDb();
   const worksheet = getWorksheetRowByObligation(obligationId);
   if (!worksheet) throw new BasGenerationError("请先生成 BAS 底稿");
@@ -539,7 +549,6 @@ export function markBasLodged(obligationId: number, receiptNumber: string, lodge
     throw new Error(`已递交金额必须等于 statementTotalCents ${worksheet.statement_total_cents} 分`);
   }
 
-  const lodgedAt = formatMelbourneDateTime(new Date());
   const result = db.transaction(() => {
     const obligation = db.prepare("SELECT id, status, notes FROM obligations WHERE id = ?").get(obligationId) as { id: number; status: string; notes: string | null } | undefined;
     if (!obligation) throw new Error(`义务不存在: ${obligationId}`);
@@ -550,7 +559,7 @@ export function markBasLodged(obligationId: number, receiptNumber: string, lodge
     } catch {
       notes = {};
     }
-    notes.lodgement = { receiptNumber: receiptNumber.trim(), lodgedAmountCents };
+    notes.lodgement = { receiptNumber: receiptNumber.trim(), lodgedAmountCents, lodgedAt };
     db.prepare(`
       UPDATE obligations
       SET status = 'lodged', amount_cents = ?, lodged_at = ?, notes = ?, updated_at = datetime('now')
@@ -566,9 +575,9 @@ export function markBasLodged(obligationId: number, receiptNumber: string, lodge
       "lodged",
       "记录 ATO BAS 回执",
       JSON.stringify({ receiptNumber: receiptNumber.trim(), lodgedAmountCents, statementTotalCents: worksheet.statement_total_cents }),
-      lodgedAt,
+      changedAt,
     );
     return db.prepare("SELECT id, status, amount_cents AS amountCents, lodged_at AS lodgedAt, notes FROM obligations WHERE id = ?").get(obligationId);
   })();
-  return result as { id: number; status: string; amountCents: number; lodgedAt: string; notes: string };
+  return result as { id: number; status: string; amountCents: number; lodgedAt: DateOnly; notes: string };
 }

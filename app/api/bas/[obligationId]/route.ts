@@ -53,6 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ obl
       closedPeriodReason?: string;
       receiptNumber?: string;
       lodgedAmountCents?: number;
+      lodgedAt?: string;
     };
     if (body.action === "generate") {
       const result = generateBasWorksheet(obligationId, body.closedPeriodDecision ?? (body.closedPeriodReason ? { action: "excluded", reason: body.closedPeriodReason } : undefined));
@@ -76,12 +77,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ obl
       return Response.json({ obligation: getObligationById(obligationId), worksheet });
     }
     if (body.action === "lodge") {
-      if (typeof body.receiptNumber !== "string" || !Number.isSafeInteger(body.lodgedAmountCents)) {
-        throw new Error("ATO 回执号和已递交整数分金额均为必填");
+      if (typeof body.receiptNumber !== "string" || !Number.isSafeInteger(body.lodgedAmountCents) || typeof body.lodgedAt !== "string") {
+        throw new Error("ATO 回执号、已递交整数分金额和实际递交日期均为必填");
       }
       const receiptNumber = body.receiptNumber;
       const lodgedAmountCents = body.lodgedAmountCents as number;
-      const obligation = markBasLodged(obligationId, receiptNumber, lodgedAmountCents);
+      const obligation = markBasLodged(obligationId, receiptNumber, lodgedAmountCents, body.lodgedAt);
       return Response.json({ obligation, worksheet: getBasWorksheetByObligation(obligationId) });
     }
     throw new Error("无效的 BAS 操作");

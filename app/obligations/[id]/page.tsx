@@ -61,6 +61,8 @@ export default async function ObligationDetailPage({ params }: { params: Promise
             <span>截止日所在财年</span>
             <strong>{displayIncomeYear(obligation.deadlineFy)}</strong>
           </div>
+          {obligation.lodgedAt ? <div><span>实际递交日期</span><strong>{formatDueDate(obligation.lodgedAt)}</strong></div> : null}
+          {obligation.paidAt ? <div><span>实际缴款日期</span><strong>{formatDueDate(obligation.paidAt)}</strong></div> : null}
         </div>
         <p className="detail-note">此卡所属所得年度为 {displayIncomeYear(obligation.incomeYear)}；截止日所在财年为 {displayIncomeYear(obligation.deadlineFy)}。</p>
         {licenceCancellationDate ? (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatCents } from "@/lib/money";
+import { DateTextInput } from "@/components/date-text-input";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
 import { displayBasPeriodLabel, summarizePriorPeriodCorrections } from "@/lib/domain/bas/correction-summary";
 import type { BasGenerationResult, BasLineItem, BasWorksheetRecord, ClosedPeriodDecision, ClosedPeriodTransaction } from "@/lib/domain/bas/generator";
@@ -15,6 +16,8 @@ type ObligationProps = {
   statutoryDue: DateOnly | null;
   effectiveDue: DateOnly | null;
   status: string;
+  lodgedAt: DateOnly | null;
+  paidAt: DateOnly | null;
 };
 
 type Props = {
@@ -55,6 +58,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
   const [payg5aInput, setPayg5aInput] = useState(initialWorksheet?.payg5aCents === null || initialWorksheet?.payg5aCents === undefined ? "" : String(initialWorksheet.payg5aCents));
   const [payg5bInput, setPayg5bInput] = useState(initialWorksheet?.payg5bCents === null || initialWorksheet?.payg5bCents === undefined ? "" : String(initialWorksheet.payg5bCents));
   const [receiptNumber, setReceiptNumber] = useState("");
+  const [lodgedAt, setLodgedAt] = useState<DateOnly | null>(obligation.lodgedAt);
   const [lodgedInput, setLodgedInput] = useState(initialWorksheet?.statementTotalCents === null || initialWorksheet?.statementTotalCents === undefined ? "" : String(initialWorksheet.statementTotalCents));
   const [closedPeriodTransactions, setClosedPeriodTransactions] = useState<ClosedPeriodTransaction[]>([]);
   const [closedPeriodReason, setClosedPeriodReason] = useState("");
@@ -68,7 +72,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const payload = await response.json() as { worksheet?: BasWorksheetRecord; result?: BasGenerationResult; obligation?: { status: string }; error?: string; warnings?: string[]; closedPeriodTransactions?: ClosedPeriodTransaction[]; closedPeriodIncludeAllowed?: boolean };
+    const payload = await response.json() as { worksheet?: BasWorksheetRecord; result?: BasGenerationResult; obligation?: { status: string; lodgedAt?: DateOnly | null }; error?: string; warnings?: string[]; closedPeriodTransactions?: ClosedPeriodTransaction[]; closedPeriodIncludeAllowed?: boolean };
     setBusy(false);
     if (!response.ok) {
       setClosedPeriodTransactions(payload.closedPeriodTransactions ?? []);
@@ -81,6 +85,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
     const nextWorksheet = payload.worksheet ?? payload.result?.worksheet ?? null;
     if (nextWorksheet) setWorksheet(nextWorksheet);
     if (payload.obligation?.status) setStatus(payload.obligation.status);
+    if (payload.obligation && "lodgedAt" in payload.obligation) setLodgedAt(payload.obligation.lodgedAt ?? null);
     return payload;
   }
 
@@ -119,11 +124,11 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
   }
 
   async function lodge() {
-    if (!receiptNumber.trim() || !/^[-+]?\d+$/.test(lodgedInput.trim())) {
-      setMessage("ATO 回执号和已递交整数分金额均为必填");
+    if (!receiptNumber.trim() || !/^[-+]?\d+$/.test(lodgedInput.trim()) || !lodgedAt) {
+      setMessage("ATO 回执号、已递交整数分金额和实际递交日期均为必填");
       return;
     }
-    const payload = await callApi({ action: "lodge", receiptNumber, lodgedAmountCents: Number(lodgedInput) });
+    const payload = await callApi({ action: "lodge", receiptNumber, lodgedAmountCents: Number(lodgedInput), lodgedAt });
     if (payload) setMessage("已记录 ATO 回执，金额已按 statementTotalCents 校验");
   }
 
@@ -197,7 +202,7 @@ export function BasSummary({ obligation, initialWorksheet }: Props) {
             </details>
             <section className="bas-lodge-panel" aria-label="记录已递交">
               <h2>记录已递交</h2>
-              {worksheet.statementTotalCents === null ? <p>请录入 5A/5B，或确认本期无 PAYG 分期，系统才会开放已递交金额校验。</p> : status === "lodged" || status === "paid" ? <p>已记录 ATO 回执，当前状态：{status}。</p> : <div className="bas-action-row"><label><span>ATO 回执号</span><input aria-label="ATO 回执号" value={receiptNumber} onChange={(event) => setReceiptNumber(event.target.value)} /></label><label><span>已递交金额（整数分）</span><input aria-label="已递交金额（整数分）" inputMode="numeric" value={lodgedInput} onChange={(event) => setLodgedInput(event.target.value)} /></label><button type="button" className="primary-button" onClick={() => void lodge()} disabled={busy}>标记已递交</button></div>}
+              {worksheet.statementTotalCents === null ? <p>请录入 5A/5B，或确认本期无 PAYG 分期，系统才会开放已递交金额校验。</p> : status === "lodged" || status === "paid" ? <p>已记录 ATO 回执，实际递交日期：{lodgedAt ? formatDueDate(lodgedAt) : "待补录"}；当前状态：{status}。</p> : <div className="bas-action-row"><label><span>ATO 回执号</span><input aria-label="ATO 回执号" value={receiptNumber} onChange={(event) => setReceiptNumber(event.target.value)} /></label><label><span>已递交金额（整数分）</span><input aria-label="已递交金额（整数分）" inputMode="numeric" value={lodgedInput} onChange={(event) => setLodgedInput(event.target.value)} /></label><label><span>实际递交日期（DD/MM/YYYY）</span><DateTextInput ariaLabel="实际递交日期" value={lodgedAt} onChange={setLodgedAt} /></label><button type="button" className="primary-button" onClick={() => void lodge()} disabled={busy}>标记已递交</button></div>}
             </section>
             <div className="bas-export-links"><a href={`/api/bas/${obligation.id}?format=csv`}>导出 CSV</a><a href={`/api/bas/${obligation.id}?format=pdf`}>导出 PDF</a></div>
           </>

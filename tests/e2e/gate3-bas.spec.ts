@@ -40,6 +40,7 @@ test("generates three Q1 BAS worksheets with traceable lines, Simpler BAS instru
   await expect(page.getByText("已重新计算 statementTotalCents", { exact: false })).toBeVisible();
   await page.getByLabel("ATO 回执号").fill("ATO-GATE3-1");
   await expect(page.getByLabel("已递交金额（整数分）")).toHaveValue("12500");
+  await page.getByLabel("实际递交日期").fill("15/01/2027");
   await page.getByRole("button", { name: "标记已递交" }).click();
   await expect(page.getByText("已记录 ATO 回执，金额已按 statementTotalCents 校验", { exact: true })).toBeVisible();
   await expect(page.getByText("lodged", { exact: true })).toBeVisible();
@@ -58,6 +59,7 @@ test("generates three Q1 BAS worksheets with traceable lines, Simpler BAS instru
   await expect(page.getByText("应缴", { exact: false })).toBeVisible();
   await page.getByLabel("ATO 回执号").fill("ATO-NIL-GATE3-1");
   await expect(page.getByLabel("已递交金额（整数分）")).toHaveValue("0");
+  await page.getByLabel("实际递交日期").fill("16/01/2027");
   await page.getByRole("button", { name: "标记已递交" }).click();
   await expect(page.getByText("已记录 ATO 回执，金额已按 statementTotalCents 校验", { exact: true })).toBeVisible();
 

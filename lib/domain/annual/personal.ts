@@ -25,8 +25,8 @@ export function buildPersonalTaxSummary(person: string, incomeYear: string): Per
   if (entity.type !== "individual") throw new Error(`Entity is not an individual: ${person}`);
 
   const transactions = annualTransactionLines(person, normalizedIncomeYear);
-  const incomeCents = sumCents(transactions.filter((item) => item.accountType === "income").map((item) => item.amountCents));
-  const expenseCents = sumCents(transactions.filter((item) => item.accountType === "expense").map((item) => item.amountCents));
+  const incomeCents = sumCents(transactions.filter((item) => item.accountType === "income").map((item) => item.amountExcludingGstCents));
+  const expenseCents = sumCents(transactions.filter((item) => item.accountType === "expense").map((item) => item.amountExcludingGstCents));
   const row = getRawDb().prepare(`
     SELECT COALESCE(SUM(CASE WHEN paid_at IS NOT NULL THEN amount_cents ELSE 0 END), 0) AS contributed_cents,
       MAX(notice_submitted_at) AS notice_submitted_at

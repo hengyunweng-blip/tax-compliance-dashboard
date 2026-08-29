@@ -22,7 +22,7 @@ export function GET(request: Request) {
           ? buildTrustDistributionDraft(entity.id, fy)
           : buildPersonalTaxSummary(entity.id, fy),
     }));
-    return Response.json({ incomeYear: fy.startsWith("FY") ? fy : `FY${fy}`, worksheets });
+    return Response.json({ incomeYear: fy.startsWith("FY") ? fy : `FY${fy}`, amountBasis: "GST-exclusive", worksheets });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "年度底稿暂时不可用" }, { status: 400 });
   }

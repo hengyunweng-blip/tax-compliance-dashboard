@@ -47,7 +47,7 @@ function generateAndLodgeQ1() {
   createConfirmedTransaction("2026-07-04", "Original Q1 sale");
   const generated = generateBasWorksheet(obligationId("Q1"));
   updateBasPaygInstalments(obligationId("Q1"), { payg5aCents: 0, payg5bCents: 0 });
-  markBasLodged(obligationId("Q1"), "ATO-CLOSED-Q1", 10000);
+  markBasLodged(obligationId("Q1"), "ATO-CLOSED-Q1", 10000, "2027-01-15");
   return { worksheetId: generated.worksheet.id, q1ObligationId: obligationId("Q1") };
 }
 

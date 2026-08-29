@@ -25,6 +25,22 @@ function parseRate(value: string) {
   return decimalRate;
 }
 
+/**
+ * Calculates one year's interest using the manually entered benchmark rate.
+ * The result is rounded to whole cents with Decimal; no floating-point money
+ * operation is used.
+ */
+export function calculateAnnualInterestCents(balanceCents: number, benchmarkRate: string): number {
+  assertIntegerCents(balanceCents);
+  if (balanceCents < 0) throw new Error("Balance cannot be negative");
+  const interestCents = new Decimal(balanceCents)
+    .mul(parseRate(benchmarkRate))
+    .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+    .toNumber();
+  assertIntegerCents(interestCents);
+  return interestCents;
+}
+
 export function calculateMinimumYearlyRepaymentCents(input: Div7aRepaymentInput): number {
   assertIntegerCents(input.principalCents);
   if (input.principalCents <= 0) throw new Error("Principal must be positive");

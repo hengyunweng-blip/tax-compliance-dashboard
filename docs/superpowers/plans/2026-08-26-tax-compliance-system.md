@@ -756,7 +756,7 @@ Expected: PASS with every row in the matrix.
 - `exportBasCsv(worksheetId): Response` exports traceable transaction lines.
 - `exportBasPdf(worksheetId): Response` exports the one-page worksheet and instructions.
 - `updateBasPaygInstalments(obligationId, { payg5aCents, payg5bCents }): BasWorksheet` records the user's integer-cent 5A/5B values and never calculates them; the explicit no-PAYG option sends 0/0.
-- `markBasLodged(obligationId, receiptNumber, lodgedAmountCents): Obligation` requires a resolved `statementTotalCents`, compares the submitted amount to it, writes audit log and moves to `lodged`.
+- `markBasLodged(obligationId, receiptNumber, lodgedAmountCents, lodgedAt): Obligation` requires a resolved `statementTotalCents` and user-entered lodging date, compares the submitted amount to it, writes audit log and moves to `lodged`.
 
 - [x] **Step 1: Write the atomicity and traceability tests**
 

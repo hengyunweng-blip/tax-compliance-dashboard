@@ -1,7 +1,7 @@
 import { getRawDb } from "@/lib/db/client";
 import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
 import type { ObligationStatus } from "@/lib/domain/obligations/rules";
-import type { DateOnly } from "@/lib/time/melbourne";
+import { assertDateOnly, formatDateOnly, parseMelbourneDate, type DateOnly } from "@/lib/time/melbourne";
 
 export type ObligationView = {
   id: number;
@@ -19,6 +19,8 @@ export type ObligationView = {
   effectiveDue: DateOnly | null;
   windowOpens: DateOnly | null;
   status: ObligationStatus;
+  lodgedAt: DateOnly | null;
+  paidAt: DateOnly | null;
   portalUrl: string;
   checklist: string[];
 };
@@ -38,6 +40,8 @@ type ObligationRow = {
   statutory_due: DateOnly | null;
   effective_due: DateOnly | null;
   status: ObligationStatus;
+  lodged_at: string | null;
+  paid_at: string | null;
   portal_url: string | null;
   checklist: string | null;
   notes: string | null;
@@ -66,6 +70,27 @@ function readNoteDate(value: string | null, key: "windowOpens"): DateOnly | null
   }
 }
 
+const STORED_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+function readStoredDate(value: string | null): DateOnly | null {
+  if (!value) return null;
+  const canonical = /^(\d{4}-\d{2}-\d{2})/.exec(value)?.[1];
+  const friendly = /^(\d{2}) ([A-Za-z]{3}) (\d{4})/.exec(value);
+  const candidate = canonical
+    ? canonical
+    : friendly
+      ? `${friendly[3]}-${String(STORED_MONTHS.indexOf(friendly[2] as typeof STORED_MONTHS[number]) + 1).padStart(2, "0")}-${friendly[1]}`
+      : null;
+  if (!candidate || candidate.includes("-00-")) return null;
+  try {
+    const date = candidate as DateOnly;
+    assertDateOnly(date);
+    return formatDateOnly(parseMelbourneDate(date)) === date ? date : null;
+  } catch {
+    return null;
+  }
+}
+
 function mapRow(row: ObligationRow): ObligationView {
   return {
     id: row.id,
@@ -82,6 +107,8 @@ function mapRow(row: ObligationRow): ObligationView {
     statutoryDue: row.statutory_due,
     effectiveDue: row.effective_due,
     windowOpens: readNoteDate(row.notes, "windowOpens"),
+    lodgedAt: readStoredDate(row.lodged_at),
+    paidAt: readStoredDate(row.paid_at),
     status: row.status,
     portalUrl: row.portal_url ?? "",
     checklist: readChecklist(row.checklist),
@@ -93,7 +120,7 @@ export function getObligationsForFy(fy: string): ObligationView[] {
   const rows = getRawDb().prepare(`
     SELECT o.id, o.rule_id, r.label AS rule_label, o.entity_id, e.name AS entity_name, e.type AS entity_type,
       o.period_label, o.period_start, o.period_end, o.income_year, o.deadline_fy,
-      o.statutory_due, o.effective_due, o.status, r.portal_url, r.checklist, o.notes
+      o.statutory_due, o.effective_due, o.status, o.lodged_at, o.paid_at, r.portal_url, r.checklist, o.notes
     FROM obligations o
     INNER JOIN entities e ON e.id = o.entity_id
     LEFT JOIN obligation_rules r ON r.id = o.rule_id
@@ -107,7 +134,7 @@ export function getObligationById(id: number): ObligationView | null {
   const row = getRawDb().prepare(`
     SELECT o.id, o.rule_id, r.label AS rule_label, o.entity_id, e.name AS entity_name, e.type AS entity_type,
       o.period_label, o.period_start, o.period_end, o.income_year, o.deadline_fy,
-      o.statutory_due, o.effective_due, o.status, r.portal_url, r.checklist, o.notes
+      o.statutory_due, o.effective_due, o.status, o.lodged_at, o.paid_at, r.portal_url, r.checklist, o.notes
     FROM obligations o
     INNER JOIN entities e ON e.id = o.entity_id
     LEFT JOIN obligation_rules r ON r.id = o.rule_id

@@ -30,6 +30,8 @@ export type AnnualTransactionLine = {
   description: string;
   amountCents: number;
   gstCents: number;
+  /** The tax-exclusive amount used by annual income and expense schedules. */
+  amountExcludingGstCents: number;
   gstCode: string;
   accountId: number;
   accountCode: string;
@@ -52,7 +54,7 @@ export function annualTransactionLines(entityId: string, incomeYear: string): An
       a.id AS account_id, a.code AS account_code, a.name AS account_name, a.type AS account_type
     FROM transactions t
     INNER JOIN accounts a ON a.id = t.account_id
-    WHERE t.entity_id = ? AND t.fy = ? AND t.review_flag = 0
+    WHERE t.entity_id = ? AND t.fy = ? AND t.review_flag = 0 AND t.gst_code <> 'PRIVATE'
     ORDER BY t.date, t.id
   `).all(entityId, fy) as Array<{
     id: number;
@@ -70,12 +72,15 @@ export function annualTransactionLines(entityId: string, incomeYear: string): An
   return rows.map((row) => {
     assertIntegerCents(row.amount_cents);
     assertIntegerCents(row.gst_cents);
+    const amountExcludingGstCents = row.amount_cents - row.gst_cents;
+    assertIntegerCents(amountExcludingGstCents);
     return {
       id: row.id,
       date: row.date,
       description: row.description,
       amountCents: row.amount_cents,
       gstCents: row.gst_cents,
+      amountExcludingGstCents,
       gstCode: row.gst_code,
       accountId: row.account_id,
       accountCode: row.account_code,
