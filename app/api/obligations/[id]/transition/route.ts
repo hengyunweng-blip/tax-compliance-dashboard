@@ -5,6 +5,7 @@ import { transitionObligation } from "@/lib/domain/obligations/state-machine";
 const transitionSchema = z.object({
   to: z.enum(["blocked", "todo", "collecting", "draft_ready", "lodged", "paid", "na"]),
   reason: z.string().trim().min(1),
+  lodgedAt: z.string().optional(),
   paidAt: z.string().optional(),
 });
 
@@ -16,7 +17,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return Response.json({ error: "Invalid obligation id" }, { status: 400 });
     }
     const input = transitionSchema.parse(await request.json());
-    transitionObligation({ obligationId, to: input.to, reason: input.reason, paidAt: input.paidAt });
+    transitionObligation({ obligationId, to: input.to, reason: input.reason, lodgedAt: input.lodgedAt, paidAt: input.paidAt });
     const obligation = getObligationById(obligationId);
     return Response.json({ obligation });
   } catch (error) {

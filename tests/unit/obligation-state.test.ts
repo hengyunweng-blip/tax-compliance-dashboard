@@ -71,6 +71,31 @@ test("persists the exact user-entered payment date", async () => {
   expect(db.prepare("SELECT status, paid_at FROM obligations WHERE id = ?").get(obligation.id)).toEqual({ status: "paid", paid_at: "2027-02-03" });
 });
 
+test("requires and persists the exact user-entered lodgement date", async () => {
+  expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
+  const db = getRawDb();
+  const obligation = db.prepare("SELECT id FROM obligations WHERE rule_id = 'bas_quarterly' ORDER BY id LIMIT 1").get() as { id: number };
+  db.prepare("UPDATE obligations SET status = 'draft_ready', lodged_at = NULL WHERE id = ?").run(obligation.id);
+
+  const missingDateResponse = await transitionPatch(new Request("http://localhost/api/obligations/1/transition", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ to: "lodged", reason: "Missing lodgement date fixture" }),
+  }), { params: Promise.resolve({ id: String(obligation.id) }) });
+
+  expect(missingDateResponse.status).toBe(400);
+  expect(db.prepare("SELECT status, lodged_at FROM obligations WHERE id = ?").get(obligation.id)).toEqual({ status: "draft_ready", lodged_at: null });
+
+  const exactDateResponse = await transitionPatch(new Request("http://localhost/api/obligations/1/transition", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ to: "lodged", reason: "Exact lodgement date fixture", lodgedAt: "2027-01-22" }),
+  }), { params: Promise.resolve({ id: String(obligation.id) }) });
+
+  expect(exactDateResponse.status).toBe(200);
+  expect(db.prepare("SELECT status, lodged_at FROM obligations WHERE id = ?").get(obligation.id)).toEqual({ status: "lodged", lodged_at: "2027-01-22" });
+});
+
 test("does not remind blocked ASIC, but creates all four BAS reminders for the same company", () => {
   const db = getRawDb();
   db.prepare("UPDATE entities SET acn = NULL, asic_review_date = NULL WHERE id = ?").run("yeeliving_co");

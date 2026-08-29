@@ -30,15 +30,29 @@ function normalizePaidDate(value: string | null | undefined): DateOnly {
   return date;
 }
 
+function normalizeLodgedDate(value: string | null | undefined): DateOnly {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error("实际递交日期为必填");
+  }
+  const date = value.trim() as DateOnly;
+  assertDateOnly(date);
+  if (formatDateOnly(parseMelbourneDate(date)) !== date) {
+    throw new Error(`实际递交日期无效: ${value}`);
+  }
+  return date;
+}
+
 export function transitionObligation({
   obligationId,
   to,
   reason,
+  lodgedAt,
   paidAt,
 }: {
   obligationId: number;
   to: ObligationStatus;
   reason: string;
+  lodgedAt?: string | null;
   paidAt?: string | null;
 }) {
   if (!reason.trim()) {
@@ -55,8 +69,11 @@ export function transitionObligation({
       throw new Error(`Invalid obligation transition: ${current.status} -> ${to}`);
     }
 
+    const normalizedLodgedAt = to === "lodged" ? normalizeLodgedDate(lodgedAt) : null;
     const normalizedPaidAt = to === "paid" ? normalizePaidDate(paidAt) : null;
-    if (to === "paid") {
+    if (to === "lodged") {
+      db.prepare("UPDATE obligations SET status = ?, lodged_at = ?, updated_at = datetime('now') WHERE id = ?").run(to, normalizedLodgedAt, obligationId);
+    } else if (to === "paid") {
       db.prepare("UPDATE obligations SET status = ?, paid_at = ?, updated_at = datetime('now') WHERE id = ?").run(to, normalizedPaidAt, obligationId);
     } else {
       db.prepare("UPDATE obligations SET status = ?, updated_at = datetime('now') WHERE id = ?").run(to, obligationId);
