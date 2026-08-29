@@ -1,0 +1,18 @@
+[
+  {
+    "incomeYear": "FY2025-26",
+    "rateText": "8.37%",
+    "sourceUrl": "https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate",
+    "retrievedAt": "2026-08-29",
+    "entryMethod": "manual",
+    "notes": "ATO current and past benchmark interest rates for private companies with an income year ending 30 June."
+  },
+  {
+    "incomeYear": "FY2026-27",
+    "rateText": "8.77%",
+    "sourceUrl": "https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate",
+    "retrievedAt": "2026-08-29",
+    "entryMethod": "manual",
+    "notes": "ATO current and past benchmark interest rates for private companies with an income year ending 30 June."
+  }
+]

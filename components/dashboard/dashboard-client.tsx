@@ -47,6 +47,18 @@ function statusClass(status: string) {
   return status === "blocked" ? "obligation-status blocked" : status === "paid" ? "obligation-status paid" : "obligation-status";
 }
 
+function agreementSummary(obligation: ObligationView) {
+  if (obligation.ruleId !== "div7a_loan_agreement" || !obligation.notes) return null;
+  try {
+    const parsed = JSON.parse(obligation.notes) as { loanId?: unknown; assessment?: { status?: unknown } };
+    const loanId = typeof parsed.loanId === "number" ? parsed.loanId : obligation.scopeKey.replace(/^loan:/, "");
+    const assessment = parsed.assessment?.status === "compliant" ? "条款已核对" : parsed.assessment?.status === "not_compliant" ? "条款不合规" : "无法判断 / 资料不完整";
+    return `贷款 ${loanId} · ${assessment}`;
+  } catch {
+    return `贷款 ${obligation.scopeKey.replace(/^loan:/, "") } · 无法判断`;
+  }
+}
+
 function ObligationCard({ obligation }: { obligation: ObligationView }) {
   const days = daysUntil(obligation.effectiveDue);
   const isLicence = obligation.ruleId === "estate_agent_licence_annual_statement";
@@ -68,6 +80,7 @@ function ObligationCard({ obligation }: { obligation: ObligationView }) {
         <span className="obligation-countdown">{countdownLabel(days)}</span>
       </div>
       <h3>{displayIncomeYear(obligation.incomeYear)} {obligation.ruleLabel} · {obligation.statutoryDue ? `截止 ${formatDueDate(obligation.statutoryDue)}` : "日期待配置"}</h3>
+      {agreementSummary(obligation) ? <p className="obligation-agreement-summary">{agreementSummary(obligation)}</p> : null}
       {isLicence && obligation.windowOpens ? (
         <div className="obligation-date-row obligation-window-row">
           <CalendarDays size={15} aria-hidden="true" />

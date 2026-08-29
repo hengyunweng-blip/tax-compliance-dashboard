@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Info, Save, Settings2, ShieldCheck } from "lucide-react";
 import { getEntityConfigurationStatus } from "@/lib/settings-status";
 import { DateTextInput } from "@/components/date-text-input";
-import type { DateOnly } from "@/lib/time/melbourne";
+import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
+import type { Div7aBenchmarkRate } from "@/lib/domain/div7a/rates";
 
 type Entity = {
   id: string;
@@ -33,17 +34,25 @@ type Snapshot = {
   entities: Entity[];
   licence: Licence | null;
   settings: Record<string, string>;
+  benchmarkRates: Div7aBenchmarkRate[];
 };
 
 type Props = { initialSnapshot: Snapshot };
 
 export function SettingsForm({ initialSnapshot }: Props) {
-  const [activeTab, setActiveTab] = useState<"entities" | "licence">("entities");
+  const [activeTab, setActiveTab] = useState<"entities" | "licence" | "div7a">("entities");
   const [entities, setEntities] = useState(initialSnapshot.entities);
   const [licence, setLicence] = useState(initialSnapshot.licence);
+  const [benchmarkRates, setBenchmarkRates] = useState(initialSnapshot.benchmarkRates);
   const [newsWindowDays, setNewsWindowDays] = useState(Number(initialSnapshot.settings.news_window_days ?? "90"));
   const [excludeIrrelevantTopics, setExcludeIrrelevantTopics] = useState(initialSnapshot.settings.news_exclude_irrelevant_topics !== "false");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [rateIncomeYear, setRateIncomeYear] = useState("");
+  const [rateText, setRateText] = useState("");
+  const [rateSourceUrl, setRateSourceUrl] = useState("https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate");
+  const [rateRetrievedAt, setRateRetrievedAt] = useState<DateOnly | null>(null);
+  const [rateNotes, setRateNotes] = useState("");
+  const [rateSaveState, setRateSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   function updateEntity(id: string, patch: Partial<Entity>) {
     setEntities((current) => current.map((entity) => entity.id === id ? { ...entity, ...patch } : entity));
@@ -82,9 +91,45 @@ export function SettingsForm({ initialSnapshot }: Props) {
     const next = await response.json() as Snapshot;
     setEntities(next.entities);
     setLicence(next.licence);
+    setBenchmarkRates(next.benchmarkRates ?? benchmarkRates);
     setNewsWindowDays(Number(next.settings.news_window_days ?? newsWindowDays));
     setExcludeIrrelevantTopics(next.settings.news_exclude_irrelevant_topics !== "false");
     setSaveState("saved");
+  }
+
+  function editRate(rate: Div7aBenchmarkRate) {
+    setRateIncomeYear(rate.incomeYear);
+    setRateText(rate.rateText);
+    setRateSourceUrl(rate.sourceUrl);
+    setRateRetrievedAt(rate.retrievedAt as DateOnly);
+    setRateNotes(rate.notes ?? "");
+    setRateSaveState("idle");
+  }
+
+  async function saveRate() {
+    if (!rateIncomeYear.trim() || !rateText.trim() || !rateSourceUrl.trim() || !rateRetrievedAt) {
+      setRateSaveState("error");
+      return;
+    }
+    setRateSaveState("saving");
+    const response = await fetch("/api/div7a/rates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        incomeYear: rateIncomeYear,
+        rateText,
+        sourceUrl: rateSourceUrl,
+        retrievedAt: rateRetrievedAt,
+        notes: rateNotes || null,
+      }),
+    });
+    const payload = await response.json() as { rates?: Div7aBenchmarkRate[]; error?: string };
+    if (!response.ok) {
+      setRateSaveState("error");
+      return;
+    }
+    setBenchmarkRates(payload.rates ?? benchmarkRates);
+    setRateSaveState("saved");
   }
 
   return (
@@ -129,6 +174,15 @@ export function SettingsForm({ initialSnapshot }: Props) {
             onClick={() => setActiveTab("licence")}
           >
             牌照配置
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "div7a"}
+            className={activeTab === "div7a" ? "settings-tab active" : "settings-tab"}
+            onClick={() => setActiveTab("div7a")}
+          >
+            Div 7A 利率
           </button>
         </div>
 
@@ -208,7 +262,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
               </table>
             </div>
           </section>
-        ) : (
+        ) : activeTab === "licence" ? (
           <section className="settings-panel licence-panel" aria-label="牌照配置">
             <div className="panel-heading">
               <div>
@@ -240,6 +294,31 @@ export function SettingsForm({ initialSnapshot }: Props) {
                 </div>
               </div>
             ) : <p className="empty-state">尚未生成牌照配置。</p>}
+          </section>
+        ) : (
+          <section className="settings-panel div7a-rate-panel" aria-label="Div 7A 年度基准利率">
+            <div className="panel-heading">
+              <div>
+                <h2>Div 7A 年度基准利率</h2>
+                <p>每个所得年度必须由用户从 ATO 官方页面核对后手动录入；缺少对应年度时，贷款金额显示“无法判断”，不会回退到旧贷款字段或其他年度。</p>
+              </div>
+              <span className="panel-count">{benchmarkRates.length} 个年度</span>
+            </div>
+            <div className="div7a-rate-form">
+              <label><span>所得年度</span><input aria-label="Div 7A 所得年度" value={rateIncomeYear} onChange={(event) => setRateIncomeYear(event.target.value)} placeholder="FY2026-27" /></label>
+              <label><span>基准利率（保留原始文本）</span><input aria-label="Div 7A 基准利率" value={rateText} onChange={(event) => setRateText(event.target.value)} placeholder="8.77%" /></label>
+              <label><span>ATO 来源 URL</span><input aria-label="Div 7A 来源 URL" value={rateSourceUrl} onChange={(event) => setRateSourceUrl(event.target.value)} /></label>
+              <label><span>取数日期（DD/MM/YYYY）</span><DateTextInput ariaLabel="Div 7A 取数日期" value={rateRetrievedAt} onChange={setRateRetrievedAt} /></label>
+              <label className="div7a-rate-notes"><span>备注（可选）</span><input aria-label="Div 7A 利率备注" value={rateNotes} onChange={(event) => setRateNotes(event.target.value)} placeholder="例如：ATO 年度表，人工核对" /></label>
+              <button type="button" className="primary-button" onClick={() => void saveRate()} disabled={rateSaveState === "saving"}>{rateSaveState === "saving" ? "保存中…" : "保存年度利率"}</button>
+              <p className="form-message" aria-live="polite">{rateSaveState === "saved" ? "年度利率已保存" : rateSaveState === "error" ? "请填写完整并确认 URL 来自 ATO" : ""}</p>
+            </div>
+            <div className="table-scroll">
+              <table className="settings-table div7a-rate-table">
+                <thead><tr><th>所得年度</th><th>基准利率</th><th>来源</th><th>取数日期</th><th>录入方式</th><th /></tr></thead>
+                <tbody>{benchmarkRates.map((rate) => <tr key={rate.incomeYear}><td>{rate.incomeYear.replace("-", "–")}</td><td><strong>{rate.rateText}</strong></td><td><a href={rate.sourceUrl} target="_blank" rel="noreferrer">ATO 官方页面</a></td><td>{formatDueDate(rate.retrievedAt as DateOnly)}</td><td>{rate.entryMethod}</td><td><button type="button" className="text-button" onClick={() => editRate(rate)}>编辑</button></td></tr>)}</tbody>
+              </table>
+            </div>
           </section>
         )}
 

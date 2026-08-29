@@ -25,6 +25,7 @@ export type ObligationInput = {
   ruleLabel: string;
   entityId: string;
   periodLabel: string;
+  scopeKey?: string;
   periodStart: DateOnly | null;
   periodEnd: DateOnly | null;
   incomeYear: string;
@@ -35,6 +36,7 @@ export type ObligationInput = {
   status: ObligationStatus;
   portalUrl: string;
   checklist: string[];
+  notes?: string;
 };
 
 export const RULE_LABELS: Record<string, string> = {
@@ -47,6 +49,7 @@ export const RULE_LABELS: Record<string, string> = {
   estate_agent_licence_annual_statement: "牌照年度声明",
   super_contribution: "个人可抵扣供款到账",
   super_notice: "供款抵扣意向通知",
+  div7a_loan_agreement: "Div 7A 协议截止义务",
 };
 
 export const RULE_ADJUSTMENT_DIRECTIONS: Record<string, AdjustmentDirection> = {
@@ -59,6 +62,7 @@ export const RULE_ADJUSTMENT_DIRECTIONS: Record<string, AdjustmentDirection> = {
   estate_agent_licence_annual_statement: "backward",
   super_contribution: "backward",
   super_notice: "forward",
+  div7a_loan_agreement: "forward",
 };
 
 export const RULE_REQUIRED_FIELDS: Record<string, string[]> = {
@@ -71,6 +75,7 @@ export const RULE_REQUIRED_FIELDS: Record<string, string[]> = {
   estate_agent_licence_annual_statement: ["anniversary_date"],
   super_contribution: [],
   super_notice: [],
+  div7a_loan_agreement: [],
 };
 
 export const PERIOD_LABELS = {

@@ -22,7 +22,8 @@ export function InboxClient({ entities, accounts }: Props) {
   useEffect(() => { void load(); }, [load]);
 
   const closedPeriodItems = items.filter((item) => item.kind === "closed_period_transaction");
-  const ordinaryItems = items.filter((item) => item.kind !== "closed_period_transaction");
+  const agreementItems = items.filter((item) => item.kind === "div7a_agreement");
+  const ordinaryItems = items.filter((item) => item.kind !== "closed_period_transaction" && item.kind !== "div7a_agreement");
 
   return (
     <main className="ledger-shell">
@@ -32,6 +33,10 @@ export function InboxClient({ entities, accounts }: Props) {
         <section className="inbox-section closed-period-inbox-section" aria-label="已关账期间补录" data-testid="closed-period-inbox">
           <div className="inbox-section-heading"><div><p className="page-kicker">安全阀</p><h2>已关账期间补录</h2><p>这些交易命中已递交或已缴款 BAS 的期间，必须在后续 BAS 中明确处理。</p></div><span>{closedPeriodItems.length} 项</span></div>
           {closedPeriodItems.length ? closedPeriodItems.map((item) => <InboxRow key={`${item.kind}-${item.id}`} item={item} entities={entities} accounts={accounts} onUpdated={load} />) : <p className="empty-state">当前没有已关账期间补录。</p>}
+        </section>
+        <section className="inbox-section div7a-agreement-inbox-section" aria-label="Div 7A 协议义务" data-testid="div7a-agreement-inbox">
+          <div className="inbox-section-heading"><div><p className="page-kicker">关联方贷款安全阀</p><h2>Div 7A 协议义务</h2><p>每笔贷款独立核对书面协议、利率、期限、担保和公司税表 lodgment day；资料不完整时不会视为合规。</p></div><span>{agreementItems.length} 项</span></div>
+          {agreementItems.length ? agreementItems.map((item) => <InboxRow key={`${item.kind}-${item.id}`} item={item} entities={entities} accounts={accounts} onUpdated={load} />) : <p className="empty-state">当前没有待核对的 Div 7A 协议义务。</p>}
         </section>
         <section className="inbox-section" aria-label="普通待确认" data-testid="ordinary-inbox">
           <div className="inbox-section-heading"><div><p className="page-kicker">人工确认</p><h2>普通待确认</h2></div><span>{ordinaryItems.length} 项</span></div>

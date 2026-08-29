@@ -3,6 +3,7 @@ import { ACCOUNT_SEEDS } from "@/lib/constants/accounts";
 import { ENTITY_SEEDS, LICENCE_SEED } from "@/lib/constants/entities";
 import { runMigrations } from "@/lib/db/migrate";
 import { DEFAULT_SUPER_CONFIGURATION, SUPER_CAP_SEEDS, SUPER_SETTING_KEYS } from "@/lib/domain/super/constants";
+import { VERIFIED_DIV7A_BENCHMARK_RATE_SEEDS } from "@/lib/domain/div7a/rates";
 
 const OBLIGATION_RULE_SEEDS = [
   {
@@ -113,6 +114,18 @@ const OBLIGATION_RULE_SEEDS = [
     portalUrl: "",
     checklist: ["提交抵扣意向通知", "保存基金确认"],
   },
+  {
+    id: "div7a_loan_agreement",
+    label: "Div 7A 协议截止义务",
+    appliesTo: { type: "company" },
+    frequency: "per_loan",
+    dueCalc: "company_lodgment_day",
+    adjustmentDirection: "forward",
+    requiredFields: [],
+    reminderOffsets: [-30, -10, -3, 0],
+    portalUrl: "https://www.ato.gov.au/law/view/document?LocID=%22PAC%2F19360027%2F109N%281%29%28b%29%22",
+    checklist: ["确认书面协议已在 lodgment day 前成立", "核对协议利率不低于适用年度基准利率", "核对担保类型与最高期限", "确认协议日期和文件均可追溯"],
+  },
 ] as const;
 
 const NEWS_SOURCE_SEEDS = [
@@ -214,6 +227,22 @@ export function seedDatabase() {
         cap.nonConcessionalSourceUrl,
         cap.nonConcessionalRetrievedAt,
       );
+    }
+
+    const insertDiv7aRate = db.prepare(`
+      INSERT INTO div7a_benchmark_rates
+        (income_year, rate_text, source_url, retrieved_at, entry_method, notes)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(income_year) DO UPDATE SET
+        rate_text = excluded.rate_text,
+        source_url = excluded.source_url,
+        retrieved_at = excluded.retrieved_at,
+        entry_method = excluded.entry_method,
+        notes = excluded.notes,
+        updated_at = datetime('now')
+    `);
+    for (const rate of VERIFIED_DIV7A_BENCHMARK_RATE_SEEDS) {
+      insertDiv7aRate.run(rate.incomeYear, rate.rateText, rate.sourceUrl, rate.retrievedAt, rate.entryMethod, rate.notes);
     }
 
     const updateSource = db.prepare("UPDATE news_sources SET url = ?, fetch_type = ?, active = ?, last_fetched_at = NULL, last_error = NULL, updated_at = datetime('now') WHERE name = ?");

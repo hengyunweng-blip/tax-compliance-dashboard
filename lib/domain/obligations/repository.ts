@@ -11,6 +11,7 @@ export type ObligationView = {
   entityName: string;
   entityType: string;
   periodLabel: string;
+  scopeKey: string;
   periodStart: DateOnly | null;
   periodEnd: DateOnly | null;
   incomeYear: string;
@@ -23,6 +24,7 @@ export type ObligationView = {
   paidAt: DateOnly | null;
   portalUrl: string;
   checklist: string[];
+  notes: string | null;
 };
 
 type ObligationRow = {
@@ -33,6 +35,7 @@ type ObligationRow = {
   entity_name: string;
   entity_type: string;
   period_label: string;
+  scope_key: string;
   period_start: DateOnly | null;
   period_end: DateOnly | null;
   income_year: string;
@@ -100,6 +103,7 @@ function mapRow(row: ObligationRow): ObligationView {
     entityName: row.entity_name,
     entityType: row.entity_type,
     periodLabel: row.period_label,
+    scopeKey: row.scope_key,
     periodStart: row.period_start,
     periodEnd: row.period_end,
     incomeYear: row.income_year,
@@ -112,6 +116,7 @@ function mapRow(row: ObligationRow): ObligationView {
     status: row.status,
     portalUrl: row.portal_url ?? "",
     checklist: readChecklist(row.checklist),
+    notes: row.notes,
   };
 }
 
@@ -119,7 +124,7 @@ export function getObligationsForFy(fy: string): ObligationView[] {
   const normalizedFy = fy.startsWith("FY") ? fy : `FY${fy}`;
   const rows = getRawDb().prepare(`
     SELECT o.id, o.rule_id, r.label AS rule_label, o.entity_id, e.name AS entity_name, e.type AS entity_type,
-      o.period_label, o.period_start, o.period_end, o.income_year, o.deadline_fy,
+      o.period_label, o.scope_key, o.period_start, o.period_end, o.income_year, o.deadline_fy,
       o.statutory_due, o.effective_due, o.status, o.lodged_at, o.paid_at, r.portal_url, r.checklist, o.notes
     FROM obligations o
     INNER JOIN entities e ON e.id = o.entity_id
@@ -133,7 +138,7 @@ export function getObligationsForFy(fy: string): ObligationView[] {
 export function getObligationById(id: number): ObligationView | null {
   const row = getRawDb().prepare(`
     SELECT o.id, o.rule_id, r.label AS rule_label, o.entity_id, e.name AS entity_name, e.type AS entity_type,
-      o.period_label, o.period_start, o.period_end, o.income_year, o.deadline_fy,
+      o.period_label, o.scope_key, o.period_start, o.period_end, o.income_year, o.deadline_fy,
       o.statutory_due, o.effective_due, o.status, o.lodged_at, o.paid_at, r.portal_url, r.checklist, o.notes
     FROM obligations o
     INNER JOIN entities e ON e.id = o.entity_id

@@ -5,11 +5,21 @@ import { beforeEach } from "vitest";
 import { getRawDb } from "@/lib/db/client";
 import { seedDatabase } from "@/lib/db/seed";
 import { calculateMinimumYearlyRepaymentCents } from "@/lib/domain/div7a/formula";
+import { saveBenchmarkRate } from "@/lib/domain/div7a/rates";
 import { createDiv7aLoan, getDiv7aLoanSummary, recordDiv7aRepayment } from "@/lib/domain/div7a/service";
 
 beforeEach(() => {
   seedDatabase();
   getRawDb().exec("DELETE FROM div7a_loans;");
+  for (let year = 2017; year <= 2027; year += 1) {
+    saveBenchmarkRate({
+      incomeYear: `FY${year}-${String(year + 1).slice(-2)}`,
+      rateText: "5.30%",
+      sourceUrl: "https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate",
+      retrievedAt: "2026-08-29",
+      notes: "Unit-test fixture rate; production values are entered from the annual ATO table.",
+    });
+  }
 });
 
 type OfficialBaseline = {
@@ -90,6 +100,28 @@ test("loan summary has no origination-year minimum and starts in the following y
   expect(getDiv7aLoanSummary(loanId, "FY2027-28").minimumRepaymentCents).toBeGreaterThan(0);
 });
 
+test("does not report an origination-year shortfall but exposes the following-year gap", () => {
+  const loanId = createDiv7aLoan({
+    lenderEntityId: "boyun_co",
+    borrower: "Shortfall warning fixture",
+    loanDate: "2026-07-04",
+    principalCents: 10_000_000,
+    termYears: 7,
+    benchmarkRate: "0.053",
+  });
+
+  expect(getDiv7aLoanSummary(loanId, "FY2026-27")).toMatchObject({
+    repaymentStatus: "origination",
+    minimumRepaymentCents: 0,
+    actualRepaymentCents: 0,
+    shortfallCents: 0,
+  });
+  const followingYear = getDiv7aLoanSummary(loanId, "FY2027-28");
+  expect(followingYear.repaymentStatus).toBe("active");
+  expect(followingYear.shortfallCents).toBe(followingYear.minimumRepaymentCents);
+  expect(followingYear.shortfallCents).toBeGreaterThan(0);
+});
+
 test("recomputes each year from the prior year-end balance and derived remaining term", () => {
   const loanId = createDiv7aLoan({
     lenderEntityId: "boyun_co",
@@ -138,9 +170,9 @@ test("rolls interest and recorded repayments into later-year balances", () => {
   });
 
   const paidFirst = getDiv7aLoanSummary(paidLoanId, "FY2017-18");
-  recordDiv7aRepayment({ loanId: paidLoanId, date: "2018-06-30", amountCents: paidFirst.minimumRepaymentCents });
+  recordDiv7aRepayment({ loanId: paidLoanId, date: "2018-06-30", amountCents: paidFirst.minimumRepaymentCents! });
   const paidSecond = getDiv7aLoanSummary(paidLoanId, "FY2018-19");
-  recordDiv7aRepayment({ loanId: paidLoanId, date: "2019-06-30", amountCents: paidSecond.minimumRepaymentCents });
+  recordDiv7aRepayment({ loanId: paidLoanId, date: "2019-06-30", amountCents: paidSecond.minimumRepaymentCents! });
   const paidThird = getDiv7aLoanSummary(paidLoanId, "FY2019-20");
   const unpaidThird = getDiv7aLoanSummary(unpaidLoanId, "FY2019-20");
 
@@ -162,7 +194,7 @@ test("marks a loan as expired when the final scheduled income year is reached", 
   for (let year = 2017; year <= 2022; year += 1) {
     const incomeYear = `FY${year}-${String(year + 1).slice(-2)}`;
     const summary = getDiv7aLoanSummary(loanId, incomeYear);
-    recordDiv7aRepayment({ loanId, date: `${year + 1}-06-30`, amountCents: summary.minimumRepaymentCents });
+    recordDiv7aRepayment({ loanId, date: `${year + 1}-06-30`, amountCents: summary.minimumRepaymentCents! });
   }
 
   expect(getDiv7aLoanSummary(loanId, "FY2023-24")).toMatchObject({
@@ -193,7 +225,7 @@ test("repays the final scheduled year and closes the balance at zero", () => {
     const incomeYear = `FY${year}-${String(year + 1).slice(-2)}`;
     const summary = getDiv7aLoanSummary(loanId, incomeYear);
     expect(summary.repaymentStatus).toBe("active");
-    recordDiv7aRepayment({ loanId, date: `${year + 1}-06-30`, amountCents: summary.minimumRepaymentCents });
+    recordDiv7aRepayment({ loanId, date: `${year + 1}-06-30`, amountCents: summary.minimumRepaymentCents! });
   }
 
   const finalYear = getDiv7aLoanSummary(loanId, "FY2023-24");

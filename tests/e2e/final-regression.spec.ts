@@ -19,11 +19,20 @@ test("Gate 5 annual, Div 7A, super and backup flows render with fixed dates", as
 
   await page.goto("/div7a");
   await expect(page.getByTestId("div7a-page")).toBeVisible();
+  const rateResponse = await page.request.post("/api/div7a/rates", {
+    data: {
+      incomeYear: "FY2017-18",
+      rateText: "5.30%",
+      sourceUrl: "https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate",
+      retrievedAt: "2026-08-29",
+      notes: "Gate 5 regression fixture; the official baseline remains in tests/fixtures/div7a/ato-baseline.json.",
+    },
+  });
+  expect(rateResponse.ok()).toBe(true);
   const suffix = Date.now();
   await page.getByLabel("借款人").fill(`Gate5 borrower ${suffix}`);
   await page.getByLabel("贷款日").fill("15/05/2017");
   await page.getByLabel("本金（AUD）").fill("100000.00");
-  await page.getByLabel("基准利率（手动，小数或百分比）").fill("5.30%");
   await page.getByRole("button", { name: "保存贷款" }).click();
   await expect(page.getByText("Div 7A 贷款已保存", { exact: false })).toBeVisible();
   await page.getByLabel("评估所得年度").selectOption("FY2017-18");

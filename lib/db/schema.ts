@@ -124,6 +124,7 @@ export const obligations = sqliteTable("obligations", {
   ruleId: text("rule_id").notNull().references(() => obligationRules.id),
   entityId: text("entity_id").notNull().references(() => entities.id),
   periodLabel: text("period_label").notNull(),
+  scopeKey: text("scope_key").notNull().default("entity"),
   periodStart: text("period_start"),
   periodEnd: text("period_end"),
   incomeYear: text("income_year").notNull(),
@@ -143,6 +144,7 @@ export const obligations = sqliteTable("obligations", {
     table.ruleId,
     table.entityId,
     table.periodLabel,
+    table.scopeKey,
   ),
   dueIndex: index("obligations_effective_due_idx").on(table.effectiveDue, table.status),
 }));
@@ -190,9 +192,50 @@ export const div7aLoans = sqliteTable("div7a_loans", {
   minRepaymentFyCents: integer("min_repayment_fy_cents").notNull().default(0),
   repaymentsJson: text("repayments_json").notNull().default("[]"),
   agreementSigned: integer("agreement_signed", { mode: "boolean" }).notNull().default(false),
+  originalIncomeYear: text("original_income_year"),
+  securityType: text("security_type").notNull().default("unknown"),
+  agreementSignedAt: text("agreement_signed_at"),
+  agreementDocumentId: integer("agreement_document_id").references(() => documents.id),
+  agreementRateText: text("agreement_rate_text"),
+  agreementTermsStatus: text("agreement_terms_status").notNull().default("unknown"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+export const div7aBenchmarkRates = sqliteTable("div7a_benchmark_rates", {
+  incomeYear: text("income_year").primaryKey(),
+  rateText: text("rate_text").notNull(),
+  sourceUrl: text("source_url").notNull(),
+  retrievedAt: text("retrieved_at").notNull(),
+  entryMethod: text("entry_method").notNull().default("manual"),
+  notes: text("notes"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const openingBalances = sqliteTable("opening_balances", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  entityId: text("entity_id").notNull().references(() => entities.id),
+  category: text("category").notNull(),
+  referenceType: text("reference_type").notNull(),
+  referenceId: text("reference_id"),
+  asOfDate: text("as_of_date").notNull(),
+  amountCents: integer("amount_cents"),
+  valueText: text("value_text"),
+  sourceDescription: text("source_description").notNull(),
+  enteredBy: text("entered_by").notNull(),
+  enteredAt: text("entered_at").notNull(),
+  notes: text("notes"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (table) => ({
+  referenceUnique: uniqueIndex("opening_balances_reference_unique").on(
+    table.category,
+    table.referenceId,
+    table.asOfDate,
+  ),
+  entityIndex: index("opening_balances_entity_idx").on(table.entityId, table.category),
+}));
 
 export const superContributions = sqliteTable("super_contributions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -323,6 +366,8 @@ export const schema = {
   reminders,
   basWorksheets,
   div7aLoans,
+  div7aBenchmarkRates,
+  openingBalances,
   superContributions,
   superCaps,
   newsSources,
@@ -346,6 +391,8 @@ export const tableNames = [
   "reminders",
   "bas_worksheets",
   "div7a_loans",
+  "div7a_benchmark_rates",
+  "opening_balances",
   "super_contributions",
   "super_caps",
   "news_sources",
@@ -374,6 +421,7 @@ export const amountColumns = [
   "bas_worksheets.statement_total_cents",
   "div7a_loans.principal_cents",
   "div7a_loans.min_repayment_fy_cents",
+  "opening_balances.amount_cents",
   "super_contributions.amount_cents",
   "super_contributions.cap_cents",
 ].map((name) => ({ name, dataType: "number" as const, columnType: "INTEGER" as const }));

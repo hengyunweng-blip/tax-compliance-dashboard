@@ -23,7 +23,7 @@ test("seed creates six entities and three GST-registered companies without oblig
     "neighbourhood_co",
   ]);
   expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM obligations").get()).toEqual({ count: 0 });
-  expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM obligation_rules").get()).toEqual({ count: 9 });
+  expect(getRawDb().prepare("SELECT COUNT(*) AS count FROM obligation_rules").get()).toEqual({ count: 10 });
   expect(getRawDb().prepare(`
     SELECT id, adjustment_direction
     FROM obligation_rules

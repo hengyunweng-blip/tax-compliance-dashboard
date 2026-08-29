@@ -23,6 +23,7 @@ import {
   type ObligationStatus,
 } from "@/lib/domain/obligations/rules";
 import { buildReminderInstances } from "@/lib/domain/obligations/reminders";
+import { expandDiv7aAgreementObligations } from "@/lib/domain/div7a/agreement";
 import type { DateOnly } from "@/lib/time/melbourne";
 
 const BAS_PERIODS: Record<BasQuarter, { start: DateOnly; end: DateOnly }> = {
@@ -286,10 +287,10 @@ export function expandObligationsInDatabase({ fy, context }: { fy: string; conte
   const transaction = db.transaction(() => {
     const insert = db.prepare(`
       INSERT INTO obligations (
-        rule_id, entity_id, period_label, period_start, period_end, income_year, deadline_fy,
+        rule_id, entity_id, period_label, scope_key, period_start, period_end, income_year, deadline_fy,
         statutory_due, effective_due, status, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(rule_id, entity_id, period_label) DO UPDATE SET
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(rule_id, entity_id, period_label, scope_key) DO UPDATE SET
         period_start = excluded.period_start,
         period_end = excluded.period_end,
         income_year = excluded.income_year,
@@ -309,6 +310,7 @@ export function expandObligationsInDatabase({ fy, context }: { fy: string; conte
         input.ruleId,
         input.entityId,
         input.periodLabel,
+        input.scopeKey ?? "entity",
         input.periodStart,
         input.periodEnd,
         input.incomeYear,
@@ -316,7 +318,7 @@ export function expandObligationsInDatabase({ fy, context }: { fy: string; conte
         input.statutoryDue,
         input.effectiveDue,
         input.status,
-        JSON.stringify({
+        input.notes ?? JSON.stringify({
           ruleLabel: input.ruleLabel,
           portalUrl: input.portalUrl,
           checklist: input.checklist,
@@ -328,15 +330,19 @@ export function expandObligationsInDatabase({ fy, context }: { fy: string; conte
       const obligation = db.prepare(`
         SELECT id
         FROM obligations
-        WHERE rule_id = ? AND entity_id = ? AND period_label = ?
-      `).get(input.ruleId, input.entityId, input.periodLabel) as { id: number };
+        WHERE rule_id = ? AND entity_id = ? AND period_label = ? AND scope_key = ?
+      `).get(input.ruleId, input.entityId, input.periodLabel, input.scopeKey ?? "entity") as { id: number };
       db.prepare("DELETE FROM reminders WHERE obligation_id = ? AND acknowledged_at IS NULL").run(obligation.id);
-      if (input.effectiveDue && reminderOffsets[input.ruleId]?.length) {
+      const configuredReminderOffsets = reminderOffsets[input.ruleId] ?? [];
+      const effectiveReminderOffsets = input.ruleId === "div7a_loan_agreement"
+        ? [...new Set([...configuredReminderOffsets, ...Array.from({ length: 365 }, (_, index) => index + 1)])]
+        : configuredReminderOffsets;
+      if (input.effectiveDue && effectiveReminderOffsets.length) {
         const reminderRows = buildReminderInstances({
           obligationId: obligation.id,
           effectiveDue: input.effectiveDue,
           reminderStart: input.windowOpens ?? undefined,
-          reminderOffsets: reminderOffsets[input.ruleId],
+          reminderOffsets: effectiveReminderOffsets,
         });
         const insertReminder = db.prepare(`
           INSERT INTO reminders (obligation_id, fire_at, level)
@@ -346,6 +352,41 @@ export function expandObligationsInDatabase({ fy, context }: { fy: string; conte
           insertReminder.run(reminder.obligationId, reminder.fireAt, reminder.level);
         }
       }
+    }
+    const agreementInputs = expandDiv7aAgreementObligations();
+    for (const input of agreementInputs) {
+      insert.run(
+        input.ruleId,
+        input.entityId,
+        input.periodLabel,
+        input.scopeKey ?? "entity",
+        input.periodStart,
+        input.periodEnd,
+        input.incomeYear,
+        input.deadlineFy,
+        input.statutoryDue,
+        input.effectiveDue,
+        input.status,
+        input.notes ?? JSON.stringify({ ruleLabel: input.ruleLabel, portalUrl: input.portalUrl, checklist: input.checklist }),
+      );
+      const obligation = db.prepare(`
+        SELECT id
+        FROM obligations
+        WHERE rule_id = ? AND entity_id = ? AND period_label = ? AND scope_key = ?
+      `).get(input.ruleId, input.entityId, input.periodLabel, input.scopeKey ?? "entity") as { id: number };
+      db.prepare("DELETE FROM reminders WHERE obligation_id = ? AND acknowledged_at IS NULL").run(obligation.id);
+      const configuredReminderOffsets = reminderOffsets[input.ruleId] ?? [];
+      const effectiveReminderOffsets = [...new Set([...configuredReminderOffsets, ...Array.from({ length: 365 }, (_, index) => index + 1)])];
+      const reminderRows = buildReminderInstances({
+        obligationId: obligation.id,
+        effectiveDue: input.effectiveDue as DateOnly,
+        reminderOffsets: effectiveReminderOffsets,
+      });
+      const insertReminder = db.prepare(`
+        INSERT INTO reminders (obligation_id, fire_at, level)
+        VALUES (?, ?, ?)
+      `);
+      for (const reminder of reminderRows) insertReminder.run(reminder.obligationId, reminder.fireAt, reminder.level);
     }
   });
   transaction();

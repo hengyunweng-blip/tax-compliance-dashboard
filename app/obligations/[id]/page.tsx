@@ -11,6 +11,24 @@ function displayIncomeYear(incomeYear: string) {
   return incomeYear.replace("-", "–");
 }
 
+function agreementDetails(notes: string | null) {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes) as { loanId?: unknown; lodgmentDay?: unknown; benchmarkRate?: unknown; assessment?: { status?: unknown; missingInputs?: unknown; reasons?: unknown } };
+    const assessment = parsed.assessment;
+    return {
+      loanId: typeof parsed.loanId === "number" ? parsed.loanId : null,
+      lodgmentDay: typeof parsed.lodgmentDay === "string" ? parsed.lodgmentDay : null,
+      benchmarkRate: typeof parsed.benchmarkRate === "string" ? parsed.benchmarkRate : null,
+      status: typeof assessment?.status === "string" ? assessment.status : "blocked",
+      missingInputs: Array.isArray(assessment?.missingInputs) ? assessment.missingInputs.filter((item): item is string => typeof item === "string") : [],
+      reasons: Array.isArray(assessment?.reasons) ? assessment.reasons.filter((item): item is string => typeof item === "string") : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 const STATUS_LABELS: Record<string, string> = {
   blocked: "待配置",
   todo: "待处理",
@@ -29,6 +47,8 @@ export default async function ObligationDetailPage({ params }: { params: Promise
     notFound();
   }
   const isLicence = obligation.ruleId === "estate_agent_licence_annual_statement";
+  const isDiv7aAgreement = obligation.ruleId === "div7a_loan_agreement";
+  const div7aDetails = isDiv7aAgreement ? agreementDetails(obligation.notes) : null;
   const licenceCancellationDate = isLicence && obligation.statutoryDue
     ? calculateLicenceCancellationDate(obligation.statutoryDue)
     : null;
@@ -65,6 +85,15 @@ export default async function ObligationDetailPage({ params }: { params: Promise
           {obligation.paidAt ? <div><span>实际缴款日期</span><strong>{formatDueDate(obligation.paidAt)}</strong></div> : null}
         </div>
         <p className="detail-note">此卡所属所得年度为 {displayIncomeYear(obligation.incomeYear)}；截止日所在财年为 {displayIncomeYear(obligation.deadlineFy)}。</p>
+        {isDiv7aAgreement ? (
+          <div className="detail-div7a-agreement" data-testid="div7a-agreement-detail">
+            <h2>协议条件核对</h2>
+            <p>贷款范围：{div7aDetails?.loanId ? `贷款 ${div7aDetails.loanId}` : "无法判断"} · lodgment day：{div7aDetails?.lodgmentDay ? formatDueDate(div7aDetails.lodgmentDay as `${number}-${number}-${number}`) : "无法判断"} · 适用基准利率：{div7aDetails?.benchmarkRate ?? "未配置"}</p>
+            {div7aDetails?.missingInputs.length ? <p>缺少资料：{div7aDetails.missingInputs.join("、")}</p> : null}
+            {div7aDetails?.reasons.length ? <p className="danger-text">核对警告：{div7aDetails.reasons.join("；")}</p> : null}
+            {!div7aDetails?.missingInputs.length && !div7aDetails?.reasons.length ? <p>协议资料已通过当前规则核对；仍请保留原始文件和人工判断依据。</p> : null}
+          </div>
+        ) : null}
         {licenceCancellationDate ? (
           <p className="detail-licence-consequence"><strong>牌照后果：</strong>周年日后 21 天仍未完成年度声明，牌照将自动注销（{formatDueDate(licenceCancellationDate)}）。</p>
         ) : null}

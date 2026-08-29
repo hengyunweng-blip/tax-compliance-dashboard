@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseMoneyToCents } from "@/lib/money";
-import { createDiv7aLoan, getDiv7aLoanSummary, listDiv7aLoans, recordDiv7aRepayment } from "@/lib/domain/div7a/service";
+import { createDiv7aLoan, getDiv7aLoanSchedule, getDiv7aLoanSummary, listDiv7aLoans, recordDiv7aRepayment } from "@/lib/domain/div7a/service";
+import { saveDiv7aAgreement, saveDiv7aOpeningBalance } from "@/lib/domain/div7a/opening-balances";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,9 @@ const createSchema = z.object({
   principalCents: z.number().int().optional(),
   principal: z.string().optional(),
   termYears: z.number().int().min(1).max(25),
-  benchmarkRate: z.string().min(1),
+  benchmarkRate: z.string().optional(),
   agreementSigned: z.boolean().optional(),
+  securityType: z.enum(["unsecured", "registered_mortgage", "unknown"]).optional(),
 }).strict().refine((value) => value.principalCents !== undefined || value.principal !== undefined, {
   message: "principal or principalCents is required",
   path: ["principalCents"],
@@ -30,13 +32,49 @@ const repaymentSchema = z.object({
   path: ["amountCents"],
 });
 
+const openingBalanceSchema = z.object({
+  action: z.literal("opening_balance"),
+  loanId: z.number().int().positive(),
+  balanceCents: z.number().int().nonnegative().optional(),
+  balance: z.string().optional(),
+  asOfDate: z.string().min(1),
+  originalIncomeYear: z.string().min(1),
+  originalTermYears: z.number().int().min(1).max(25),
+  securityType: z.enum(["unsecured", "registered_mortgage", "unknown"]),
+  agreementTermsStatus: z.enum(["unknown", "compliant", "not_compliant", "needs_review"]),
+  agreementRateText: z.string().nullable().optional(),
+  agreementSignedAt: z.string().nullable().optional(),
+  agreementDocumentId: z.number().int().positive().nullable().optional(),
+  sourceDescription: z.string().min(1),
+  enteredBy: z.string().min(1),
+  enteredAt: z.string().min(1),
+  notes: z.string().nullable().optional(),
+}).strict().refine((value) => value.balanceCents !== undefined || value.balance !== undefined, {
+  message: "balance or balanceCents is required",
+  path: ["balanceCents"],
+});
+
+const agreementSchema = z.object({
+  action: z.literal("agreement"),
+  loanId: z.number().int().positive(),
+  agreementSignedAt: z.string().nullable(),
+  agreementDocumentId: z.number().int().positive().nullable(),
+  agreementRateText: z.string().nullable(),
+  agreementTermsStatus: z.enum(["unknown", "compliant", "not_compliant", "needs_review"]),
+  securityType: z.enum(["unsecured", "registered_mortgage", "unknown"]),
+}).strict();
+
 export function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const fy = url.searchParams.get("fy") ?? "2026-27";
     const loanId = url.searchParams.get("loanId");
     const loans = listDiv7aLoans();
-    return Response.json({ loans: loanId ? loans.filter((loan) => loan.id === Number(loanId)).map((loan) => getDiv7aLoanSummary(loan.id, fy)) : loans.map((loan) => getDiv7aLoanSummary(loan.id, fy)) });
+    const selected = loanId ? loans.filter((loan) => loan.id === Number(loanId)) : loans;
+    return Response.json({ loans: selected.map((loan) => ({
+      ...getDiv7aLoanSummary(loan.id, fy),
+      schedule: getDiv7aLoanSchedule(loan.id, fy),
+    })) });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Div 7A 暂时不可用" }, { status: 400 });
   }
@@ -50,6 +88,17 @@ export async function POST(request: Request) {
       const principalCents = parsed.principalCents ?? parseMoneyToCents(parsed.principal as string);
       const id = createDiv7aLoan({ ...parsed, principalCents });
       return Response.json({ id }, { status: 201 });
+    }
+    if (typeof body === "object" && body !== null && "action" in body && body.action === "opening_balance") {
+      const parsed = openingBalanceSchema.parse(body);
+      const balanceCents = parsed.balanceCents ?? parseMoneyToCents(parsed.balance as string);
+      const openingBalance = saveDiv7aOpeningBalance({ ...parsed, balanceCents });
+      return Response.json({ openingBalance });
+    }
+    if (typeof body === "object" && body !== null && "action" in body && body.action === "agreement") {
+      const parsed = agreementSchema.parse(body);
+      saveDiv7aAgreement(parsed);
+      return Response.json({ loans: listDiv7aLoans() });
     }
     const parsed = repaymentSchema.parse(body);
     const amountCents = parsed.amountCents ?? parseMoneyToCents(parsed.amount as string);

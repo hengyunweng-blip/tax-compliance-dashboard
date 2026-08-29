@@ -2,6 +2,7 @@ import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { GST_CODES, type GstCode } from "@/lib/constants/gst";
 import { listTransactions, type ClosedPeriodResolution, type Transaction } from "@/lib/ingest/transactions";
+import { ensureObligationsForFy } from "@/lib/domain/obligations/repository";
 
 export type DocumentInboxItem = {
   kind: "document";
@@ -34,10 +35,28 @@ export type ClosedPeriodInboxItem = Omit<TransactionInboxItem, "kind" | "reviewF
   closedPeriodResolution: ClosedPeriodResolution | null;
 };
 
-export type InboxItem = DocumentInboxItem | TransactionInboxItem | ClosedPeriodInboxItem;
+export type Div7aAgreementInboxItem = {
+  kind: "div7a_agreement";
+  id: number;
+  entityId: string;
+  entityName: string;
+  loanId: number;
+  borrower: string;
+  periodLabel: string;
+  statutoryDue: string | null;
+  effectiveDue: string | null;
+  status: string;
+  scopeKey: string;
+  assessmentStatus: string;
+  missingInputs: string[];
+  reasons: string[];
+};
+
+export type InboxItem = DocumentInboxItem | TransactionInboxItem | ClosedPeriodInboxItem | Div7aAgreementInboxItem;
 
 export async function listInboxItems(): Promise<InboxItem[]> {
   runMigrations();
+  ensureObligationsForFy("2026-27");
   const db = getRawDb();
   const documents = db.prepare(`
     SELECT id, entity_id, file_path, mime, source, status
@@ -95,6 +114,24 @@ export async function listInboxItems(): Promise<InboxItem[]> {
     account_id: number;
     review_flag: number;
   }>;
+  const agreements = db.prepare(`
+    SELECT o.id, o.entity_id, e.name AS entity_name, o.scope_key, o.period_label,
+      o.statutory_due, o.effective_due, o.status, o.notes
+    FROM obligations o
+    INNER JOIN entities e ON e.id = o.entity_id
+    WHERE o.rule_id = 'div7a_loan_agreement' AND o.status NOT IN ('paid', 'na')
+    ORDER BY o.effective_due, o.id
+  `).all() as Array<{
+    id: number;
+    entity_id: string;
+    entity_name: string;
+    scope_key: string;
+    period_label: string;
+    statutory_due: string | null;
+    effective_due: string | null;
+    status: string;
+    notes: string | null;
+  }>;
   return [
     ...documents.map((document): DocumentInboxItem => ({
       kind: "document",
@@ -132,6 +169,22 @@ export async function listInboxItems(): Promise<InboxItem[]> {
       accountId: transaction.account_id,
       reviewFlag: Boolean(transaction.review_flag),
     })),
+    ...agreements.map((agreement): Div7aAgreementInboxItem => {
+      let assessmentStatus = "unknown";
+      let missingInputs: string[] = [];
+      let reasons: string[] = [];
+      try {
+        const parsed = JSON.parse(agreement.notes ?? "{}") as { loanId?: unknown; assessment?: { status?: unknown; missingInputs?: unknown; reasons?: unknown } };
+        if (typeof parsed.assessment?.status === "string") assessmentStatus = parsed.assessment.status;
+        if (Array.isArray(parsed.assessment?.missingInputs)) missingInputs = parsed.assessment.missingInputs.filter((item): item is string => typeof item === "string");
+        if (Array.isArray(parsed.assessment?.reasons)) reasons = parsed.assessment.reasons.filter((item): item is string => typeof item === "string");
+        const loanId = typeof parsed.loanId === "number" ? parsed.loanId : Number(agreement.scope_key.replace(/^loan:/, ""));
+        return { kind: "div7a_agreement", id: agreement.id, entityId: agreement.entity_id, entityName: agreement.entity_name, loanId, borrower: `贷款 ${loanId}`, periodLabel: agreement.period_label, statutoryDue: agreement.statutory_due, effectiveDue: agreement.effective_due, status: agreement.status, scopeKey: agreement.scope_key, assessmentStatus, missingInputs, reasons };
+      } catch {
+        const loanId = Number(agreement.scope_key.replace(/^loan:/, ""));
+        return { kind: "div7a_agreement", id: agreement.id, entityId: agreement.entity_id, entityName: agreement.entity_name, loanId, borrower: `贷款 ${loanId}`, periodLabel: agreement.period_label, statutoryDue: agreement.statutory_due, effectiveDue: agreement.effective_due, status: agreement.status, scopeKey: agreement.scope_key, assessmentStatus, missingInputs, reasons };
+      }
+    }),
   ];
 }
 

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { classifyTransaction } from "@/lib/rules/classification";
 import { formatCents } from "@/lib/money";
-import type { ClosedPeriodInboxItem, InboxItem, TransactionInboxItem } from "@/lib/ingest/inbox";
+import type { ClosedPeriodInboxItem, Div7aAgreementInboxItem, InboxItem, TransactionInboxItem } from "@/lib/ingest/inbox";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
 
 type Props = {
@@ -33,7 +33,15 @@ export function InboxRow({ item, entities, accounts, onUpdated }: Props) {
   if (item.kind === "closed_period_transaction") {
     return <TransactionInboxRow item={item} entities={entities} accounts={accounts} onUpdated={onUpdated} closedPeriod />;
   }
+  if (item.kind === "div7a_agreement") {
+    return <Div7aAgreementInboxRow item={item} />;
+  }
   return <TransactionInboxRow item={item} entities={entities} accounts={accounts} onUpdated={onUpdated} />;
+}
+
+function Div7aAgreementInboxRow({ item }: { item: Div7aAgreementInboxItem }) {
+  const assessment = item.assessmentStatus === "compliant" ? "条款已核对" : item.assessmentStatus === "not_compliant" ? "条款不合规" : "无法判断";
+  return <article className="inbox-row div7a-agreement-inbox-row" data-inbox-row tabIndex={0} data-testid={`div7a-agreement-${item.id}`}><div className="inbox-row-main"><span className="inbox-type">Div 7A 协议 · {assessment}</span><strong>{item.entityName} · {item.borrower}</strong><small>{item.periodLabel} · 截止：{item.effectiveDue ? formatDueDate(item.effectiveDue as DateOnly) : "无法判断"} · {item.scopeKey}</small>{item.missingInputs.length ? <small>缺少：{item.missingInputs.join("、")}</small> : null}{item.reasons.length ? <small className="danger-text">警告：{item.reasons.join("；")}</small> : null}</div><a className="secondary-button" href={`/obligations/${item.id}`}>打开协议义务</a></article>;
 }
 
 function TransactionInboxRow({ item, entities, accounts, onUpdated, closedPeriod = false }: { item: TransactionInboxItem | ClosedPeriodInboxItem; entities: Props["entities"]; accounts: Props["accounts"]; onUpdated: () => void; closedPeriod?: boolean }) {

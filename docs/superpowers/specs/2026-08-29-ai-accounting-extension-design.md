@@ -1,6 +1,6 @@
 # 高级 AI 会计副驾扩展设计
 
-**状态：已按用户最新确认修订设计；车辆事实清单已交付；Gate 5 三项基线修复执行中；Gate 6 尚未开始**
+**状态：已按用户最新确认修订设计；车辆事实清单已交付；Gate 5 三项基线修复已完成；Gate 6 实现与证据已完成，待用户验收**
 **设计日期：2026-08-29（Australia/Melbourne）**
 **基础系统：** `docs/superpowers/specs/2026-08-26-tax-compliance-system-design.md`
 

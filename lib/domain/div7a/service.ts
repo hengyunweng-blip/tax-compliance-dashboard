@@ -3,6 +3,8 @@ import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { assertIntegerCents } from "@/lib/money";
 import { calculateAnnualInterestCents, calculateMinimumYearlyRepaymentCents } from "@/lib/domain/div7a/formula";
+import { getBenchmarkRateForIncomeYear } from "@/lib/domain/div7a/rates";
+import { DIV7A_CUTOVER_DATE, getDiv7aOpeningBalance, type AgreementTermsStatus, type SecurityType } from "@/lib/domain/div7a/opening-balances";
 import { deriveFiscalPeriod } from "@/lib/ingest/transactions";
 import { assertDateOnly, formatDateOnly, parseMelbourneDate, todayInMelbourne, type DateOnly } from "@/lib/time/melbourne";
 
@@ -20,34 +22,49 @@ export type Div7aLoan = {
   originalTermYears: number;
   /** Backwards-compatible alias for the original contractual term. */
   termYears: number;
+  /** Legacy rate retained for migration/display diagnostics only. */
   benchmarkRate: string;
+  legacyBenchmarkRate: string;
   repayments: StoredRepayment[];
   agreementSigned: boolean;
+  agreementSignedAt: DateOnly | null;
+  agreementDocumentId: number | null;
+  agreementRateText: string | null;
+  agreementTermsStatus: AgreementTermsStatus;
+  securityType: SecurityType;
 };
 
 export type Div7aSummary = Div7aLoan & {
   assessmentIncomeYear: string;
   elapsedRepaymentYears: number;
   /** Derived remaining term for this assessment year, not the stored original term. */
-  remainingTermYears: number;
+  remainingTermYears: number | null;
   /** Opening balance for the assessment income year. */
-  openingBalanceCents: number;
-  balanceAtPreviousYearEndCents: number;
+  openingBalanceCents: number | null;
+  balanceAtPreviousYearEndCents: number | null;
   /** Interest for the assessment income year at the manually entered rate. */
-  interestCents: number;
-  repaymentStatus: "origination" | "active" | "expired";
+  interestCents: number | null;
+  repaymentStatus: "origination" | "active" | "expired" | "manual_review";
   isExpired: boolean;
-  minimumRepaymentCents: number;
-  actualRepaymentCents: number;
+  minimumRepaymentCents: number | null;
+  actualRepaymentCents: number | null;
   /** Closing balance after current-year interest and recorded repayments. */
-  closingBalanceCents: number;
+  closingBalanceCents: number | null;
   /** Non-null when the scheduled term ended with an unresolved balance. */
   unresolvedBalanceCents: number | null;
   /** Manual-review warning for an expired loan that still has a balance. */
   expiryWarning: string | null;
-  shortfallCents: number;
+  shortfallCents: number | null;
+  benchmarkRateText: string | null;
+  benchmarkRateSourceUrl: string | null;
+  benchmarkRateRetrievedAt: string | null;
+  unresolvedReason: string | null;
   repaymentDue: DateOnly | null;
   daysUntilRepaymentDue: number | null;
+};
+
+export type Div7aLoanView = Div7aSummary & {
+  schedule: Div7aSummary[];
 };
 
 function normalizeFy(value: string) {
@@ -122,21 +139,37 @@ function mapLoan(row: {
   benchmark_rate: number;
   repayments_json: string;
   agreement_signed: number;
+  original_income_year: string | null;
+  security_type: string;
+  agreement_signed_at: DateOnly | null;
+  agreement_document_id: number | null;
+  agreement_rate_text: string | null;
+  agreement_terms_status: string;
 }): Div7aLoan {
   assertIntegerCents(row.principal_cents);
+  const securityType = row.security_type as SecurityType;
+  const agreementTermsStatus = row.agreement_terms_status as AgreementTermsStatus;
+  if (!["unsecured", "registered_mortgage", "unknown"].includes(securityType)) throw new Error(`Invalid security type: ${row.security_type}`);
+  if (!["unknown", "compliant", "not_compliant", "needs_review"].includes(agreementTermsStatus)) throw new Error(`Invalid agreement terms status: ${row.agreement_terms_status}`);
   return {
     id: row.id,
     lenderEntityId: row.lender_entity_id,
     lenderEntityName: row.lender_entity_name,
     borrower: row.borrower,
     loanDate: row.loan_date,
-    loanIncomeYear: normalizeFy(deriveFiscalPeriod(row.loan_date).fy),
+    loanIncomeYear: row.original_income_year ? normalizeFy(row.original_income_year) : normalizeFy(deriveFiscalPeriod(row.loan_date).fy),
     principalCents: row.principal_cents,
     originalTermYears: row.term_years,
     termYears: row.term_years,
     benchmarkRate: String(row.benchmark_rate),
+    legacyBenchmarkRate: String(row.benchmark_rate),
     repayments: readRepayments(row.repayments_json),
     agreementSigned: Boolean(row.agreement_signed),
+    agreementSignedAt: row.agreement_signed_at,
+    agreementDocumentId: row.agreement_document_id,
+    agreementRateText: row.agreement_rate_text,
+    agreementTermsStatus,
+    securityType,
   };
 }
 
@@ -156,30 +189,58 @@ function actualRepaymentCentsForIncomeYear(loan: Div7aLoan, incomeYear: string) 
   return total;
 }
 
-function balanceAtPreviousYearEndCents(loan: Div7aLoan, assessmentIncomeYear: string) {
-  const assessmentStart = incomeYearStart(assessmentIncomeYear);
-  let balance = loan.principalCents;
-  const loanStart = incomeYearStart(loan.loanIncomeYear);
+type RollForwardResult = {
+  balanceCents: number | null;
+  missingReason: string | null;
+};
 
-  // The origination year has no minimum repayment schedule. Any repayment
-  // recorded in that year still reduces the opening balance of the next year,
-  // but annual benchmark interest starts with the first repayment year.
-  for (let year = loanStart; year < assessmentStart; year += 1) {
+function currentYearRate(incomeYear: string) {
+  return getBenchmarkRateForIncomeYear(incomeYear);
+}
+
+function balanceAtPreviousYearEndCents(loan: Div7aLoan, assessmentIncomeYear: string): RollForwardResult {
+  const assessmentStart = incomeYearStart(assessmentIncomeYear);
+  const loanStart = incomeYearStart(loan.loanIncomeYear);
+  if (assessmentStart <= loanStart) return { balanceCents: loan.principalCents, missingReason: null };
+
+  let startYear = loanStart;
+  let balance = loan.principalCents;
+  if (loanStart < incomeYearStart("FY2026-27") && assessmentStart >= incomeYearStart("FY2026-27")) {
+    const opening = getDiv7aOpeningBalance(loan.id);
+    if (!opening) {
+      return { balanceCents: null, missingReason: "无法判断 / 期初余额未配置（需要 30 Jun 2026 会计 FY2025–26 底稿余额）" };
+    }
+    balance = opening.balanceCents;
+    startYear = incomeYearStart("FY2026-27");
+  }
+
+  // The origination year has no minimum repayment schedule. For a cutover
+  // loan, the opening balance replaces all pre-cutover history; only years
+  // from FY2026-27 onward are rolled forward.
+  for (let year = startYear; year < assessmentStart; year += 1) {
     const incomeYear = incomeYearForStart(year);
-    const interestCents = year === loanStart ? 0 : calculateAnnualInterestCents(balance, loan.benchmarkRate);
+    const isOriginationYear = year === loanStart;
+    const isWithinTerm = year > loanStart && year <= loanStart + loan.originalTermYears;
+    const rate = isOriginationYear || !isWithinTerm ? null : currentYearRate(incomeYear);
+    if (isWithinTerm && !rate) {
+      return { balanceCents: null, missingReason: `无法判断 / ${incomeYear} 基准利率未配置` };
+    }
+    const interestCents = rate ? calculateAnnualInterestCents(balance, rate.rateText) : 0;
     const actualRepaymentCents = actualRepaymentCentsForIncomeYear(loan, incomeYear);
     balance = Math.max(0, balance + interestCents - actualRepaymentCents);
     assertIntegerCents(balance);
   }
   assertIntegerCents(balance);
-  return balance;
+  return { balanceCents: balance, missingReason: null };
 }
 
 export function listDiv7aLoans(): Div7aLoan[] {
   runMigrations();
   const rows = getRawDb().prepare(`
     SELECT l.id, l.lender_entity_id, e.name AS lender_entity_name, l.borrower, l.loan_date,
-      l.principal_cents, l.term_years, l.benchmark_rate, l.repayments_json, l.agreement_signed
+      l.principal_cents, l.term_years, l.benchmark_rate, l.repayments_json, l.agreement_signed,
+      l.original_income_year, l.security_type, l.agreement_signed_at, l.agreement_document_id,
+      l.agreement_rate_text, l.agreement_terms_status
     FROM div7a_loans l
     INNER JOIN entities e ON e.id = l.lender_entity_id
     ORDER BY l.loan_date, l.id
@@ -194,6 +255,12 @@ export function listDiv7aLoans(): Div7aLoan[] {
     benchmark_rate: number;
     repayments_json: string;
     agreement_signed: number;
+    original_income_year: string | null;
+    security_type: string;
+    agreement_signed_at: DateOnly | null;
+    agreement_document_id: number | null;
+    agreement_rate_text: string | null;
+    agreement_terms_status: string;
   }>;
   return rows.map(mapLoan);
 }
@@ -204,8 +271,14 @@ export function createDiv7aLoan(input: {
   loanDate: string;
   principalCents: number;
   termYears: number;
-  benchmarkRate: string;
+  benchmarkRate?: string;
   agreementSigned?: boolean;
+  originalIncomeYear?: string;
+  securityType?: SecurityType;
+  agreementSignedAt?: string | null;
+  agreementDocumentId?: number | null;
+  agreementRateText?: string | null;
+  agreementTermsStatus?: AgreementTermsStatus;
 }) {
   runMigrations();
   const loanDate = parseDate(input.loanDate);
@@ -213,20 +286,49 @@ export function createDiv7aLoan(input: {
   if (input.principalCents <= 0) throw new Error("Principal must be positive");
   if (!input.borrower.trim()) throw new Error("Borrower is required");
   if (!Number.isSafeInteger(input.termYears) || input.termYears < 1 || input.termYears > 25) throw new Error("Term must be between 1 and 25 years");
-  // Validate the manually entered rate without deriving it from the loan year.
+  const legacyBenchmarkRate = input.benchmarkRate?.trim() || "0";
+  // This value is retained only for legacy rows. Annual calculations use the
+  // div7a_benchmark_rates table and never fall back to this column.
   calculateMinimumYearlyRepaymentCents({
     principalCents: input.principalCents,
-    benchmarkRate: input.benchmarkRate,
+    benchmarkRate: legacyBenchmarkRate,
     remainingTermYears: input.termYears,
     loanIncomeYear: normalizeFy(deriveFiscalPeriod(loanDate).fy),
     assessmentIncomeYear: normalizeFy(deriveFiscalPeriod(loanDate).fy),
   });
   const entity = getRawDb().prepare("SELECT id FROM entities WHERE id = ? AND type = 'company' AND active = 1").get(input.lenderEntityId);
   if (!entity) throw new Error("Lender entity must be an active company");
+  const originalIncomeYear = input.originalIncomeYear
+    ? normalizeFy(input.originalIncomeYear)
+    : normalizeFy(deriveFiscalPeriod(loanDate).fy);
+  const securityType = input.securityType ?? "unknown";
+  const agreementTermsStatus = input.agreementTermsStatus ?? "unknown";
+  if (!["unsecured", "registered_mortgage", "unknown"].includes(securityType)) throw new Error(`Invalid security type: ${securityType}`);
+  if (!["unknown", "compliant", "not_compliant", "needs_review"].includes(agreementTermsStatus)) throw new Error(`Invalid agreement terms status: ${agreementTermsStatus}`);
+  const agreementSignedAt = input.agreementSignedAt ? parseDate(input.agreementSignedAt) : null;
+  if (input.agreementDocumentId !== undefined && input.agreementDocumentId !== null && (!Number.isSafeInteger(input.agreementDocumentId) || input.agreementDocumentId <= 0)) throw new Error("Agreement document id is invalid");
   const result = getRawDb().prepare(`
-    INSERT INTO div7a_loans (lender_entity_id, borrower, loan_date, principal_cents, term_years, benchmark_rate, min_repayment_fy_cents, repayments_json, agreement_signed)
-    VALUES (?, ?, ?, ?, ?, ?, 0, '[]', ?)
-  `).run(input.lenderEntityId, input.borrower.trim(), loanDate, input.principalCents, input.termYears, Number(input.benchmarkRate.replace(/%$/, "")) / (input.benchmarkRate.trim().endsWith("%") ? 100 : 1), Number(input.agreementSigned ?? false));
+    INSERT INTO div7a_loans (
+      lender_entity_id, borrower, loan_date, principal_cents, term_years, benchmark_rate,
+      min_repayment_fy_cents, repayments_json, agreement_signed, original_income_year,
+      security_type, agreement_signed_at, agreement_document_id, agreement_terms_status
+      , agreement_rate_text
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, '[]', ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    input.lenderEntityId,
+    input.borrower.trim(),
+    loanDate,
+    input.principalCents,
+    input.termYears,
+    Number(legacyBenchmarkRate.replace(/%$/, "")) / (legacyBenchmarkRate.endsWith("%") ? 100 : 1),
+    Number(input.agreementSigned ?? false),
+    originalIncomeYear,
+    securityType,
+    agreementSignedAt,
+    input.agreementDocumentId ?? null,
+    agreementTermsStatus,
+    input.agreementRateText?.trim() || null,
+  );
   return Number(result.lastInsertRowid);
 }
 
@@ -247,7 +349,9 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
   runMigrations();
   const row = getRawDb().prepare(`
     SELECT l.id, l.lender_entity_id, e.name AS lender_entity_name, l.borrower, l.loan_date,
-      l.principal_cents, l.term_years, l.benchmark_rate, l.repayments_json, l.agreement_signed
+      l.principal_cents, l.term_years, l.benchmark_rate, l.repayments_json, l.agreement_signed,
+      l.original_income_year, l.security_type, l.agreement_signed_at, l.agreement_document_id,
+      l.agreement_rate_text, l.agreement_terms_status
     FROM div7a_loans l INNER JOIN entities e ON e.id = l.lender_entity_id WHERE l.id = ?
   `).get(loanId) as {
     id: number;
@@ -260,42 +364,64 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
     benchmark_rate: number;
     repayments_json: string;
     agreement_signed: number;
+    original_income_year: string | null;
+    security_type: string;
+    agreement_signed_at: DateOnly | null;
+    agreement_document_id: number | null;
+    agreement_rate_text: string | null;
+    agreement_terms_status: string;
   } | undefined;
   if (!row) throw new Error(`Div 7A loan not found: ${loanId}`);
   const loan = mapLoan(row);
   const normalizedAssessment = normalizeFy(assessmentIncomeYear);
   const schedule = repaymentSchedule(loan.loanIncomeYear, normalizedAssessment, loan.originalTermYears);
-  const openingBalanceCents = balanceAtPreviousYearEndCents(loan, normalizedAssessment);
-  const interestCents = schedule.repaymentStatus === "origination"
-    ? 0
-    : calculateAnnualInterestCents(openingBalanceCents, loan.benchmarkRate);
   const actualRepaymentCents = actualRepaymentCentsForIncomeYear(loan, normalizedAssessment);
-  const closingBalanceCents = Math.max(0, openingBalanceCents + interestCents - actualRepaymentCents);
-  assertIntegerCents(closingBalanceCents);
-  const minimumRepaymentCents = schedule.repaymentStatus === "active" && openingBalanceCents > 0
-    ? calculateMinimumYearlyRepaymentCents({
-      principalCents: openingBalanceCents,
-      benchmarkRate: loan.benchmarkRate,
-      remainingTermYears: schedule.remainingTermYears,
-      loanIncomeYear: loan.loanIncomeYear,
-      assessmentIncomeYear: normalizedAssessment,
-    })
-    : 0;
-  const shortfallCents = Math.max(0, minimumRepaymentCents - actualRepaymentCents);
-  assertIntegerCents(shortfallCents);
-  const unresolvedBalanceCents = schedule.isExpired && closingBalanceCents > 0 ? closingBalanceCents : null;
+  const openingResult = balanceAtPreviousYearEndCents(loan, normalizedAssessment);
+  const activeRate = schedule.repaymentStatus === "active" ? currentYearRate(normalizedAssessment) : null;
+  const missingReason = openingResult.missingReason ?? (schedule.repaymentStatus === "active" && !activeRate
+    ? `无法判断 / ${normalizedAssessment} 基准利率未配置`
+    : null);
+  const benchmarkRateText = activeRate?.rateText ?? null;
+  const openingBalanceCents = openingResult.balanceCents;
+  const interestCents = missingReason || openingBalanceCents === null
+    ? null
+    : schedule.repaymentStatus === "active"
+      ? calculateAnnualInterestCents(openingBalanceCents, activeRate?.rateText ?? "0")
+      : 0;
+  const closingBalanceCents = missingReason || openingBalanceCents === null || interestCents === null
+    ? null
+    : Math.max(0, openingBalanceCents + interestCents - actualRepaymentCents);
+  if (closingBalanceCents !== null) assertIntegerCents(closingBalanceCents);
+  const minimumRepaymentCents = missingReason || openingBalanceCents === null
+    ? null
+    : schedule.repaymentStatus === "active" && openingBalanceCents > 0
+      ? calculateMinimumYearlyRepaymentCents({
+        principalCents: openingBalanceCents,
+        benchmarkRate: activeRate?.rateText ?? "0",
+        remainingTermYears: schedule.remainingTermYears,
+        loanIncomeYear: loan.loanIncomeYear,
+        assessmentIncomeYear: normalizedAssessment,
+      })
+      : 0;
+  const shortfallCents = minimumRepaymentCents === null ? null : Math.max(0, minimumRepaymentCents - actualRepaymentCents);
+  if (shortfallCents !== null) assertIntegerCents(shortfallCents);
+  const unresolvedBalanceCents = schedule.isExpired && closingBalanceCents !== null && closingBalanceCents > 0 ? closingBalanceCents : null;
   const expiryWarning = unresolvedBalanceCents === null
     ? null
     : `贷款已到期但仍有 ${unresolvedBalanceCents} 分未清偿余额，请人工核对清偿及税务处理。系统不会自动创建分红记录。`;
   const startYear = incomeYearStart(normalizedAssessment);
-  const repaymentDue = schedule.isExpired ? null : `${startYear + 1}-06-30` as DateOnly;
+  const repaymentDue = schedule.repaymentStatus === "active" ? `${startYear + 1}-06-30` as DateOnly : null;
   const daysUntilRepaymentDue = repaymentDue
     ? differenceInCalendarDays(parseMelbourneDate(repaymentDue), parseMelbourneDate(todayInMelbourne()))
     : null;
   return {
     ...loan,
+    benchmarkRate: benchmarkRateText ?? "未配置",
     assessmentIncomeYear: normalizedAssessment,
-    ...schedule,
+    elapsedRepaymentYears: schedule.elapsedRepaymentYears,
+    remainingTermYears: schedule.remainingTermYears,
+    repaymentStatus: missingReason ? "manual_review" : schedule.repaymentStatus,
+    isExpired: schedule.isExpired,
     openingBalanceCents,
     balanceAtPreviousYearEndCents: openingBalanceCents,
     interestCents,
@@ -305,7 +431,29 @@ export function getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string
     unresolvedBalanceCents,
     expiryWarning,
     shortfallCents,
+    benchmarkRateText,
+    benchmarkRateSourceUrl: activeRate?.sourceUrl ?? null,
+    benchmarkRateRetrievedAt: activeRate?.retrievedAt ?? null,
+    unresolvedReason: missingReason,
     repaymentDue,
     daysUntilRepaymentDue,
   };
+}
+
+/**
+ * Returns the visible year-by-year schedule beginning at the requested
+ * income year and ending one year after the contractual term, so an
+ * unresolved post-term balance remains visible as an explicit expired row.
+ */
+export function getDiv7aLoanSchedule(loanId: number, fromIncomeYear = "FY2026-27", throughIncomeYear?: string): Div7aSummary[] {
+  const loan = listDiv7aLoans().find((candidate) => candidate.id === loanId);
+  if (!loan) throw new Error(`Div 7A loan not found: ${loanId}`);
+  const startYear = incomeYearStart(normalizeFy(fromIncomeYear));
+  const expiryYear = incomeYearStart(loan.loanIncomeYear) + loan.originalTermYears + 1;
+  const endYear = throughIncomeYear ? Math.max(startYear, incomeYearStart(normalizeFy(throughIncomeYear))) : Math.max(startYear, expiryYear);
+  const rows: Div7aSummary[] = [];
+  for (let year = startYear; year <= endYear; year += 1) {
+    rows.push(getDiv7aLoanSummary(loanId, incomeYearForStart(year)));
+  }
+  return rows;
 }

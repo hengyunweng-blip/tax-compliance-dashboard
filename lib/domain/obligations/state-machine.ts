@@ -1,4 +1,5 @@
 import { getRawDb } from "@/lib/db/client";
+import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
 import { assertDateOnly, formatDateOnly, formatMelbourneDateTime, parseMelbourneDate, type DateOnly } from "@/lib/time/melbourne";
 import type { ObligationStatus } from "@/lib/domain/obligations/rules";
 
@@ -16,6 +17,7 @@ type ObligationRow = {
   id: number;
   status: ObligationStatus;
   updated_at: string;
+  rule_id?: string;
 };
 
 function normalizePaidDate(value: string | null | undefined): DateOnly {
@@ -94,5 +96,9 @@ export function transitionObligation({
     return db.prepare("SELECT * FROM obligations WHERE id = ?").get(obligationId) as ObligationRow;
   });
 
-  return transaction();
+  const result = transaction();
+  if (to === "lodged" && result.rule_id === "company_tax_return") {
+    expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
+  }
+  return result;
 }

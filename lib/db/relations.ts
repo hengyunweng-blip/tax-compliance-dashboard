@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   accounts,
   basWorksheets,
+  div7aLoans,
   documents,
   entities,
   newsAnalyses,
@@ -9,6 +10,7 @@ import {
   newsSources,
   obligations,
   obligationRules,
+  openingBalances,
   reminders,
   transactions,
 } from "@/lib/db/schema";
@@ -18,6 +20,8 @@ export const entityRelations = relations(entities, ({ many }) => ({
   documents: many(documents),
   transactions: many(transactions),
   obligations: many(obligations),
+  div7aLoans: many(div7aLoans),
+  openingBalances: many(openingBalances),
 }));
 
 export const accountRelations = relations(accounts, ({ one, many }) => ({
@@ -53,6 +57,15 @@ export const reminderRelations = relations(reminders, ({ one }) => ({
 
 export const basWorksheetRelations = relations(basWorksheets, ({ one }) => ({
   obligation: one(obligations, { fields: [basWorksheets.obligationId], references: [obligations.id] }),
+}));
+
+export const div7aLoanRelations = relations(div7aLoans, ({ one }) => ({
+  lender: one(entities, { fields: [div7aLoans.lenderEntityId], references: [entities.id] }),
+  agreementDocument: one(documents, { fields: [div7aLoans.agreementDocumentId], references: [documents.id] }),
+}));
+
+export const openingBalanceRelations = relations(openingBalances, ({ one }) => ({
+  entity: one(entities, { fields: [openingBalances.entityId], references: [entities.id] }),
 }));
 
 export const newsSourceRelations = relations(newsSources, ({ many }) => ({
