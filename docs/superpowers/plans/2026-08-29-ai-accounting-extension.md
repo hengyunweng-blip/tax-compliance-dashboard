@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在现有澳洲多主体税务合规看板之上，按严格 Gate 顺序增加 Div 7A 主干、轻量资产折旧、车辆税务事实分析、PSI 门槛和三个保守规划情景，同时保留手动 BAS、提醒、操作指引和监管资讯能力。
+**Goal:** 在现有澳洲多主体税务合规看板之上，按真实截止日优先增加 Div 7A 主干、车辆事实采集、PSI 门槛、轻量资产折旧和三个保守规划情景，同时保留手动 BAS、提醒、操作指引和监管资讯能力。
 
 **Architecture:** 账本、BAS、年度、Div 7A、资产、PSI 和规划数字由 `lib/domain` 中的确定性服务计算；页面通过 Route Handlers 读写已校验的 domain input。AI 只能解释已生成的快照，所有敏感输入在 `lib/ai` 脱敏后缓存，规划确认只建立独立快照/待办/审计记录，不写交易、义务或已递交底稿。
 
@@ -12,7 +12,8 @@
 
 ## Global Constraints
 
-- 本轮只写设计和计划，不开始任何实现；用户确认后仍按 Gate 5 → Gate 6 → Gate 7 → Gate 8 → Gate 9 → Gate 10 → Gate 11 执行。
+- 系统从 `FY2026–27`（2026-07-01）启用；第一次真实交付是 `FY2026–27 Q1 BAS`，实际截止 11 Nov 2026；第一次年度真实使用是 FY2026–27 年度税表（2027 年 10 月以后）。FY2025–26 及以前由外部会计处理。
+- 本轮先修订设计/计划、交付车辆事实清单，再执行 Gate 5 三项既有修复；Gate 5 验收后硬冻结，等待用户用真实银行数据和真实发票跑完 FY2026–27 Q1 BAS，再由用户确认是否改变后续优先级。
 - 每个 Gate 完成后硬停止，等待用户明确验收；未验收不得开始下一个 Gate，不提前创建下一个 Gate 的标签。
 - 所有业务日期使用 IANA `Australia/Melbourne` 和 `date-fns-tz`；禁止固定 UTC 偏移和服务器 locale 日期顺序。
 - 只读日期固定 `DD MMM YYYY`；输入固定 `DD/MM/YYYY`；输入和输出均不得依赖浏览器 locale。
@@ -23,6 +24,8 @@
 - 不向 ATO/ASIC 自动申报或付款；用户手动完成政府网站操作。
 - 已 `lodged`/`paid` 的 worksheet 不可修改；关账期新交易必须走独立队列和审计选择。
 - `blocked` 逐义务判断；缺 ASIC 配置不能阻塞 BAS/公司税表；`adjustment_direction` 按规则区分 `forward` 与 `backward`。
+- 期初切换日为 `2026-06-30`；Div 7A、资产、公司和信托的期初值必须有数值/状态、来源说明、录入人、录入日期并写入审计；缺失时显示“无法判断 / 期初余额未配置”，不得默认为零。
+- `operational_start_income_year = FY2026–27` 与历史 `external / 由外部会计处理` 状态本轮只按设计保留，Gate 5 不实现；历史年度义务只读、不生成提醒/ICS/待办计数、不进入当前状态流转。
 - Simpler BAS 指引只显示 G1/1A/1B；G10/G11 只内部核算并标注“不填入 ATO 表单”；G1 指引必须选择“该金额是否含 GST”为“是”。
 - PAYG 5A/5B 只接受用户手动录入；公式为 `statementTotal = gstNet + 5A - 5B`，允许负值；显式“本期无 PAYG 分期”写入 0/0。
 - BAS 和年度底稿按 `income_year` 正确聚合；年度收入、运营费用、资本采购按不含 GST 口径。
@@ -54,10 +57,28 @@
 - `components/assets/`、`components/psi/`、`components/planning/`：表单、来源、假设和风险展示。
 - `tests/fixtures/div7a/benchmark-rates.json`、`tests/fixtures/planning/`：外部来源/确定性输入 fixture，不复制实现结果。
 - `docs/evidence/gate6/` 至 `docs/evidence/gate11/`：每个新 Gate 的独立 SQL、API、浏览器和报告证据。
+- `docs/superpowers/specs/2026-08-29-vehicle-tax-fact-checklist.md`：Gate 5 前置交付的可打印车辆事实清单；它不自动判断 FBT 或 Div 7A。
+
+## 期初余额切换设计（30 Jun 2026；Gate 5 不实现）
+
+实现期初余额时必须新增 `opening_balances` 契约，而不是要求用户重录历史交易：
+
+- 每行至少有 `entity_id`、`category`、`reference_type`、`reference_id`、`as_of_date`、`amount_cents` 或 `value_text`、`source_description`、`entered_by`、`entered_at` 和备注；金额仍为整数分，状态值不以空字符串表示已配置。
+- `as_of_date` 首次固定为 `2026-06-30`，来源默认要求用户填写“会计 FY2025–26 底稿”或具体替代来源；每次写入/修订与 `audit_log` 同事务。
+- Div 7A 记录每笔贷款的 30 Jun 2026 未偿余额，并保留原始发放所得年度、原始期限、担保类型、协议状态；FY2026–27 从该余额开始推进，不要求历史还款。
+- 资产使用累计折旧与账面余额作为切换值；公司记录结转亏损和 franking account；信托记录 FTE 状态和结转亏损。
+- 未配置对应期初值时，服务/API/UI 均返回“无法判断 / 期初余额未配置”，禁止回退到本金、成本或零。Gate 6 负责 Div 7A/通用入口，Gate 9 负责资产接续，Gate 10 只消费这些已确认快照。
+
+## Gate 5 前置交付：车辆事实清单（不写代码）
+
+在 Gate 5 开始前先交付并检查 `docs/superpowers/specs/2026-08-29-vehicle-tax-fact-checklist.md`。用户可直接打印填写。清单覆盖车辆持有主体、使用者角色、当前 FBT 年度（1 Apr 2026–31 Mar 2027）、私人/业务使用、里程表、费用、员工付款、书面协议和连续 12 周代表性 logbook 事实；同时提供 FBT 与 Div 7A 两条路径的资料入口。它不自动判定哪条路径适用，也不插入 FBT 义务。
+
+- [x] 已交付事实清单，并记录 ATO 来源 URL 与取数日期 2026-08-29。
+- [ ] 用户填写后，在车辆 Gate 复核事实；在此之前不能把车辆标成 FBT/Div 7A 已确定。
 
 ## Gate 5 基线收口（既有授权）
 
-本任务开始后，先完成上一轮已经授权的三项修复；不新增范围、不修改与口径无关的测试断言。
+本任务开始后，执行上一轮已经授权的三项修复；不新增范围、不修改与口径无关的测试断言。Gate 5 验收后硬停止，进入真实 Q1 BAS 冻结点，不直接开始 Gate 6。
 
 ### Task 0: 关闭 Gate 5 三项既有缺陷
 
@@ -82,14 +103,14 @@
 - `getDiv7aLoanSummary(loanId: number, assessmentIncomeYear: string)` returns the rolled-forward opening/closing balance, interest, actual repayment, minimum repayment and shortfall.
 - `transitionObligation(id, { status, lodgedAt?, paidAt? })` persists the user-supplied dates and records the state change in `audit_log`.
 
-- [ ] **Step 1: Write/retain the failing regression cases** for a `$1,100` GST-inclusive sale (`G1 = 110,000`, annual income `100,000`), a no-repayment/actual-repayment Div 7A sequence, and user-entered lodged/paid dates.
+- [ ] **Step 1: Write/retain the failing regression cases** for a `$1,100` GST-inclusive sale (`G1 = 110,000`, annual income `100,000`), a no-repayment/actual-repayment Div 7A sequence, and user-entered lodged/paid dates. The annual cross-check is `sum(G1) - sum(1A) = annual income`, not gross G1 equals annual income.
 - [ ] **Step 2: Run the three focused tests and record existing failures** without changing expected literals.
 - [ ] **Step 3: Implement only the three authorized fixes**: subtract `gst_cents` for annual lines, advance Div 7A balance using interest minus actual repayment, and write date fields from validated user input.
 - [ ] **Step 4: Run focused tests, then full test, lint and build**; the official Div 7A fixture must remain source-backed.
-- [ ] **Step 5: Run the original Gate 5 annual evidence flow** and write only new Gate 5 evidence files; do not modify earlier Gate evidence.
-- [ ] **Step 6: Stop for Gate 5 acceptance; do not create `gate-5` tag.** Gate 6 cannot start without explicit acceptance.
+- [ ] **Step 5: Run the original Gate 5 annual evidence flow** and write only new Gate 5 evidence files; do not modify earlier Gate evidence. Include the user-entered lodged/paid dates and all four annual balance fields.
+- [ ] **Step 6: Stop for Gate 5 acceptance; do not create `gate-5` tag.** After acceptance, freeze development while the user runs the first real `FY2026–27 Q1 BAS` from real bank data and invoices (due 11 Nov 2026). Only after that run and a new user priority decision may Gate 6 start.
 
-## Gate 6 — Div 7A 完整化
+## Gate 6 — Div 7A 完整化（最高优先级；真实截止 30 Jun 2027）
 
 ### Task 1: Annual benchmark-rate schema and provenance
 
@@ -120,6 +141,7 @@ export function assertBenchmarkRateSource(rate: Div7aBenchmarkRate): void;
 - [ ] **Step 1: Add failing tests** for a rate row containing source URL/date, a missing year returning `null`, and a rate text parsed by Decimal rather than a binary float.
 - [ ] **Step 2: Run `npm test -- tests/unit/div7a-rates.test.ts`** and confirm the new table/service contract is absent.
 - [ ] **Step 3: Add `div7a_benchmark_rates`** with one row per income year; make `rate_text`, URL and retrieval date mandatory; make existing loan rate legacy-only in domain code.
+- [ ] **Step 3a: Add the designed 30 Jun 2026 opening-balance intake contract** for each pre-existing loan: unpaid balance, original income year, original term, security type and agreement status; missing opening balance must remain unresolved rather than defaulting to principal or zero.
 - [ ] **Step 4: Seed only ATO-verified rows** from `tests/fixtures/div7a/benchmark-rates.json`; fixture entries contain URL and retrieval date, not expected values generated by the formula.
 - [ ] **Step 5: Run migration twice and focused tests**; missing rate must make the caller unresolved, never use a neighboring year.
 - [ ] **Step 6: Commit only this schema/rate slice** with `git commit -m "feat: store Div 7A rates by income year"`.
@@ -217,12 +239,96 @@ export type Div7aYearBreakdown = {
 - [ ] **Step 5: Execute `npm test -- tests/unit/div7a.test.ts tests/unit/div7a-rollforward.test.ts`, `npm run test:e2e -- tests/e2e/gate6-div7a.spec.ts`, `npm run lint`, and `npm run build`.**
 - [ ] **Step 6: Inspect every screenshot and SQL output; write the Gate 6 report; stop and wait for acceptance.** Create `gate-6` only after acceptance.
 
-## Gate 7 — 轻量资产登记和折旧
+## Gate 7 — 车辆 FBT/Div 7A 事实分析（原 Gate 8 前移；无自动判定代码）
 
-### Task 4: Asset schema, integer formulas and service
+### Task 4: Deliver the analysis artifact and evidence template
 
 **Files:**
-- Create: `drizzle/0008_assets.sql`
+- Create: `docs/superpowers/specs/2026-08-29-vehicle-tax-analysis.md`
+- Create: `docs/evidence/gate7/report.md`
+- Create: `docs/evidence/gate7/vehicle-analysis.png`
+- Modify: `docs/superpowers/specs/2026-08-29-ai-accounting-extension-design.md` only if an official source URL or retrieval date must be corrected
+
+**Interfaces:** None; this Gate is documentation and review of the user-filled fact checklist only. No `fbt_annual_return` row, route, or automatic path selection is implemented here.
+
+- [ ] **Step 1: Record the official ATO sources** for FBT year, return/payment deadline, quarterly instalments, logbook/odometer requirements, and Div 7A asset-use payment conditions, with retrieval date 2026-08-29.
+- [ ] **Step 2: Write the two-column analysis** listing trigger, required evidence, annual period, deadline, and uncertainty for FBT and Div 7A; explicitly state that both may need review.
+- [ ] **Step 3: Review the pre-Gate5 printable checklist** after the user fills it, including role, availability, private/business kilometres, costs, employee payment, logbook, odometer and agreement facts.
+- [ ] **Step 4: Run a documentation link check and manually inspect the rendered artifact**; do not write business code.
+- [ ] **Step 5: Submit Gate 7 report and stop for acceptance.**
+
+## Gate 8 — PSI 定性向导（须在 30 Jun 2027 前完成）
+
+### Task 5: PSI schema and deterministic tests
+
+**Files:**
+- Create: `drizzle/0008_psi_assessments.sql`
+- Modify: `lib/db/schema.ts`
+- Modify: `lib/db/relations.ts`
+- Create: `lib/domain/psi/types.ts`
+- Create: `lib/domain/psi/service.ts`
+- Create: `tests/unit/psi.test.ts`
+
+**Interfaces:**
+
+```ts
+export type TriState = "yes" | "no" | "unknown";
+export type PsiAssessmentResult = {
+  incomeIsPsi: TriState;
+  resultsTest: TriState;
+  eightyPercentRule: TriState;
+  unrelatedClientsTest: TriState;
+  psiRulesApply: TriState;
+  psbStatus: "yes" | "no" | "unknown";
+  missingInputs: string[];
+};
+
+export type PsiAssessmentInput = {
+  entityId: string;
+  incomeYear: string;
+  incomeIsPsi: TriState;
+  sources: Array<{
+    amountCents: number;
+    related: TriState;
+    publicOfferDirect: TriState;
+    contractForResult: TriState;
+    ownTools: TriState;
+    liableForRectification: TriState;
+  }>;
+};
+
+export function assessPsi(input: PsiAssessmentInput): PsiAssessmentResult;
+```
+
+- [ ] **Step 1: Add tests** for results test 75% coverage/all three limbs, 80% at exactly 80%, unrelated clients + public offer, related client exclusion, and unknown propagation.
+- [ ] **Step 2: Run the focused tests** and verify the service is absent.
+- [ ] **Step 3: Add source-level PSI rows and per-company/year assessment rows**; reject negative/unsafe cents and never accept TFN fields.
+- [ ] **Step 4: Implement the requested three tests only**; do not infer PSI from transaction descriptions or add defaults for other PSB tests.
+- [ ] **Step 5: Run unit tests and migration smoke test**; commit `feat: add PSI assessment gate`.
+
+### Task 6: PSI UI and planning gate
+
+**Files:**
+- Create: `app/psi/page.tsx`
+- Create: `app/api/psi/route.ts`
+- Create: `components/psi/psi-assessment-form.tsx`
+- Create: `components/psi/psi-result-card.tsx`
+- Create: `tests/e2e/gate8-psi.spec.ts`
+- Create: `docs/evidence/gate8/report.md`
+- Create: `docs/evidence/gate8/psi-assessment.png`
+
+- [ ] **Step 1: Build the per-company/year form** with evidence fields, three-state controls and missing-input list.
+- [ ] **Step 2: Display PSI/PSB results and source links**; never label unknown as pass/fail.
+- [ ] **Step 3: Add the planning guard** so PSI rules apply gives `not_applicable` for retain-company-profit and unknown gives `needs_more_data`.
+- [ ] **Step 4: Run e2e, unit, lint and build; inspect the screenshot at desktop and narrow width.**
+- [ ] **Step 5: Write Gate 8 evidence and stop for acceptance.**
+
+## Gate 9 — 轻量资产登记和折旧（须在 30 Jun 2027 前完成）
+
+### Task 7: Asset schema, integer formulas and service
+
+**Files:**
+- Create: `drizzle/0009_assets.sql`
 - Modify: `lib/db/schema.ts`
 - Modify: `lib/db/relations.ts`
 - Create: `lib/domain/assets/types.ts`
@@ -269,7 +375,7 @@ export function businessUseDepreciationCents(grossCents: number, privateUsePerce
 - [ ] **Step 4: Implement only the declared light formulas** with integer/rational arithmetic and explicit `manual_review` for special depreciation regimes; do not add CGT, pooling or balancing adjustments.
 - [ ] **Step 5: Run focused tests, migration smoke test and lint**; commit `feat: add light asset register`.
 
-### Task 5: Annual worksheet integration and UI
+### Task 8: Annual worksheet integration and UI
 
 **Files:**
 - Modify: `lib/domain/annual/shared.ts`
@@ -285,8 +391,8 @@ export function businessUseDepreciationCents(grossCents: number, privateUsePerce
 - Modify: `components/annual/personal-summary.tsx`
 - Modify: `components/annual/trust-resolution-form.tsx`
 - Create: `tests/unit/annual-assets.test.ts`
-- Create: `tests/e2e/gate7-assets.spec.ts`
-- Create: `docs/evidence/gate7/report.md`
+- Create: `tests/e2e/gate9-assets.spec.ts`
+- Create: `docs/evidence/gate9/report.md`
 
 **Interfaces:**
 - Annual worksheet result adds `assetDepreciationCents`, `businessUseDepreciationCents`, and `depreciationReviewItems`.
@@ -296,91 +402,7 @@ export function businessUseDepreciationCents(grossCents: number, privateUsePerce
 - [ ] **Step 2: Implement the asset page/API** with fixed date input, integer cents display, source/notes, and book-value invariant.
 - [ ] **Step 3: Feed asset depreciation into all applicable annual worksheets by `income_year`** and label it “不含 GST；轻量管理计算，需人工核对”。
 - [ ] **Step 4: Verify company/trust/individual supplementary lists** remain type-specific; individuals do not receive company/trust fields.
-- [ ] **Step 5: Run unit/e2e/lint/build and inspect the Gate 7 screenshot/export**; write evidence and stop for acceptance.
-
-## Gate 8 — 车辆 FBT/Div 7A 事实分析（无自动判定代码）
-
-### Task 6: Deliver the analysis artifact and evidence template
-
-**Files:**
-- Create: `docs/superpowers/specs/2026-08-29-vehicle-tax-analysis.md`
-- Create: `docs/evidence/gate8/report.md`
-- Create: `docs/evidence/gate8/vehicle-analysis.png`
-- Modify: `docs/superpowers/specs/2026-08-29-ai-accounting-extension-design.md` only if an official source URL or retrieval date must be corrected
-
-**Interfaces:** None; this Gate is documentation and a user-fillable fact checklist only. No `fbt_annual_return` row, route, or automatic path selection is implemented here.
-
-- [ ] **Step 1: Record the official ATO sources** for FBT year, return/payment deadline, quarterly instalments, logbook/odometer requirements, and Div 7A asset-use payment conditions, with retrieval date 2026-08-29.
-- [ ] **Step 2: Write the two-column analysis** listing trigger, required evidence, annual period, deadline, and uncertainty for FBT and Div 7A; explicitly state that both may need review.
-- [ ] **Step 3: Add the vehicle fact checklist** for role, availability, private/business kilometres, costs, employee payment, logbook, odometer and agreement facts.
-- [ ] **Step 4: Run a documentation link check and manually inspect the rendered artifact**; do not write business code.
-- [ ] **Step 5: Submit Gate 8 report and stop for acceptance.**
-
-## Gate 9 — PSI 定性向导
-
-### Task 7: PSI schema and deterministic tests
-
-**Files:**
-- Create: `drizzle/0009_psi_assessments.sql`
-- Modify: `lib/db/schema.ts`
-- Modify: `lib/db/relations.ts`
-- Create: `lib/domain/psi/types.ts`
-- Create: `lib/domain/psi/service.ts`
-- Create: `tests/unit/psi.test.ts`
-
-**Interfaces:**
-
-```ts
-export type TriState = "yes" | "no" | "unknown";
-export type PsiAssessmentResult = {
-  incomeIsPsi: TriState;
-  resultsTest: TriState;
-  eightyPercentRule: TriState;
-  unrelatedClientsTest: TriState;
-  psiRulesApply: TriState;
-  psbStatus: "yes" | "no" | "unknown";
-  missingInputs: string[];
-};
-
-export type PsiAssessmentInput = {
-  entityId: string;
-  incomeYear: string;
-  incomeIsPsi: TriState;
-  sources: Array<{
-    amountCents: number;
-    related: TriState;
-    publicOfferDirect: TriState;
-    contractForResult: TriState;
-    ownTools: TriState;
-    liableForRectification: TriState;
-  }>;
-};
-
-export function assessPsi(input: PsiAssessmentInput): PsiAssessmentResult;
-```
-
-- [ ] **Step 1: Add tests** for results test 75% coverage/all three limbs, 80% at exactly 80%, unrelated clients + public offer, related client exclusion, and unknown propagation.
-- [ ] **Step 2: Run the focused tests** and verify the service is absent.
-- [ ] **Step 3: Add source-level PSI rows and per-company/year assessment rows**; reject negative/unsafe cents and never accept TFN fields.
-- [ ] **Step 4: Implement the requested three tests only**; do not infer PSI from transaction descriptions or add defaults for other PSB tests.
-- [ ] **Step 5: Run unit tests and migration smoke test**; commit `feat: add PSI assessment gate`.
-
-### Task 8: PSI UI and planning gate
-
-**Files:**
-- Create: `app/psi/page.tsx`
-- Create: `app/api/psi/route.ts`
-- Create: `components/psi/psi-assessment-form.tsx`
-- Create: `components/psi/psi-result-card.tsx`
-- Create: `tests/e2e/gate9-psi.spec.ts`
-- Create: `docs/evidence/gate9/report.md`
-- Create: `docs/evidence/gate9/psi-assessment.png`
-
-- [ ] **Step 1: Build the per-company/year form** with evidence fields, three-state controls and missing-input list.
-- [ ] **Step 2: Display PSI/PSB results and source links**; never label unknown as pass/fail.
-- [ ] **Step 3: Add the planning guard** so PSI rules apply gives `not_applicable` for retain-company-profit and unknown gives `needs_more_data`.
-- [ ] **Step 4: Run e2e, unit, lint and build; inspect the screenshot at desktop and narrow width.**
-- [ ] **Step 5: Write Gate 9 evidence and stop for acceptance.**
+- [ ] **Step 5: Run unit/e2e/lint/build and inspect the Gate 9 screenshot/export**; write evidence and stop for acceptance.
 
 ## Gate 10 — 三情景规划和保守 AI 解释
 
@@ -494,7 +516,7 @@ export function savePlanningRun(input: PlanningRunInput): number;
 - Create: `docs/evidence/gate11/report.md`
 
 - [ ] **Step 1: Re-run reminders, ICS, CAV/ASIC, Simpler BAS guidance, PAYG, closed-period, CSV, bank-balance reconciliation, news and annual-worksheet regression tests.**
-- [ ] **Step 2: Only if the user has explicitly recorded FBT as applicable after Gate 8**, add `fbt_annual_return` with FBT-year period `1 April–31 March`, the verified due date, separate `income_year` semantics and its own reminders; otherwise leave the path `unknown` and generate no FBT card.
+- [ ] **Step 2: Only if the user has explicitly recorded FBT as applicable after Gate 7**, add `fbt_annual_return` with FBT-year period `1 April–31 March`, the verified due date, separate `income_year` semantics and its own reminders; otherwise leave the path `unknown` and generate no FBT card.
 - [ ] **Step 3: Verify the FBT route never changes BAS/annual tax obligations and never reuses 30 June due-date logic.**
 - [ ] **Step 4: Run a clean database annual workflow** from import to BAS, annual worksheet, PSI gate, three scenarios, backup/restore and SQL diff.
 - [ ] **Step 5: Run full unit tests twice, randomized order, e2e, lint and build; report actual counts, not a target baseline.**
@@ -514,7 +536,7 @@ Evidence paths are immutable after acceptance. New screenshots go only under the
 
 ## Plan self-review
 
-- Scope coverage: Div 7A is Gate 6; assets Gate 7; vehicle analysis Gate 8; PSI Gate 9; the three planning scenarios and conservative AI controls Gate 10; reminders/licences/instructions/news and conditional FBT integration Gate 11; the three previously authorized Gate 5 fixes are Task 0.
-- Omitted by design: dividends/share classes/solvency/board drafts, CGT, complete policy-version database, automatic ATO/ASIC filing, payroll/STP, and any automatic choice between FBT and Div 7A.
+- Scope coverage: Div 7A is Gate 6; vehicle facts/analysis Gate 7; PSI Gate 8; assets Gate 9; the three planning scenarios and conservative AI controls Gate 10; reminders/licences/instructions/news and conditional FBT integration Gate 11; the three previously authorized Gate 5 fixes are Task 0.
+- Omitted by design: dividends/share classes/solvency/board drafts, trust-to-company distributions and UPE (the Trust beneficiaries are confirmed as `self` and `spouse` only), CGT, complete policy-version database, automatic ATO/ASIC filing, payroll/STP, and any automatic choice between FBT and Div 7A. A future beneficiary-structure change requires a new scope assessment.
 - Type consistency: all later tasks consume `PlanningScenarioResult`, `PsiAssessmentResult`, `Div7aYearBreakdown`, and `DepreciationResult` defined in earlier task interfaces; all amount fields end in `Cents` and are integers.
 - No task is allowed to substitute a self-calculated number for an official ATO benchmark; missing official data produces an explicit unresolved state.
