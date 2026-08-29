@@ -1,0 +1,5 @@
+id  entity_id         name                     asset_type  purchase_date  cost_ex_gst_cents  useful_life_years  method             private_use_percent
+--  ----------------  -----------------------  ----------  -------------  -----------------  -----------------  -----------------  -------------------
+1   boyun_co          Boyun vehicle            vehicle     2026-07-01     1000000            5                  prime_cost         20
+2   yeeliving_co      Yeeliving equipment      equipment   2026-07-01     2000000            5                  diminishing_value  0
+3   neighbourhood_co  Neighbourhood equipment  equipment   2026-07-01     500000             5                  prime_cost         0

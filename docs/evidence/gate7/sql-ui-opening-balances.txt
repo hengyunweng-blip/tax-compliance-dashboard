@@ -1,0 +1,4 @@
+entity_id  reference_type  reference_id  category            amount_cents  as_of_date  source_description   entered_by      entered_at
+---------  --------------  ------------  ------------------  ------------  ----------  -------------------  --------------  ----------
+boyun_co   loan            loan:1        div7a_loan_balance  10000000      2026-06-30  会计 FY2025–26 底稿  gate7-evidence  2026-08-30
+boyun_co   loan            loan:2        div7a_loan_balance  2000000       2026-06-30  会计 FY2025–26 底稿  gate7-evidence  2026-08-30

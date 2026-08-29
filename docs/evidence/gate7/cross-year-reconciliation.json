@@ -1,0 +1,122 @@
+{
+  "companyReconciliation": {
+    "boyun_co": {
+      "g1TotalCents": 1600000,
+      "a1TotalCents": 100000,
+      "gstExclusiveBasIncomeCents": 1500000,
+      "annualIncomeCents": 1750000,
+      "nonTaxableIncomeIncludedInAnnualCents": 250000,
+      "differenceCents": -250000
+    },
+    "yeeliving_co": {
+      "g1TotalCents": 3200000,
+      "a1TotalCents": 200000,
+      "gstExclusiveBasIncomeCents": 3000000,
+      "annualIncomeCents": 3500000,
+      "nonTaxableIncomeIncludedInAnnualCents": 500000,
+      "differenceCents": -500000
+    },
+    "neighbourhood_co": {
+      "g1TotalCents": 0,
+      "a1TotalCents": 0,
+      "gstExclusiveBasIncomeCents": 0,
+      "annualIncomeCents": 0,
+      "nonTaxableIncomeIncludedInAnnualCents": 0,
+      "differenceCents": 0
+    }
+  },
+  "trustDistribution": {
+    "distributableIncomeCents": 250000,
+    "proposedDistributions": [
+      {
+        "beneficiary": "self",
+        "amountCents": 125000
+      },
+      {
+        "beneficiary": "spouse",
+        "amountCents": 125000
+      }
+    ],
+    "distributionTotalCents": 250000,
+    "differenceCents": 0
+  },
+  "personalTrustDistributions": [
+    {
+      "entityId": "self",
+      "trustDistributionCents": 0,
+      "incomeCents": 0
+    },
+    {
+      "entityId": "spouse",
+      "trustDistributionCents": 0,
+      "incomeCents": 0
+    }
+  ],
+  "assetBookRollforward": [
+    {
+      "assetId": 1,
+      "entityId": "boyun_co",
+      "totalDepreciationCents": 200000,
+      "openingBookValueCents": 1000000,
+      "closingBookValueCents": 800000,
+      "bookValueDecreaseCents": 200000,
+      "differenceCents": 0
+    },
+    {
+      "assetId": 2,
+      "entityId": "yeeliving_co",
+      "totalDepreciationCents": 800000,
+      "openingBookValueCents": 2000000,
+      "closingBookValueCents": 1200000,
+      "bookValueDecreaseCents": 800000,
+      "differenceCents": 0
+    },
+    {
+      "assetId": 3,
+      "entityId": "neighbourhood_co",
+      "totalDepreciationCents": 100000,
+      "openingBookValueCents": 500000,
+      "closingBookValueCents": 400000,
+      "bookValueDecreaseCents": 100000,
+      "differenceCents": 0
+    }
+  ],
+  "div7aRollforward": [
+    {
+      "loanId": 1,
+      "entityId": "boyun_co",
+      "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+      "openingPlusInterestMinusRepaymentsCents": 10000000,
+      "closingBalanceCents": 10000000,
+      "differenceCents": 0,
+      "recordedRepaymentCents": 0
+    },
+    {
+      "loanId": 2,
+      "entityId": "boyun_co",
+      "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+      "openingPlusInterestMinusRepaymentsCents": 2000000,
+      "closingBalanceCents": 2000000,
+      "differenceCents": 0,
+      "recordedRepaymentCents": 0
+    },
+    {
+      "loanId": 3,
+      "entityId": "yeeliving_co",
+      "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+      "openingPlusInterestMinusRepaymentsCents": 11000000,
+      "closingBalanceCents": 11000000,
+      "differenceCents": 0,
+      "recordedRepaymentCents": 0
+    },
+    {
+      "loanId": 4,
+      "entityId": "neighbourhood_co",
+      "schedule": "FY2026-27 row is origination year; no repayment was recorded in this scenario",
+      "openingPlusInterestMinusRepaymentsCents": 12000000,
+      "closingBalanceCents": 12000000,
+      "differenceCents": 0,
+      "recordedRepaymentCents": 0
+    }
+  ]
+}

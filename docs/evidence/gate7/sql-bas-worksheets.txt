@@ -1,0 +1,14 @@
+entity_id         period_label  g1_cents  a1_cents  g10_cents  g11_cents  statement_total_cents
+----------------  ------------  --------  --------  ---------  ---------  ---------------------
+boyun_co          FY2026-27 Q1  160000    10000     110000     22000      500
+boyun_co          FY2026-27 Q2  320000    20000     220000     44000      -1500
+boyun_co          FY2026-27 Q3  480000    30000     330000     66000      -3500
+boyun_co          FY2026-27 Q4  640000    40000     440000     88000      -5500
+neighbourhood_co  FY2026-27 Q1  0         0         0          0          0
+neighbourhood_co  FY2026-27 Q2  0         0         0          0          0
+neighbourhood_co  FY2026-27 Q3  0         0         0          0          0
+neighbourhood_co  FY2026-27 Q4  0         0         0          0          0
+yeeliving_co      FY2026-27 Q1  320000    20000     220000     44000      -1500
+yeeliving_co      FY2026-27 Q2  640000    40000     440000     88000      -5500
+yeeliving_co      FY2026-27 Q3  960000    60000     660000     132000     -9500
+yeeliving_co      FY2026-27 Q4  1280000   80000     880000     176000     -13500

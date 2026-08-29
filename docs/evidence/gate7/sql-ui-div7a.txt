@@ -1,0 +1,6 @@
+id  lender_entity_id  borrower  loan_date   original_income_year  term_years  principal_cents  security_type  agreement_terms_status
+--  ----------------  --------  ----------  --------------------  ----------  ---------------  -------------  ----------------------
+1   boyun_co          self      2025-07-01  FY2025-26             7           10000000         unsecured      unknown
+2   boyun_co          self      2025-08-01  FY2025-26             7           2000000          unsecured      unknown
+3   yeeliving_co      self      2026-07-01  FY2026-27             7           11000000         unsecured      unknown
+4   neighbourhood_co  self      2026-07-01  FY2026-27             7           12000000         unsecured      unknown

@@ -1,0 +1,13 @@
+entity_id     gst_code         transaction_count  amount_cents  gst_cents
+------------  ---------------  -----------------  ------------  ---------
+boyun_co      GST_CAPITAL      4                  -1100000      -100000
+boyun_co      GST_EXPENSE      4                  -220000       -20000
+boyun_co      GST_FREE_INCOME  4                  500000        0
+boyun_co      GST_INCOME       4                  1100000       100000
+boyun_co      NO_GST           4                  250000        0
+boyun_trust   NO_GST           2                  250000        0
+yeeliving_co  GST_CAPITAL      4                  -2200000      -200000
+yeeliving_co  GST_EXPENSE      4                  -440000       -40000
+yeeliving_co  GST_FREE_INCOME  4                  1000000       0
+yeeliving_co  GST_INCOME       4                  2200000       200000
+yeeliving_co  NO_GST           4                  500000        0
