@@ -6,7 +6,7 @@ import { getEntityConfigurationStatus } from "@/lib/settings-status";
 import { DateTextInput } from "@/components/date-text-input";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
 import type { Div7aBenchmarkRate } from "@/lib/domain/div7a/rates";
-import { DEFAULT_DIV7A_S109R_WINDOW_DAYS, DIV7A_S109R_WINDOW_BASIS, DIV7A_S109R_WINDOW_SETTING_KEY } from "@/lib/domain/div7a/constants";
+import { DEFAULT_DIV7A_S109R_WINDOW_DAYS, DIV7A_S109R_SOURCE_RETRIEVED_AT, DIV7A_S109R_SOURCE_URL, DIV7A_S109R_WINDOW_BASIS, DIV7A_S109R_WINDOW_SETTING_KEY } from "@/lib/domain/div7a/constants";
 
 type Entity = {
   id: string;
@@ -36,15 +36,19 @@ type Snapshot = {
   licence: Licence | null;
   settings: Record<string, string>;
   benchmarkRates: Div7aBenchmarkRate[];
+  publicHolidayYears: Array<{ year: number; confirmed: boolean; sourceUrl: string; retrievedAt: DateOnly; holidayCount: number }>;
+  publicHolidays: Array<{ id: number; year: number; date: DateOnly; name: string; confirmed: boolean; sourceUrl: string; retrievedAt: DateOnly }>;
 };
 
 type Props = { initialSnapshot: Snapshot };
 
 export function SettingsForm({ initialSnapshot }: Props) {
-  const [activeTab, setActiveTab] = useState<"entities" | "licence" | "div7a">("entities");
+  const [activeTab, setActiveTab] = useState<"entities" | "licence" | "div7a" | "holidays">("entities");
   const [entities, setEntities] = useState(initialSnapshot.entities);
   const [licence, setLicence] = useState(initialSnapshot.licence);
   const [benchmarkRates, setBenchmarkRates] = useState(initialSnapshot.benchmarkRates);
+  const [publicHolidayYears, setPublicHolidayYears] = useState(initialSnapshot.publicHolidayYears ?? []);
+  const [publicHolidays, setPublicHolidays] = useState(initialSnapshot.publicHolidays ?? []);
   const [newsWindowDays, setNewsWindowDays] = useState(Number(initialSnapshot.settings.news_window_days ?? "90"));
   const [excludeIrrelevantTopics, setExcludeIrrelevantTopics] = useState(initialSnapshot.settings.news_exclude_irrelevant_topics !== "false");
   const [div7aS109rWindowDays, setDiv7aS109rWindowDays] = useState(Number(initialSnapshot.settings[DIV7A_S109R_WINDOW_SETTING_KEY] ?? DEFAULT_DIV7A_S109R_WINDOW_DAYS));
@@ -55,6 +59,14 @@ export function SettingsForm({ initialSnapshot }: Props) {
   const [rateRetrievedAt, setRateRetrievedAt] = useState<DateOnly | null>(null);
   const [rateNotes, setRateNotes] = useState("");
   const [rateSaveState, setRateSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [holidayYearInput, setHolidayYearInput] = useState("2028");
+  const [holidayYearConfirmed, setHolidayYearConfirmed] = useState(false);
+  const [holidayYearSourceUrl, setHolidayYearSourceUrl] = useState("https://business.vic.gov.au/business-information/public-holidays");
+  const [holidayYearRetrievedAt, setHolidayYearRetrievedAt] = useState<DateOnly | null>(null);
+  const [holidayDate, setHolidayDate] = useState<DateOnly | null>(null);
+  const [holidayName, setHolidayName] = useState("");
+  const [holidayConfirmed, setHolidayConfirmed] = useState(false);
+  const [holidaySaveState, setHolidaySaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   function updateEntity(id: string, patch: Partial<Entity>) {
     setEntities((current) => current.map((entity) => entity.id === id ? { ...entity, ...patch } : entity));
@@ -95,10 +107,32 @@ export function SettingsForm({ initialSnapshot }: Props) {
     setEntities(next.entities);
     setLicence(next.licence);
     setBenchmarkRates(next.benchmarkRates ?? benchmarkRates);
+    setPublicHolidayYears(next.publicHolidayYears ?? publicHolidayYears);
+    setPublicHolidays(next.publicHolidays ?? publicHolidays);
     setNewsWindowDays(Number(next.settings.news_window_days ?? newsWindowDays));
     setExcludeIrrelevantTopics(next.settings.news_exclude_irrelevant_topics !== "false");
     setDiv7aS109rWindowDays(Number(next.settings[DIV7A_S109R_WINDOW_SETTING_KEY] ?? div7aS109rWindowDays));
     setSaveState("saved");
+  }
+
+  async function saveHolidayYear() {
+    const year = Number(holidayYearInput);
+    if (!Number.isInteger(year) || !holidayYearSourceUrl.trim() || !holidayYearRetrievedAt) { setHolidaySaveState("error"); return; }
+    setHolidaySaveState("saving");
+    const response = await fetch("/api/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicHolidayYear: { year, confirmed: holidayYearConfirmed, sourceUrl: holidayYearSourceUrl, retrievedAt: holidayYearRetrievedAt } }) });
+    const payload = await response.json() as Snapshot & { error?: string };
+    if (!response.ok) { setHolidaySaveState("error"); return; }
+    setPublicHolidayYears(payload.publicHolidayYears ?? []); setPublicHolidays(payload.publicHolidays ?? []); setHolidaySaveState("saved");
+  }
+
+  async function saveHoliday() {
+    const year = Number(holidayYearInput);
+    if (!Number.isInteger(year) || !holidayDate || !holidayName.trim() || !holidayYearSourceUrl.trim() || !holidayYearRetrievedAt) { setHolidaySaveState("error"); return; }
+    setHolidaySaveState("saving");
+    const response = await fetch("/api/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicHoliday: { year, date: holidayDate, name: holidayName, confirmed: holidayConfirmed, sourceUrl: holidayYearSourceUrl, retrievedAt: holidayYearRetrievedAt } }) });
+    const payload = await response.json() as Snapshot & { error?: string };
+    if (!response.ok) { setHolidaySaveState("error"); return; }
+    setPublicHolidayYears(payload.publicHolidayYears ?? publicHolidayYears); setPublicHolidays(payload.publicHolidays ?? []); setHolidayName(""); setHolidayDate(null); setHolidaySaveState("saved");
   }
 
   function editRate(rate: Div7aBenchmarkRate) {
@@ -169,6 +203,15 @@ export function SettingsForm({ initialSnapshot }: Props) {
             onClick={() => setActiveTab("entities")}
           >
             主体配置
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "holidays"}
+            className={activeTab === "holidays" ? "settings-tab active" : "settings-tab"}
+            onClick={() => setActiveTab("holidays")}
+          >
+            维州公众假日
           </button>
           <button
             type="button"
@@ -299,7 +342,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
               </div>
             ) : <p className="empty-state">尚未生成牌照配置。</p>}
           </section>
-        ) : (
+        ) : activeTab === "div7a" ? (
           <section className="settings-panel div7a-rate-panel" aria-label="Div 7A 年度基准利率">
             <div className="panel-heading">
               <div>
@@ -330,7 +373,7 @@ export function SettingsForm({ initialSnapshot }: Props) {
                   onChange={(event) => { setDiv7aS109rWindowDays(Number(event.target.value)); setSaveState("idle"); }}
                 />
               </label>
-              <p className="div7a-rate-notes">{DIV7A_S109R_WINDOW_BASIS}</p>
+              <p className="div7a-rate-notes">{DIV7A_S109R_WINDOW_BASIS} 来源：<a href={DIV7A_S109R_SOURCE_URL} target="_blank" rel="noreferrer">ATO s109R 官方说明</a>（取数日期：{formatDueDate(DIV7A_S109R_SOURCE_RETRIEVED_AT as DateOnly)}）</p>
             </div>
             <div className="table-scroll">
               <table className="settings-table div7a-rate-table">
@@ -338,6 +381,27 @@ export function SettingsForm({ initialSnapshot }: Props) {
                 <tbody>{benchmarkRates.map((rate) => <tr key={rate.incomeYear}><td>{rate.incomeYear.replace("-", "–")}</td><td><strong>{rate.rateText}</strong></td><td><a href={rate.sourceUrl} target="_blank" rel="noreferrer">ATO 官方页面</a></td><td>{formatDueDate(rate.retrievedAt as DateOnly)}</td><td>{rate.entryMethod}</td><td><button type="button" className="text-button" onClick={() => editRate(rate)}>编辑</button></td></tr>)}</tbody>
               </table>
             </div>
+          </section>
+        ) : (
+          <section className="settings-panel public-holiday-panel" aria-label="维州公众假日配置">
+            <div className="panel-heading"><div><h2>维州公众假日年度配置</h2><p>未确认的年度不会推定假日；相关义务仍生成法定日，但工作日校准保持“待配置”。</p></div><span className="panel-count">{publicHolidayYears.length} 个年度</span></div>
+            <div className="div7a-rate-form">
+              <label><span>年度</span><input aria-label="公众假日年度" value={holidayYearInput} onChange={(event) => setHolidayYearInput(event.target.value)} inputMode="numeric" /></label>
+              <label><span>取数日期（DD/MM/YYYY）</span><DateTextInput ariaLabel="公众假日取数日期" value={holidayYearRetrievedAt} onChange={setHolidayYearRetrievedAt} /></label>
+              <label><span>来源 URL</span><input aria-label="公众假日来源 URL" value={holidayYearSourceUrl} onChange={(event) => setHolidayYearSourceUrl(event.target.value)} /></label>
+              <label className="checkbox-line"><input type="checkbox" checked={holidayYearConfirmed} onChange={(event) => setHolidayYearConfirmed(event.target.checked)} /><span>该年度已由官方来源确认</span></label>
+              <button type="button" className="primary-button" onClick={() => void saveHolidayYear()}>保存年度配置</button>
+            </div>
+            <div className="div7a-rate-form">
+              <h3>录入单个假日</h3>
+              <label><span>假日日期（DD/MM/YYYY）</span><DateTextInput ariaLabel="公众假日日期" value={holidayDate} onChange={setHolidayDate} /></label>
+              <label><span>名称</span><input aria-label="公众假日名称" value={holidayName} onChange={(event) => setHolidayName(event.target.value)} /></label>
+              <label className="checkbox-line"><input type="checkbox" checked={holidayConfirmed} onChange={(event) => setHolidayConfirmed(event.target.checked)} /><span>该日期已确认</span></label>
+              <button type="button" className="secondary-button" onClick={() => void saveHoliday()}>保存假日</button>
+              <p className="form-message" aria-live="polite">{holidaySaveState === "saved" ? "公众假日配置已保存" : holidaySaveState === "error" ? "请填写有效年度、日期、名称、来源和取数日期" : ""}</p>
+            </div>
+            <div className="table-scroll"><table className="settings-table"><thead><tr><th>年度</th><th>状态</th><th>已录入</th><th>来源</th><th>取数日期</th></tr></thead><tbody>{publicHolidayYears.map((year) => <tr key={year.year}><td>{year.year}</td><td>{year.confirmed ? "已确认" : "未确认"}</td><td>{year.holidayCount}</td><td><a href={year.sourceUrl} target="_blank" rel="noreferrer">官方来源</a></td><td>{formatDueDate(year.retrievedAt)}</td></tr>)}</tbody></table></div>
+            <div className="table-scroll"><table className="settings-table"><thead><tr><th>日期</th><th>名称</th><th>年度</th><th>状态</th></tr></thead><tbody>{publicHolidays.map((holiday) => <tr key={holiday.id}><td>{formatDueDate(holiday.date)}</td><td>{holiday.name}</td><td>{holiday.year}</td><td>{holiday.confirmed ? "已确认" : "未确认"}</td></tr>)}</tbody></table></div>
           </section>
         )}
 

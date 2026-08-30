@@ -2,6 +2,7 @@ import { getRawDb } from "@/lib/db/client";
 import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
 import { assertDateOnly, formatDateOnly, formatMelbourneDateTime, parseMelbourneDate, type DateOnly } from "@/lib/time/melbourne";
 import type { ObligationStatus } from "@/lib/domain/obligations/rules";
+import { currentFinancialYear } from "@/lib/domain/obligations/calculator";
 
 const ALLOWED_TRANSITIONS: Record<ObligationStatus, readonly ObligationStatus[]> = {
   blocked: ["todo", "na"],
@@ -98,7 +99,7 @@ export function transitionObligation({
 
   const result = transaction();
   if (to === "lodged" && result.rule_id === "company_tax_return") {
-    expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
+    expandObligationsInDatabase({ fy: currentFinancialYear(), context: { priorYearReturnOutstanding: false } });
   }
   return result;
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatDueDate } from "@/lib/time/melbourne";
 import { calculateLicenceCancellationDate } from "@/lib/domain/obligations/calculator";
+import { currentFinancialYear } from "@/lib/domain/obligations/calculator";
 import { ensureObligationsForFy, getObligationById } from "@/lib/domain/obligations/repository";
 import { TransitionForm } from "@/components/obligations/transition-form";
 
@@ -40,7 +41,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function ObligationDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  ensureObligationsForFy("2026-27");
+  ensureObligationsForFy(currentFinancialYear());
   const { id } = await params;
   const obligation = getObligationById(Number(id));
   if (!obligation) {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseMoneyToCents } from "@/lib/money";
 import { createAsset, getAssetSchedule, listAssets, recordAssetDisposal, saveAssetOpeningBalance } from "@/lib/domain/assets/service";
+import { currentFinancialYear } from "@/lib/domain/obligations/calculator";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const entityId = url.searchParams.get("entityId") ?? undefined;
-    const incomeYear = url.searchParams.get("fy") ?? "FY2026-27";
+    const incomeYear = url.searchParams.get("fy") ?? currentFinancialYear();
     const assets = listAssets(entityId).map((asset) => ({
       asset,
       schedule: getAssetSchedule(asset.id, incomeYear, incomeYearPlus(incomeYear, 4)),
@@ -100,4 +101,3 @@ export async function POST(request: Request) {
     return Response.json({ error: error instanceof Error ? error.message : "资产保存失败" }, { status: 400 });
   }
 }
-

@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { type CsvMapping, type CsvPreview } from "@/lib/ingest/csv";
 import { CSV_DATE_FORMATS, DEFAULT_CSV_DATE_FORMAT, parseCsvDate, type CsvDateFormat } from "@/lib/ingest/csv-date";
 import { formatDueDate } from "@/lib/time/melbourne";
+import { availableGstCodesForAccountType } from "@/lib/constants/gst";
 
 type Props = {
   entities: Array<{ id: string; name: string }>;
-  accounts: Array<{ id: number; entityId: string; code: string; name: string; defaultGstCode: string }>;
+  accounts: Array<{ id: number; entityId: string; code: string; name: string; type: string; defaultGstCode: string }>;
 };
 
 const emptyMapping: CsvMapping = { date: "", description: "", amount: "", balance: "", counterparty: "", dateFormat: DEFAULT_CSV_DATE_FORMAT };
@@ -25,6 +26,8 @@ export function CsvMappingWizard({ entities, accounts }: Props) {
   const [summary, setSummary] = useState<{ created: number; duplicates: number; invalid: number; reviewCount: number } | null>(null);
 
   const entityAccounts = useMemo(() => accounts.filter((account) => account.entityId === entityId), [accounts, entityId]);
+  const selectedAccount = entityAccounts.find((account) => String(account.id) === accountId);
+  const availableGstCodes = availableGstCodesForAccountType(selectedAccount?.type ?? "income");
 
   function updateEntity(value: string) {
     setEntityId(value);
@@ -113,7 +116,7 @@ export function CsvMappingWizard({ entities, accounts }: Props) {
           <div className="ledger-form-grid">
             <label><span>主体</span><select value={entityId} onChange={(event) => updateEntity(event.target.value)}>{entities.map((entity) => <option key={entity.id} value={entity.id}>{entity.name}</option>)}</select></label>
             <label><span>科目</span><select value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">请选择</option>{entityAccounts.map((account) => <option key={account.id} value={account.id}>{account.code} · {account.name}</option>)}</select></label>
-            <label><span>默认 GST 代码</span><select value={gstCode} onChange={(event) => setGstCode(event.target.value)}>{["GST_INCOME", "GST_FREE_INCOME", "INPUT_TAXED", "GST_EXPENSE", "GST_CAPITAL", "NO_GST", "PRIVATE"].map((code) => <option key={code} value={code}>{code}</option>)}</select></label>
+            <label><span>默认 GST 代码</span><select value={availableGstCodes.some((code) => code === gstCode) ? gstCode : ""} onChange={(event) => setGstCode(event.target.value)}><option value="">请选择</option>{availableGstCodes.map((code) => <option key={code} value={code}>{code}</option>)}</select></label>
           </div>
           <button type="button" className="primary-button" onClick={importFile}>2. 导入并进入 Inbox</button>
         </>

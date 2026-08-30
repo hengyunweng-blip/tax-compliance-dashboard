@@ -1,5 +1,7 @@
-import { expect, test } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 import { ENTITY_SEEDS } from "@/lib/constants/entities";
+import { seedDatabase } from "@/lib/db/seed";
+import { configurePublicHolidayYear } from "@/lib/time/public-holidays";
 import {
   calculateAnnualTaxDue,
   calculateBasDueDates,
@@ -8,6 +10,11 @@ import {
   calculateTrustDistributionDue,
 } from "@/lib/domain/obligations/calculator";
 import { expandObligations } from "@/lib/domain/obligations/expand";
+
+beforeEach(() => {
+  seedDatabase();
+  configurePublicHolidayYear({ year: 2029, confirmed: true, sourceUrl: "https://business.vic.gov.au/business-information/public-holidays", retrievedAt: "2026-08-30" });
+});
 
 test.each([
   ["Q1", "2026-10-28", "2026-11-11"],

@@ -6,12 +6,16 @@ import {
   DEFAULT_DIV7A_S109R_WINDOW_DAYS,
   DIV7A_S109R_WINDOW_BASIS,
   DIV7A_S109R_WINDOW_SETTING_KEY,
+  DIV7A_S109R_SOURCE_RETRIEVED_AT,
+  DIV7A_S109R_SOURCE_URL,
 } from "@/lib/domain/div7a/constants";
 
 export {
   DEFAULT_DIV7A_S109R_WINDOW_DAYS,
   DIV7A_S109R_WINDOW_BASIS,
   DIV7A_S109R_WINDOW_SETTING_KEY,
+  DIV7A_S109R_SOURCE_RETRIEVED_AT,
+  DIV7A_S109R_SOURCE_URL,
 } from "@/lib/domain/div7a/constants";
 
 export type RepaymentReviewStatus = "unreviewed" | "confirmed_valid" | "excluded";

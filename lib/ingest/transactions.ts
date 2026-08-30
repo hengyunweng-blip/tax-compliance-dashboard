@@ -1,6 +1,6 @@
 import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
-import { GST_CODES, type GstCode } from "@/lib/constants/gst";
+import { availableGstCodesForAccountType, GST_CODES, type GstCode } from "@/lib/constants/gst";
 import { assertIntegerCents } from "@/lib/money";
 import { assertDateOnly, formatDateOnly, parseMelbourneDate, type DateOnly } from "@/lib/time/melbourne";
 
@@ -43,6 +43,10 @@ export type CreateTransactionInput = {
   reviewFlag?: boolean;
   notes?: string | null;
 };
+
+export function getAvailableGstCodesForAccountType(accountType: string): GstCode[] {
+  return availableGstCodesForAccountType(accountType);
+}
 
 type TransactionRow = {
   id: number;
@@ -157,8 +161,11 @@ export function createTransaction(input: CreateTransactionInput): Transaction {
   const entity = db.prepare("SELECT id FROM entities WHERE id = ? AND active = 1").get(input.entityId);
   if (!entity) throw new Error(`Entity not found: ${input.entityId}`);
   const accountId = resolveAccountId(input);
-  const account = db.prepare("SELECT id FROM accounts WHERE id = ? AND entity_id = ? AND archived = 0").get(accountId, input.entityId);
+  const account = db.prepare("SELECT id, type FROM accounts WHERE id = ? AND entity_id = ? AND archived = 0").get(accountId, input.entityId) as { id: number; type: string } | undefined;
   if (!account) throw new Error("Account does not belong to the selected entity");
+  if (!getAvailableGstCodesForAccountType(account.type).includes(input.gstCode)) {
+    throw new Error(`GST code ${input.gstCode} is not available for ${account.type} accounts`);
+  }
   const period = deriveFiscalPeriod(date);
 
   const insertTransaction = db.transaction(() => {

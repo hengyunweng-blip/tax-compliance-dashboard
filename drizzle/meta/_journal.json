@@ -64,6 +64,13 @@
       "when": 1788030000000,
       "tag": "0008_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "8",
+      "when": 1788050000000,
+      "tag": "0009_gst_fy_trust",
+      "breakpoints": true
     }
   ]
 }

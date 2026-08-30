@@ -42,7 +42,7 @@ test("compresses an uploaded image before it reaches the document store", async 
   const prepared = await prepareUpload({
     name: "receipt.png",
     type: "image/png",
-    arrayBuffer: async () => png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength),
+    arrayBuffer: async () => png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength) as ArrayBuffer,
   });
 
   expect(prepared.mime).toBe("image/jpeg");

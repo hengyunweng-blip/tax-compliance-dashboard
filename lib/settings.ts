@@ -8,6 +8,7 @@ import {
 } from "@/lib/news/config";
 import type { DateOnly } from "@/lib/time/melbourne";
 import { DIV7A_S109R_WINDOW_SETTING_KEY, parseSection109RWindowDays } from "@/lib/domain/div7a/repayment-validity";
+import { configurePublicHolidayYear, listPublicHolidays, listPublicHolidayYears, savePublicHoliday } from "@/lib/time/public-holidays";
 
 const entityConfigurationSchema = z.object({
   entityId: z.string().min(1),
@@ -25,6 +26,20 @@ const licenceConfigurationSchema = z.object({
 }).strict();
 
 const newsWindowDaysSchema = z.number().int().min(1).max(3650);
+const publicHolidayYearSchema = z.object({
+  year: z.number().int().min(2000).max(2200),
+  confirmed: z.boolean(),
+  sourceUrl: z.string().url(),
+  retrievedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+}).strict();
+const publicHolidaySchema = z.object({
+  year: z.number().int().min(2000).max(2200),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  name: z.string().trim().min(1),
+  confirmed: z.boolean(),
+  sourceUrl: z.string().url(),
+  retrievedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+}).strict();
 
 export type EntityConfigurationInput = z.input<typeof entityConfigurationSchema>;
 export type LicenceConfigurationInput = z.input<typeof licenceConfigurationSchema>;
@@ -56,6 +71,8 @@ export type SettingsSnapshot = {
   entities: SettingsEntity[];
   licence: SettingsLicence | null;
   settings: Record<string, string>;
+  publicHolidayYears: ReturnType<typeof listPublicHolidayYears>;
+  publicHolidays: ReturnType<typeof listPublicHolidays>;
 };
 
 function rejectTfn(input: unknown) {
@@ -174,6 +191,8 @@ export function saveSettings(input: unknown) {
     newsWindowDays: newsWindowDaysSchema.optional(),
     excludeIrrelevantTopics: z.boolean().optional(),
     div7aS109rWindowDays: z.number().int().min(1).max(365).optional(),
+    publicHolidayYear: publicHolidayYearSchema.optional(),
+    publicHoliday: publicHolidaySchema.optional(),
   }).strict().parse(input);
 
   const db = getRawDb();
@@ -205,6 +224,8 @@ export function saveSettings(input: unknown) {
     }
   });
   transaction();
+  if (parsed.publicHolidayYear) configurePublicHolidayYear(parsed.publicHolidayYear);
+  if (parsed.publicHoliday) savePublicHoliday(parsed.publicHoliday);
   return getSettingsSnapshot();
 }
 
@@ -265,5 +286,7 @@ export function getSettingsSnapshot(): SettingsSnapshot {
       lodgementWindowWeeks: licence.lodgement_window_weeks,
     } : null,
     settings: Object.fromEntries(settingsRows.map((row) => [row.key, row.value])),
+    publicHolidayYears: listPublicHolidayYears(),
+    publicHolidays: listPublicHolidays(),
   };
 }

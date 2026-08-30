@@ -284,6 +284,48 @@ export const superCaps = sqliteTable("super_caps", {
   updatedAt: updatedAt(),
 });
 
+export const publicHolidayYears = sqliteTable("public_holiday_years", {
+  year: integer("year").primaryKey(),
+  confirmed: integer("confirmed", { mode: "boolean" }).notNull().default(false),
+  sourceUrl: text("source_url").notNull(),
+  retrievedAt: text("retrieved_at").notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const victorianPublicHolidays = sqliteTable("victorian_public_holidays", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  year: integer("year").notNull(),
+  holidayDate: text("holiday_date").notNull(),
+  name: text("name").notNull(),
+  confirmed: integer("confirmed", { mode: "boolean" }).notNull().default(false),
+  sourceUrl: text("source_url").notNull(),
+  retrievedAt: text("retrieved_at").notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (table) => ({
+  yearDateUnique: uniqueIndex("victorian_public_holidays_year_date_unique").on(table.year, table.holidayDate),
+  yearIndex: index("victorian_public_holidays_year_idx").on(table.year, table.confirmed),
+}));
+
+export const trustDistributions = sqliteTable("trust_distributions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  trustEntityId: text("trust_entity_id").notNull().references(() => entities.id),
+  incomeYear: text("income_year").notNull(),
+  beneficiaryEntityId: text("beneficiary_entity_id").notNull().references(() => entities.id),
+  amountCents: integer("amount_cents").notNull(),
+  resolutionDate: text("resolution_date").notNull(),
+  status: text("status").notNull(),
+  sourceDescription: text("source_description").notNull(),
+  enteredBy: text("entered_by").notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (table) => ({
+  distributionUnique: uniqueIndex("trust_distributions_unique").on(table.trustEntityId, table.incomeYear, table.beneficiaryEntityId),
+  trustYearIndex: index("trust_distributions_trust_year_idx").on(table.trustEntityId, table.incomeYear),
+  beneficiaryYearIndex: index("trust_distributions_beneficiary_year_idx").on(table.beneficiaryEntityId, table.incomeYear),
+}));
+
 export const newsSources = sqliteTable("news_sources", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -393,6 +435,9 @@ export const schema = {
   assets,
   superContributions,
   superCaps,
+  publicHolidayYears,
+  victorianPublicHolidays,
+  trustDistributions,
   newsSources,
   newsItems,
   newsAnalyses,
@@ -419,6 +464,9 @@ export const tableNames = [
   "assets",
   "super_contributions",
   "super_caps",
+  "public_holiday_years",
+  "victorian_public_holidays",
+  "trust_distributions",
   "news_sources",
   "news_items",
   "news_analyses",

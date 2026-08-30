@@ -23,7 +23,7 @@ function q1ObligationId() {
 }
 
 function accountId() {
-  return (getRawDb().prepare("SELECT id FROM accounts WHERE entity_id = 'boyun_co' ORDER BY id LIMIT 1").get() as { id: number }).id;
+  return (getRawDb().prepare("SELECT id FROM accounts WHERE entity_id = 'boyun_co' AND code = '500'").get() as { id: number }).id;
 }
 
 function createQ1Transaction(reviewFlag: boolean) {

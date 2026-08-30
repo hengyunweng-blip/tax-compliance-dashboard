@@ -26,13 +26,6 @@ import { buildReminderInstances } from "@/lib/domain/obligations/reminders";
 import { expandDiv7aAgreementObligations } from "@/lib/domain/div7a/agreement";
 import type { DateOnly } from "@/lib/time/melbourne";
 
-const BAS_PERIODS: Record<BasQuarter, { start: DateOnly; end: DateOnly }> = {
-  Q1: { start: "2026-07-01", end: "2026-09-30" },
-  Q2: { start: "2026-10-01", end: "2026-12-31" },
-  Q3: { start: "2027-01-01", end: "2027-03-31" },
-  Q4: { start: "2027-04-01", end: "2027-06-30" },
-};
-
 const BAS_QUARTERS: BasQuarter[] = ["Q1", "Q2", "Q3", "Q4"];
 
 type ExpandOptions = {
@@ -46,6 +39,26 @@ type ExpandOptions = {
 
 function fyLabel(fy: string) {
   return fy.startsWith("FY") ? fy : `FY${fy}`;
+}
+
+function fyStart(fy: string) {
+  const normalized = fyLabel(fy).replace(/^FY/, "");
+  if (!/^\d{4}-\d{2}$/.test(normalized)) throw new Error(`Invalid financial year: ${fy}`);
+  return Number(normalized.slice(0, 4));
+}
+
+function isoDate(year: number, month: number, day: number): DateOnly {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` as DateOnly;
+}
+
+function basPeriodsForFy(fy: string): Record<BasQuarter, { start: DateOnly; end: DateOnly }> {
+  const start = fyStart(fy);
+  return {
+    Q1: { start: isoDate(start, 7, 1), end: isoDate(start, 9, 30) },
+    Q2: { start: isoDate(start, 10, 1), end: isoDate(start + 1, 12, 31) },
+    Q3: { start: isoDate(start + 1, 1, 1), end: isoDate(start + 1, 3, 31) },
+    Q4: { start: isoDate(start + 1, 4, 1), end: isoDate(start + 1, 6, 30) },
+  };
 }
 
 function requiredFieldPresent(field: string, entity?: ObligationEntityInput, licence?: ObligationLicenceInput): boolean {
@@ -88,6 +101,8 @@ function makeInput(
 
 export function expandObligations({ fy, entities = [], licence, context, adjustmentDirections, requiredFields }: ExpandOptions): ObligationInput[] {
   const incomeYear = fyLabel(fy);
+  const basPeriods = basPeriodsForFy(fy);
+  const startYear = fyStart(fy);
   const inputs: ObligationInput[] = [];
 
   for (const entity of entities) {
@@ -98,8 +113,8 @@ export function expandObligations({ fy, entities = [], licence, context, adjustm
           ruleId: "bas_quarterly",
           entityId: entity.id,
           periodLabel: PERIOD_LABELS.bas(incomeYear, quarter),
-          periodStart: BAS_PERIODS[quarter].start,
-          periodEnd: BAS_PERIODS[quarter].end,
+          periodStart: basPeriods[quarter].start,
+          periodEnd: basPeriods[quarter].end,
           incomeYear: due.incomeYear,
           deadlineFy: due.deadlineFy,
           statutoryDue: due.statutoryDue,
@@ -132,7 +147,7 @@ export function expandObligations({ fy, entities = [], licence, context, adjustm
     }
 
     if (entity.type === "trust") {
-      const due = calculateTrustDistributionDue(undefined, adjustmentDirectionFor("trust_distribution_resolution", adjustmentDirections));
+      const due = calculateTrustDistributionDue(isoDate(startYear + 1, 6, 30), adjustmentDirectionFor("trust_distribution_resolution", adjustmentDirections));
       inputs.push(makeInput({
         ruleId: "trust_distribution_resolution",
         entityId: entity.id,
@@ -180,7 +195,7 @@ export function expandObligations({ fy, entities = [], licence, context, adjustm
     }
 
     if (entity.type === "individual") {
-      const due = calculateSuperContributionDue(undefined, adjustmentDirectionFor("super_contribution", adjustmentDirections));
+      const due = calculateSuperContributionDue(isoDate(startYear + 1, 6, 30), adjustmentDirectionFor("super_contribution", adjustmentDirections));
       inputs.push(makeInput({
         ruleId: "super_contribution",
         entityId: entity.id,
@@ -226,6 +241,26 @@ export function expandObligations({ fy, entities = [], licence, context, adjustm
         status: "todo",
     }));
   }
+
+  const holidayReminderDue = isoDate(startYear + 1, 12, 31);
+  inputs.push(makeInput({
+    ruleId: "vic_public_holiday_calendar",
+    entityId: "self",
+    periodLabel: `${fyLabel(fy)} · FY${startYear + 1}-${String(startYear + 2).slice(-2)} 维州公众假日`,
+    periodStart: null,
+    periodEnd: null,
+    incomeYear,
+    deadlineFy: incomeYear,
+    statutoryDue: holidayReminderDue,
+    effectiveDue: holidayReminderDue,
+    status: "todo",
+    notes: JSON.stringify({
+      ruleLabel: RULE_LABELS.vic_public_holiday_calendar,
+      portalUrl: "https://business.vic.gov.au/business-information/public-holidays",
+      checklist: ["打开 Business Victoria 官方年度假日表", "录入次年假日并保存来源 URL 与取数日期", "确认年度配置后重新校准待办日期"],
+      holidayYear: startYear + 2,
+    }),
+  }));
 
   return inputs;
 }
@@ -337,11 +372,12 @@ export function expandObligationsInDatabase({ fy, context }: { fy: string; conte
       const effectiveReminderOffsets = input.ruleId === "div7a_loan_agreement"
         ? [...new Set([...configuredReminderOffsets, ...Array.from({ length: 365 }, (_, index) => index + 1)])]
         : configuredReminderOffsets;
-      if (input.effectiveDue && effectiveReminderOffsets.length) {
+      const reminderDue = input.effectiveDue ?? input.statutoryDue;
+      if (reminderDue && effectiveReminderOffsets.length) {
         const reminderRows = buildReminderInstances({
           obligationId: obligation.id,
-          effectiveDue: input.effectiveDue,
-          reminderStart: input.windowOpens ?? undefined,
+          effectiveDue: reminderDue,
+          reminderStart: input.effectiveDue ? input.windowOpens ?? undefined : undefined,
           reminderOffsets: effectiveReminderOffsets,
         });
         const insertReminder = db.prepare(`
@@ -377,9 +413,11 @@ export function expandObligationsInDatabase({ fy, context }: { fy: string; conte
       db.prepare("DELETE FROM reminders WHERE obligation_id = ? AND acknowledged_at IS NULL").run(obligation.id);
       const configuredReminderOffsets = reminderOffsets[input.ruleId] ?? [];
       const effectiveReminderOffsets = [...new Set([...configuredReminderOffsets, ...Array.from({ length: 365 }, (_, index) => index + 1)])];
+      const reminderDue = input.effectiveDue ?? input.statutoryDue;
+      if (!reminderDue) continue;
       const reminderRows = buildReminderInstances({
         obligationId: obligation.id,
-        effectiveDue: input.effectiveDue as DateOnly,
+        effectiveDue: reminderDue,
         reminderOffsets: effectiveReminderOffsets,
       });
       const insertReminder = db.prepare(`

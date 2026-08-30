@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { DateTextInput } from "@/components/date-text-input";
 import type { DateOnly } from "@/lib/time/melbourne";
+import { availableGstCodesForAccountType } from "@/lib/constants/gst";
 
 type Props = {
   entities: Array<{ id: string; name: string }>;
-  accounts: Array<{ id: number; entityId: string; code: string; name: string; defaultGstCode: string }>;
+  accounts: Array<{ id: number; entityId: string; code: string; name: string; type: string; defaultGstCode: string }>;
   onCreated: () => void;
 };
 
@@ -19,6 +20,8 @@ export function QuickEntryForm({ entities, accounts, onCreated }: Props) {
   const [gstCode, setGstCode] = useState("GST_EXPENSE");
   const [message, setMessage] = useState("");
   const entityAccounts = accounts.filter((account) => account.entityId === entityId);
+  const selectedAccount = entityAccounts.find((account) => String(account.id) === accountId);
+  const availableGstCodes = availableGstCodesForAccountType(selectedAccount?.type ?? "expense");
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -48,7 +51,7 @@ export function QuickEntryForm({ entities, accounts, onCreated }: Props) {
         <label><span>描述</span><input value={description} onChange={(event) => setDescription(event.target.value)} /></label>
         <label><span>金额（AUD）</span><input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0.00" /></label>
         <label><span>科目</span><select value={accountId} onChange={(event) => setAccountId(event.target.value)}><option value="">请选择</option>{entityAccounts.map((account) => <option key={account.id} value={account.id}>{account.code} · {account.name}</option>)}</select></label>
-        <label><span>GST 代码</span><select value={gstCode} onChange={(event) => setGstCode(event.target.value)}>{["GST_INCOME", "GST_FREE_INCOME", "INPUT_TAXED", "GST_EXPENSE", "GST_CAPITAL", "NO_GST", "PRIVATE"].map((code) => <option key={code} value={code}>{code}</option>)}</select></label>
+        <label><span>GST 代码</span><select value={availableGstCodes.some((code) => code === gstCode) ? gstCode : ""} onChange={(event) => setGstCode(event.target.value)}><option value="">请选择</option>{availableGstCodes.map((code) => <option key={code} value={code}>{code}</option>)}</select></label>
       </div>
       <button type="submit" className="primary-button">保存交易</button><p className="form-message" aria-live="polite">{message}</p>
     </form>

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { parseMoneyToCents } from "@/lib/money";
 import { createDiv7aLoan, getDiv7aLoanSchedule, getDiv7aLoanSummary, listDiv7aLoans, recordDiv7aRepayment, reviewDiv7aRepayment } from "@/lib/domain/div7a/service";
 import { saveDiv7aAgreement, saveDiv7aOpeningBalance } from "@/lib/domain/div7a/opening-balances";
+import { currentFinancialYear } from "@/lib/domain/obligations/calculator";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ const agreementSchema = z.object({
 export function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const fy = url.searchParams.get("fy") ?? "2026-27";
+    const fy = url.searchParams.get("fy") ?? currentFinancialYear();
     const loanId = url.searchParams.get("loanId");
     const loans = listDiv7aLoans();
     const selected = loanId ? loans.filter((loan) => loan.id === Number(loanId)) : loans;

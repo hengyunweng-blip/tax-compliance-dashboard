@@ -1,0 +1,3 @@
+-- SELECT * FROM trust_distributions;
+{"trust_entity_id":"boyun_trust","income_year":"FY2026-27","beneficiary_entity_id":"self","amount_cents":125000,"resolution_date":"2027-06-29","status":"signed","source_description":"Gate 8 signed resolution evidence"}
+{"trust_entity_id":"boyun_trust","income_year":"FY2026-27","beneficiary_entity_id":"spouse","amount_cents":125000,"resolution_date":"2027-06-29","status":"signed","source_description":"Gate 8 signed resolution evidence"}

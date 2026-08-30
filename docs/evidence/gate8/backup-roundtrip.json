@@ -1,0 +1,28 @@
+{
+  "archiveEntries": [
+    "app.db",
+    "manifest.json",
+    "files/",
+    "files/gate8-proof.txt"
+  ],
+  "diffExitCode": 0,
+  "filesEqual": true,
+  "rowsBefore": {
+    "entities": 6,
+    "transactions": 59,
+    "obligations": 60,
+    "bas_worksheets": 12,
+    "div7a_loans": 4,
+    "assets": 3,
+    "opening_balances": 2
+  },
+  "rowsAfter": {
+    "entities": 6,
+    "transactions": 59,
+    "obligations": 60,
+    "bas_worksheets": 12,
+    "div7a_loans": 4,
+    "assets": 3,
+    "opening_balances": 2
+  }
+}

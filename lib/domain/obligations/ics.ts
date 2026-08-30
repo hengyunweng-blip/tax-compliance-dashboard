@@ -23,14 +23,15 @@ function utcStamp() {
 
 export function serializeObligationsToIcs(obligations: IcsObligation[]): string {
   const events = obligations.flatMap((obligation) => {
-    if (!obligation.effectiveDue || !obligation.statutoryDue) {
+    const reminderDue = obligation.effectiveDue ?? obligation.statutoryDue;
+    if (!reminderDue || !obligation.statutoryDue) {
       return [];
     }
-    const endDate = formatDateOnly(addDays(parseMelbourneDate(obligation.effectiveDue), 1));
+    const endDate = formatDateOnly(addDays(parseMelbourneDate(reminderDue), 1));
     const summary = `${obligation.entityName} · ${obligation.ruleLabel} · ${obligation.periodLabel}`;
     const description = [
       `法定日: ${formatDueDate(obligation.statutoryDue)}`,
-      `实际日: ${formatDueDate(obligation.effectiveDue)}`,
+      obligation.effectiveDue ? `实际日: ${formatDueDate(obligation.effectiveDue)}` : "工作日校准待配置，按法定日排提醒",
       obligation.windowOpens ? `窗口开启日: ${formatDueDate(obligation.windowOpens)}` : "",
       `状态: ${obligation.status}`,
       obligation.portalUrl ? `入口: ${obligation.portalUrl}` : "",
@@ -39,7 +40,7 @@ export function serializeObligationsToIcs(obligations: IcsObligation[]): string 
       "BEGIN:VEVENT",
       `UID:tax-compliance-obligation-${obligation.id}@local`,
       `DTSTAMP:${utcStamp()}`,
-      `DTSTART;VALUE=DATE:${obligation.effectiveDue.replace(/-/g, "")}`,
+      `DTSTART;VALUE=DATE:${reminderDue.replace(/-/g, "")}`,
       `DTEND;VALUE=DATE:${endDate.replace(/-/g, "")}`,
       `SUMMARY:${escapeIcsText(summary)}`,
       `DESCRIPTION:${escapeIcsText(description)}`,

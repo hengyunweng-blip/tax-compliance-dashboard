@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseMoneyToCents } from "@/lib/money";
 import { getSuperProgress, markSuperNoticeSubmitted, recordSuperContribution } from "@/lib/domain/super/service";
+import { currentFinancialYear } from "@/lib/domain/obligations/calculator";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const person = url.searchParams.get("person") ?? "self";
-    const fy = url.searchParams.get("fy") ?? "2026-27";
+    const fy = url.searchParams.get("fy") ?? currentFinancialYear();
     return Response.json({ progress: getSuperProgress(person, fy) });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "养老金数据暂时不可用" }, { status: 400 });

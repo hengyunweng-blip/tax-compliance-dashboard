@@ -7,7 +7,7 @@ import type { InboxItem } from "@/lib/ingest/inbox";
 
 type Props = {
   entities: Array<{ id: string; name: string }>;
-  accounts: Array<{ id: number; entityId: string; code: string; name: string; defaultGstCode: string }>;
+  accounts: Array<{ id: number; entityId: string; code: string; name: string; type: string; defaultGstCode: string }>;
 };
 
 export function InboxClient({ entities, accounts }: Props) {
@@ -23,7 +23,8 @@ export function InboxClient({ entities, accounts }: Props) {
 
   const closedPeriodItems = items.filter((item) => item.kind === "closed_period_transaction");
   const agreementItems = items.filter((item) => item.kind === "div7a_agreement");
-  const ordinaryItems = items.filter((item) => item.kind !== "closed_period_transaction" && item.kind !== "div7a_agreement");
+  const gstCodeReviewItems = items.filter((item) => item.kind === "gst_code_review");
+  const ordinaryItems = items.filter((item) => item.kind !== "closed_period_transaction" && item.kind !== "div7a_agreement" && item.kind !== "gst_code_review");
 
   return (
     <main className="ledger-shell">
@@ -37,6 +38,10 @@ export function InboxClient({ entities, accounts }: Props) {
         <section className="inbox-section div7a-agreement-inbox-section" aria-label="Div 7A 协议义务" data-testid="div7a-agreement-inbox">
           <div className="inbox-section-heading"><div><p className="page-kicker">关联方贷款安全阀</p><h2>Div 7A 协议义务</h2><p>每笔贷款独立核对书面协议、利率、期限、担保和公司税表 lodgment day；资料不完整时不会视为合规。</p></div><span>{agreementItems.length} 项</span></div>
           {agreementItems.length ? agreementItems.map((item) => <InboxRow key={`${item.kind}-${item.id}`} item={item} entities={entities} accounts={accounts} onUpdated={load} />) : <p className="empty-state">当前没有待核对的 Div 7A 协议义务。</p>}
+        </section>
+        <section className="inbox-section gst-code-review-inbox-section" aria-label="GST 代码复核" data-testid="gst-code-review-inbox">
+          <div className="inbox-section-heading"><div><p className="page-kicker">代码迁移安全阀</p><h2>历史 NO_GST 收入复核</h2><p>旧收入记录不会被自动改写；请人工区分 GST-free / input-taxed 销售与 NOT_A_SUPPLY 非销售收款。</p></div><span>{gstCodeReviewItems.length} 项</span></div>
+          {gstCodeReviewItems.length ? gstCodeReviewItems.map((item) => <InboxRow key={`${item.kind}-${item.id}`} item={item} entities={entities} accounts={accounts} onUpdated={load} />) : <p className="empty-state">当前没有需要复核的历史 NO_GST 收入。</p>}
         </section>
         <section className="inbox-section" aria-label="普通待确认" data-testid="ordinary-inbox">
           <div className="inbox-section-heading"><div><p className="page-kicker">人工确认</p><h2>普通待确认</h2></div><span>{ordinaryItems.length} 项</span></div>

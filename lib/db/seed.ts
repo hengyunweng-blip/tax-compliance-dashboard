@@ -126,6 +126,18 @@ const OBLIGATION_RULE_SEEDS = [
     portalUrl: "https://www.ato.gov.au/law/view/document?LocID=%22PAC%2F19360027%2F109N%281%29%28b%29%22",
     checklist: ["确认书面协议已在 lodgment day 前成立", "核对协议利率不低于适用年度基准利率", "核对担保类型与最高期限", "确认协议日期和文件均可追溯"],
   },
+  {
+    id: "vic_public_holiday_calendar",
+    label: "录入次年维州公众假日",
+    appliesTo: { type: "system" },
+    frequency: "annual",
+    dueCalc: "next_year_public_holidays",
+    adjustmentDirection: "forward",
+    requiredFields: [],
+    reminderOffsets: [-90, -30, -10, 0],
+    portalUrl: "https://business.vic.gov.au/business-information/public-holidays",
+    checklist: ["打开 Business Victoria 官方年度假日表", "录入次年假日并保存来源 URL 与取数日期", "确认年度配置后重新校准待办日期"],
+  },
 ] as const;
 
 const NEWS_SOURCE_SEEDS = [

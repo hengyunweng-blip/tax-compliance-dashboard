@@ -58,7 +58,11 @@ export function mapTransactionToBas(transaction: Pick<BasTransactionInput, "gstC
     case "GST_FREE_INCOME":
     case "INPUT_TAXED":
       return { g1Cents: transaction.amountCents, a1Cents: 0, b1Cents: 0, g10Cents: 0, g11Cents: 0 };
+    case "NOT_A_SUPPLY":
     case "GST_EXPENSE":
+      if (transaction.gstCode === "NOT_A_SUPPLY") {
+        return { g1Cents: 0, a1Cents: 0, b1Cents: 0, g10Cents: 0, g11Cents: 0 };
+      }
       return { g1Cents: 0, a1Cents: 0, b1Cents: absoluteCents(transaction.gstCents), g10Cents: 0, g11Cents: absoluteCents(transaction.amountCents) };
     case "GST_CAPITAL":
       return { g1Cents: 0, a1Cents: 0, b1Cents: absoluteCents(transaction.gstCents), g10Cents: absoluteCents(transaction.amountCents), g11Cents: 0 };

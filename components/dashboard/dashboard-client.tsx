@@ -31,9 +31,10 @@ function displayIncomeYear(incomeYear: string) {
   return incomeYear.replace("-", "–");
 }
 
-function daysUntil(date: ObligationView["effectiveDue"]): number | null {
-  if (!date) return null;
-  return differenceInCalendarDays(parseMelbourneDate(date), parseMelbourneDate(todayInMelbourne()));
+function daysUntil(date: ObligationView["effectiveDue"], statutoryDue: ObligationView["statutoryDue"] = null): number | null {
+  const reminderDue = date ?? statutoryDue;
+  if (!reminderDue) return null;
+  return differenceInCalendarDays(parseMelbourneDate(reminderDue), parseMelbourneDate(todayInMelbourne()));
 }
 
 function countdownLabel(days: number | null) {
@@ -60,7 +61,7 @@ function agreementSummary(obligation: ObligationView) {
 }
 
 function ObligationCard({ obligation }: { obligation: ObligationView }) {
-  const days = daysUntil(obligation.effectiveDue);
+  const days = daysUntil(obligation.effectiveDue, obligation.statutoryDue);
   const isLicence = obligation.ruleId === "estate_agent_licence_annual_statement";
   const dueSoon = days !== null && days >= 0 && days <= 7;
   const licenceHighRisk = isLicence && days !== null && days < 0;
@@ -89,7 +90,7 @@ function ObligationCard({ obligation }: { obligation: ObligationView }) {
       ) : null}
       <div className="obligation-date-row">
         <CalendarDays size={15} aria-hidden="true" />
-        <span>{isLicence ? "工作日校准：" : "实际工作日："}{obligation.effectiveDue ? formatDueDate(obligation.effectiveDue) : "待配置"}</span>
+      <span>{isLicence ? "工作日校准：" : "实际工作日："}{obligation.effectiveDue ? formatDueDate(obligation.effectiveDue) : obligation.statutoryDue ? `工作日校准待配置 · 按法定日提醒（${formatDueDate(obligation.statutoryDue)}）` : "待配置"}</span>
       </div>
       <div className="obligation-meta-row">
         <span>截止财年：{displayIncomeYear(obligation.deadlineFy)}</span>
@@ -104,6 +105,13 @@ function ObligationCard({ obligation }: { obligation: ObligationView }) {
 export function DashboardClient({ entities, obligations }: Props) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [hideCompleted, setHideCompleted] = useState(false);
+  const [generationMessage, setGenerationMessage] = useState("");
+
+  async function generateCurrentYear() {
+    const response = await fetch("/api/obligations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+    const payload = await response.json() as { error?: string };
+    setGenerationMessage(response.ok ? "当前财年义务已幂等生成，请刷新看板查看最新配置。" : payload.error ?? "义务生成失败");
+  }
 
   const filteredObligations = useMemo(() => obligations.filter((obligation) => {
     if (statusFilter !== "all" && obligation.status !== statusFilter) return false;
@@ -112,11 +120,11 @@ export function DashboardClient({ entities, obligations }: Props) {
   }), [hideCompleted, obligations, statusFilter]);
 
   const overdueCount = obligations.filter((obligation) => {
-    const days = daysUntil(obligation.effectiveDue);
+    const days = daysUntil(obligation.effectiveDue, obligation.statutoryDue);
     return days !== null && days < 0 && obligation.status !== "paid";
   }).length;
   const dueSoonCount = obligations.filter((obligation) => {
-    const days = daysUntil(obligation.effectiveDue);
+    const days = daysUntil(obligation.effectiveDue, obligation.statutoryDue);
     return days !== null && days >= 0 && days <= 7 && obligation.status !== "paid";
   }).length;
 
@@ -144,7 +152,7 @@ export function DashboardClient({ entities, obligations }: Props) {
       <section className="dashboard-content">
         <header className="dashboard-header">
           <div>
-            <p className="page-kicker">FY2026–27 合规总览</p>
+            <p className="page-kicker">{obligations[0]?.deadlineFy?.replace("-", "–") ?? "当前财年"} 合规总览</p>
             <h1>税务合规看板</h1>
             <p className="dashboard-subtitle">六个固定主体 · 实际工作日按 Australia/Melbourne 计算</p>
           </div>
@@ -174,7 +182,9 @@ export function DashboardClient({ entities, obligations }: Props) {
             <input type="checkbox" checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} />
             隐藏已完成
           </label>
+          <button type="button" className="secondary-button" onClick={() => void generateCurrentYear()}>手动生成当前财年义务</button>
           <span className="dashboard-count">显示 {filteredObligations.length} 项</span>
+          <span className="form-message" aria-live="polite">{generationMessage}</span>
         </div>
 
         <section className="entity-columns" aria-label="六主体义务看板">

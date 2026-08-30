@@ -1,29 +1,30 @@
 import { addDays, addMonths } from "date-fns";
-import { adjustMelbourneBusinessDay } from "@/lib/time/business-days";
+import { adjustConfiguredMelbourneBusinessDay } from "@/lib/time/business-days";
 import type { AdjustmentDirection } from "@/lib/domain/obligations/rules";
-import { formatDateOnly, parseMelbourneDate, type DateOnly } from "@/lib/time/melbourne";
+import { formatDateOnly, parseMelbourneDate, todayInMelbourne, type DateOnly } from "@/lib/time/melbourne";
 
 export type BasQuarter = "Q1" | "Q2" | "Q3" | "Q4";
 
-type DueDateResult = {
+export type DueDateResult = {
   incomeYear: string;
   deadlineFy: string;
   statutoryDue: DateOnly;
-  effectiveDue: DateOnly;
+  effectiveDue: DateOnly | null;
   windowOpens?: DateOnly;
-};
-
-const BAS_DUE_DATES: Record<string, Record<BasQuarter, { statutoryDue: DateOnly; extensionDays: number }>> = {
-  "2026-27": {
-    Q1: { statutoryDue: "2026-10-28", extensionDays: 14 },
-    Q2: { statutoryDue: "2027-02-28", extensionDays: 0 },
-    Q3: { statutoryDue: "2027-04-28", extensionDays: 14 },
-    Q4: { statutoryDue: "2027-07-28", extensionDays: 14 },
-  },
 };
 
 function fyLabel(fy: string) {
   return fy.startsWith("FY") ? fy : `FY${fy}`;
+}
+
+function financialYearStart(value: string) {
+  const normalized = fyLabel(value).replace(/^FY/, "");
+  if (!/^\d{4}-\d{2}$/.test(normalized)) throw new Error(`Invalid financial year: ${value}`);
+  return Number(normalized.slice(0, 4));
+}
+
+function isoDate(year: number, month: number, day: number): DateOnly {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` as DateOnly;
 }
 
 function addMelbourneDays(date: DateOnly, days: number): DateOnly {
@@ -31,22 +32,22 @@ function addMelbourneDays(date: DateOnly, days: number): DateOnly {
 }
 
 export function calculateBasDueDates(fy: string, quarter: BasQuarter, adjustmentDirection: AdjustmentDirection = "forward"): DueDateResult {
-  const dates = BAS_DUE_DATES[fy.replace(/^FY/, "")];
-  if (!dates) {
-    throw new Error(`Unsupported BAS financial year: ${fy}`);
-  }
-  const rule = dates[quarter];
-  if (!rule) {
-    throw new Error(`Unsupported BAS quarter: ${quarter}`);
-  }
-
-  const statutoryDue = rule.statutoryDue;
-  const extendedDate = addMelbourneDays(statutoryDue, rule.extensionDays);
+  const startYear = financialYearStart(fy);
+  const statutoryDue = quarter === "Q1"
+    ? isoDate(startYear, 10, 28)
+    : quarter === "Q2"
+      ? isoDate(startYear + 1, 2, 28)
+      : quarter === "Q3"
+        ? isoDate(startYear + 1, 4, 28)
+        : isoDate(startYear + 1, 7, 28);
+  // Q2 is an explicit exception: Simpler BAS self-lodgement does not add the
+  // usual two-week extension for this quarter.
+  const extendedDate = addMelbourneDays(statutoryDue, quarter === "Q2" ? 0 : 14);
   return {
     incomeYear: fyLabel(fy),
     deadlineFy: fyLabel(fy),
     statutoryDue,
-    effectiveDue: adjustMelbourneBusinessDay(extendedDate, adjustmentDirection),
+    effectiveDue: adjustConfiguredMelbourneBusinessDay(extendedDate, adjustmentDirection),
   };
 }
 
@@ -56,19 +57,17 @@ export type AnnualTaxEntity = {
 };
 
 export function calculateAnnualTaxDue(entity: AnnualTaxEntity, context: { fy: string }, adjustmentDirection: AdjustmentDirection = "forward"): DueDateResult {
-  if (context.fy.replace(/^FY/, "") !== "2026-27") {
-    throw new Error(`Unsupported annual tax financial year: ${context.fy}`);
-  }
-
+  const deadlineStartYear = financialYearStart(context.fy);
+  const incomeYear = incomeYearForStart(deadlineStartYear - 1);
   const statutoryDue: DateOnly = entity.type === "company" && !entity.priorYearReturnOutstanding
-    ? "2027-02-28"
-    : "2026-10-31";
+    ? isoDate(deadlineStartYear + 1, 2, 28)
+    : isoDate(deadlineStartYear, 10, 31);
 
   return {
-    incomeYear: "FY2025-26",
-    deadlineFy: "FY2026-27",
+    incomeYear,
+    deadlineFy: fyLabel(context.fy),
     statutoryDue,
-    effectiveDue: adjustMelbourneBusinessDay(statutoryDue, adjustmentDirection),
+    effectiveDue: adjustConfiguredMelbourneBusinessDay(statutoryDue, adjustmentDirection),
   };
 }
 
@@ -78,28 +77,29 @@ export function calculateTrustDistributionDue(statutoryDue: DateOnly = "2027-06-
     incomeYear,
     deadlineFy: incomeYear,
     statutoryDue,
-    effectiveDue: adjustMelbourneBusinessDay(statutoryDue, adjustmentDirection),
+    effectiveDue: adjustConfiguredMelbourneBusinessDay(statutoryDue, adjustmentDirection),
   };
 }
 
 export function calculateAsicAnnualReviewDue(asicReviewDate: DateOnly, fy: string, adjustmentDirection: AdjustmentDirection = "forward"): DueDateResult {
-  const statutoryDue = formatDateOnly(addMonths(parseMelbourneDate(asicReviewDate), 2));
+  const statutoryDue = formatDateOnly(addMonths(parseMelbourneDate(annualOccurrence(asicReviewDate, fy)), 2));
   return {
     incomeYear: fyLabel(fy),
     deadlineFy: fyLabel(fy),
     statutoryDue,
-    effectiveDue: adjustMelbourneBusinessDay(statutoryDue, adjustmentDirection),
+    effectiveDue: adjustConfiguredMelbourneBusinessDay(statutoryDue, adjustmentDirection),
   };
 }
 
 export function calculateLicenceWindowDue(anniversaryDate: DateOnly, fy: string, adjustmentDirection: AdjustmentDirection = "backward"): DueDateResult {
-  const windowOpens = formatDateOnly(addDays(parseMelbourneDate(anniversaryDate), -42));
+  const annualAnniversary = annualOccurrence(anniversaryDate, fy);
+  const windowOpens = formatDateOnly(addDays(parseMelbourneDate(annualAnniversary), -42));
   return {
     incomeYear: fyLabel(fy),
     deadlineFy: fyLabel(fy),
     windowOpens,
-    statutoryDue: anniversaryDate,
-    effectiveDue: adjustMelbourneBusinessDay(anniversaryDate, adjustmentDirection),
+    statutoryDue: annualAnniversary,
+    effectiveDue: adjustConfiguredMelbourneBusinessDay(annualAnniversary, adjustmentDirection),
   };
 }
 
@@ -109,7 +109,7 @@ export function calculateSuperContributionDue(statutoryDue: DateOnly = "2027-06-
     incomeYear,
     deadlineFy: incomeYear,
     statutoryDue,
-    effectiveDue: adjustMelbourneBusinessDay(statutoryDue, adjustmentDirection),
+    effectiveDue: adjustConfiguredMelbourneBusinessDay(statutoryDue, adjustmentDirection),
   };
 }
 
@@ -125,9 +125,24 @@ export function calculateLicenceCancellationDate(anniversaryDate: DateOnly): Dat
   return formatDateOnly(addDays(parseMelbourneDate(anniversaryDate), 21));
 }
 
-function financialYearForDate(date: DateOnly): string {
+export function financialYearForDate(date: DateOnly): string {
   const year = Number(date.slice(0, 4));
   const month = Number(date.slice(5, 7));
   const startYear = month >= 7 ? year : year - 1;
   return `FY${startYear}-${String(startYear + 1).slice(-2)}`;
+}
+
+export function currentFinancialYear(now = new Date()): string {
+  return financialYearForDate(todayInMelbourne(now));
+}
+
+function incomeYearForStart(startYear: number) {
+  return `FY${startYear}-${String(startYear + 1).slice(-2)}`;
+}
+
+function annualOccurrence(baseDate: DateOnly, fy: string): DateOnly {
+  const startYear = financialYearStart(fy);
+  const month = Number(baseDate.slice(5, 7));
+  const year = month >= 7 ? startYear : startYear + 1;
+  return isoDate(year, month, Number(baseDate.slice(8, 10)));
 }

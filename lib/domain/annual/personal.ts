@@ -2,6 +2,7 @@ import { getRawDb } from "@/lib/db/client";
 import { assertIntegerCents } from "@/lib/money";
 import { getAssetDepreciationForEntity } from "@/lib/domain/assets/service";
 import { annualManualItemsForEntityType, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
+import { listTrustDistributions, type TrustDistribution } from "@/lib/domain/annual/trust-distributions";
 
 export type PersonalTaxSummary = {
   entityId: string;
@@ -16,6 +17,7 @@ export type PersonalTaxSummary = {
   assetDepreciationStatus: "ready" | "manual_review";
   assetDepreciationRows: ReturnType<typeof getAssetDepreciationForEntity>["rows"];
   trustDistributionCents: number;
+  trustDistributions: Array<Pick<TrustDistribution, "id" | "trustEntityId" | "trustEntityName" | "amountCents" | "resolutionDate" | "status" | "statusLabel" | "sourceDescription">>;
   dividendCents: number;
   frankingCreditsCents: number;
   concessionalContributionsCents: number;
@@ -40,6 +42,8 @@ export function buildPersonalTaxSummary(person: string, incomeYear: string): Per
   `).get(person, normalizedIncomeYear.replace(/^FY/, "")) as { contributed_cents: number; notice_submitted_at: string | null };
   assertIntegerCents(row.contributed_cents);
   const assetDepreciation = getAssetDepreciationForEntity(person, normalizedIncomeYear);
+  const trustDistributions = listTrustDistributions({ beneficiaryEntityId: person, incomeYear: normalizedIncomeYear });
+  const trustDistributionCents = sumCents(trustDistributions.map((distribution) => distribution.amountCents));
 
   return {
     entityId: person,
@@ -53,9 +57,17 @@ export function buildPersonalTaxSummary(person: string, incomeYear: string): Per
     deductibleDepreciationCents: assetDepreciation.deductibleDepreciationCents,
     assetDepreciationStatus: assetDepreciation.status,
     assetDepreciationRows: assetDepreciation.rows,
-    // These are intentionally manual until the source data model has explicit
-    // distribution/dividend documents; no annual filing is generated here.
-    trustDistributionCents: 0,
+    trustDistributionCents,
+    trustDistributions: trustDistributions.map((distribution) => ({
+      id: distribution.id,
+      trustEntityId: distribution.trustEntityId,
+      trustEntityName: distribution.trustEntityName,
+      amountCents: distribution.amountCents,
+      resolutionDate: distribution.resolutionDate,
+      status: distribution.status,
+      statusLabel: distribution.statusLabel,
+      sourceDescription: distribution.sourceDescription,
+    })),
     dividendCents: 0,
     frankingCreditsCents: 0,
     concessionalContributionsCents: row.contributed_cents,

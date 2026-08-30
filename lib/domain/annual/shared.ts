@@ -54,7 +54,7 @@ export function annualTransactionLines(entityId: string, incomeYear: string): An
       a.id AS account_id, a.code AS account_code, a.name AS account_name, a.type AS account_type
     FROM transactions t
     INNER JOIN accounts a ON a.id = t.account_id
-    WHERE t.entity_id = ? AND t.fy = ? AND t.review_flag = 0 AND t.gst_code <> 'PRIVATE'
+    WHERE t.entity_id = ? AND t.fy = ? AND t.review_flag = 0 AND t.gst_code NOT IN ('PRIVATE', 'NOT_A_SUPPLY')
     ORDER BY t.date, t.id
   `).all(entityId, fy) as Array<{
     id: number;

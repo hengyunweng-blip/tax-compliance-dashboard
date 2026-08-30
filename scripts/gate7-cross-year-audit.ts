@@ -245,7 +245,7 @@ function runBasAndAnnualWorkflows() {
   const superProgress = ["self", "spouse"].map((person) => getSuperProgress(person, `FY${FY}`));
   const assetRows = COMPANY_IDS.flatMap((entityId) => {
     const summary = getAssetDepreciationForEntity(entityId, `FY${FY}`);
-    return summary.rows.map((row) => ({ entityId, ...row }));
+    return summary.rows.map((row) => ({ ...row }));
   });
   const div7aRows = db.prepare(`
     SELECT id, lender_entity_id, principal_cents, repayments_json

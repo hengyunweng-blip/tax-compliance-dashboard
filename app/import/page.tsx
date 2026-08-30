@@ -8,7 +8,7 @@ export default function ImportPage() {
   runMigrations();
   const db = getRawDb();
   const entities = db.prepare("SELECT id, name FROM entities WHERE active = 1 ORDER BY sort_order").all() as Array<{ id: string; name: string }>;
-  const accounts = db.prepare("SELECT id, entity_id AS entityId, code, name, default_gst_code AS defaultGstCode FROM accounts WHERE archived = 0 ORDER BY entity_id, code").all() as Array<{ id: number; entityId: string; code: string; name: string; defaultGstCode: string }>;
+  const accounts = db.prepare("SELECT id, entity_id AS entityId, code, name, type, default_gst_code AS defaultGstCode FROM accounts WHERE archived = 0 ORDER BY entity_id, code").all() as Array<{ id: number; entityId: string; code: string; name: string; type: string; defaultGstCode: string }>;
   return (
     <main className="ledger-shell">
       <aside className="app-rail" aria-label="主导航"><div className="brand-lockup"><span>税务合规看板</span></div><nav className="app-nav"><a className="nav-item" href="/">看板</a><a className="nav-item" href="/upload">上传</a><a className="nav-item active" href="/import">CSV 导入</a><a className="nav-item" href="/inbox">Inbox</a><a className="nav-item" href="/news">资讯</a><a className="nav-item" href="/settings">设置</a></nav></aside>

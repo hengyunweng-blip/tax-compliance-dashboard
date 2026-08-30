@@ -25,6 +25,10 @@ function accountId() {
   return (getRawDb().prepare("SELECT id FROM accounts WHERE entity_id = 'boyun_co' AND code = '400'").get() as { id: number }).id;
 }
 
+function expenseAccountId() {
+  return (getRawDb().prepare("SELECT id FROM accounts WHERE entity_id = 'boyun_co' AND code = '500'").get() as { id: number }).id;
+}
+
 function obligationId(period: "Q1" | "Q2") {
   return (getRawDb().prepare("SELECT id FROM obligations WHERE entity_id = 'boyun_co' AND rule_id = 'bas_quarterly' AND period_label LIKE ?").get(`% ${period}`) as { id: number }).id;
 }
@@ -82,7 +86,7 @@ test("lists closed-period transactions in a separate Inbox queue", async () => {
     entityId: "boyun_co",
     date: "2026-10-05",
     description: "Ordinary Q2 review row",
-    accountId: accountId(),
+    accountId: expenseAccountId(),
     gstCode: "GST_EXPENSE",
     amountCents: -5500,
     gstCents: -500,

@@ -1,0 +1,64 @@
+[
+  {
+    "key": "boyun_co|self|FY2025-26|7",
+    "lenderEntityId": "boyun_co",
+    "borrower": "self",
+    "incomeYear": "FY2025-26",
+    "maximumTermYears": 7,
+    "loans": [
+      {
+        "id": 1,
+        "lenderEntityId": "boyun_co",
+        "borrower": "self",
+        "loanIncomeYear": "FY2025-26",
+        "securityType": "unsecured",
+        "minimumRepaymentCents": 177444
+      },
+      {
+        "id": 2,
+        "lenderEntityId": "boyun_co",
+        "borrower": "self",
+        "loanIncomeYear": "FY2025-26",
+        "securityType": "unsecured",
+        "minimumRepaymentCents": 88722
+      }
+    ],
+    "totalMinimumRepaymentCents": 266166
+  },
+  {
+    "key": "yeeliving_co|self|FY2026-27|7",
+    "lenderEntityId": "yeeliving_co",
+    "borrower": "self",
+    "incomeYear": "FY2026-27",
+    "maximumTermYears": 7,
+    "loans": [
+      {
+        "id": 3,
+        "lenderEntityId": "yeeliving_co",
+        "borrower": "self",
+        "loanIncomeYear": "FY2026-27",
+        "securityType": "unsecured",
+        "minimumRepaymentCents": 0
+      }
+    ],
+    "totalMinimumRepaymentCents": 0
+  },
+  {
+    "key": "neighbourhood_co|self|FY2026-27|7",
+    "lenderEntityId": "neighbourhood_co",
+    "borrower": "self",
+    "incomeYear": "FY2026-27",
+    "maximumTermYears": 7,
+    "loans": [
+      {
+        "id": 4,
+        "lenderEntityId": "neighbourhood_co",
+        "borrower": "self",
+        "loanIncomeYear": "FY2026-27",
+        "securityType": "unsecured",
+        "minimumRepaymentCents": 0
+      }
+    ],
+    "totalMinimumRepaymentCents": 0
+  }
+]

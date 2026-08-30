@@ -1,0 +1,706 @@
+{
+  "databaseFilePath": "/Users/neilweng/Documents/ChatGPT/税务任务开发/docs/evidence/gate8/gate8-ui.db",
+  "entityIds": [
+    "self",
+    "spouse",
+    "boyun_trust",
+    "boyun_co",
+    "yeeliving_co",
+    "neighbourhood_co"
+  ],
+  "entityCount": 6,
+  "basRows": [
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2026-27 Q1",
+      "id": 1,
+      "g1_cents": 185000,
+      "a1_cents": 10000,
+      "b1_cents": 12000,
+      "g10_cents": 110000,
+      "g11_cents": 22000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": 500
+    },
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2026-27 Q2",
+      "id": 2,
+      "g1_cents": 370000,
+      "a1_cents": 20000,
+      "b1_cents": 24000,
+      "g10_cents": 220000,
+      "g11_cents": 44000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": -1500
+    },
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2026-27 Q3",
+      "id": 3,
+      "g1_cents": 555000,
+      "a1_cents": 30000,
+      "b1_cents": 36000,
+      "g10_cents": 330000,
+      "g11_cents": 66000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": -3500
+    },
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2026-27 Q4",
+      "id": 4,
+      "g1_cents": 740000,
+      "a1_cents": 40000,
+      "b1_cents": 48000,
+      "g10_cents": 440000,
+      "g11_cents": 88000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": -5500
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2026-27 Q1",
+      "id": 5,
+      "g1_cents": 0,
+      "a1_cents": 0,
+      "b1_cents": 0,
+      "g10_cents": 0,
+      "g11_cents": 0,
+      "payg_5a_cents": 0,
+      "payg_5b_cents": 0,
+      "statement_total_cents": 0
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2026-27 Q2",
+      "id": 6,
+      "g1_cents": 0,
+      "a1_cents": 0,
+      "b1_cents": 0,
+      "g10_cents": 0,
+      "g11_cents": 0,
+      "payg_5a_cents": 0,
+      "payg_5b_cents": 0,
+      "statement_total_cents": 0
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2026-27 Q3",
+      "id": 7,
+      "g1_cents": 0,
+      "a1_cents": 0,
+      "b1_cents": 0,
+      "g10_cents": 0,
+      "g11_cents": 0,
+      "payg_5a_cents": 0,
+      "payg_5b_cents": 0,
+      "statement_total_cents": 0
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2026-27 Q4",
+      "id": 8,
+      "g1_cents": 0,
+      "a1_cents": 0,
+      "b1_cents": 0,
+      "g10_cents": 0,
+      "g11_cents": 0,
+      "payg_5a_cents": 0,
+      "payg_5b_cents": 0,
+      "statement_total_cents": 0
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2026-27 Q1",
+      "id": 9,
+      "g1_cents": 370000,
+      "a1_cents": 20000,
+      "b1_cents": 24000,
+      "g10_cents": 220000,
+      "g11_cents": 44000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": -1500
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2026-27 Q2",
+      "id": 10,
+      "g1_cents": 740000,
+      "a1_cents": 40000,
+      "b1_cents": 48000,
+      "g10_cents": 440000,
+      "g11_cents": 88000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": -5500
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2026-27 Q3",
+      "id": 11,
+      "g1_cents": 1110000,
+      "a1_cents": 60000,
+      "b1_cents": 72000,
+      "g10_cents": 660000,
+      "g11_cents": 132000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": -9500
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2026-27 Q4",
+      "id": 12,
+      "g1_cents": 1480000,
+      "a1_cents": 80000,
+      "b1_cents": 96000,
+      "g10_cents": 880000,
+      "g11_cents": 176000,
+      "payg_5a_cents": 2500,
+      "payg_5b_cents": 0,
+      "statement_total_cents": -13500
+    }
+  ],
+  "annualReconciliation": [
+    {
+      "entityId": "boyun_co",
+      "basG1Cents": 1850000,
+      "bas1ACents": 100000,
+      "basG1Minus1ACents": 1750000,
+      "annualIncomeCents": 1750000,
+      "differenceCents": 0,
+      "annualReconciliation": {
+        "basG1Cents": 1850000,
+        "bas1ACents": 100000,
+        "basNetCents": 1750000,
+        "annualIncomeCents": 1750000,
+        "differenceCents": 0,
+        "groups": [
+          {
+            "gstCode": "GST_INCOME",
+            "basG1Cents": 1100000,
+            "bas1ACents": 100000,
+            "annualIncomeCents": 1000000,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "GST_EXPENSE",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "GST_FREE_INCOME",
+            "basG1Cents": 500000,
+            "bas1ACents": 0,
+            "annualIncomeCents": 500000,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "GST_CAPITAL",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "INPUT_TAXED",
+            "basG1Cents": 250000,
+            "bas1ACents": 0,
+            "annualIncomeCents": 250000,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "NO_GST",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "NOT_A_SUPPLY",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          }
+        ],
+        "confirmed": false
+      }
+    },
+    {
+      "entityId": "yeeliving_co",
+      "basG1Cents": 3700000,
+      "bas1ACents": 200000,
+      "basG1Minus1ACents": 3500000,
+      "annualIncomeCents": 3500000,
+      "differenceCents": 0,
+      "annualReconciliation": {
+        "basG1Cents": 3700000,
+        "bas1ACents": 200000,
+        "basNetCents": 3500000,
+        "annualIncomeCents": 3500000,
+        "differenceCents": 0,
+        "groups": [
+          {
+            "gstCode": "GST_INCOME",
+            "basG1Cents": 2200000,
+            "bas1ACents": 200000,
+            "annualIncomeCents": 2000000,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "GST_EXPENSE",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "GST_FREE_INCOME",
+            "basG1Cents": 1000000,
+            "bas1ACents": 0,
+            "annualIncomeCents": 1000000,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "GST_CAPITAL",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "INPUT_TAXED",
+            "basG1Cents": 500000,
+            "bas1ACents": 0,
+            "annualIncomeCents": 500000,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "NO_GST",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          },
+          {
+            "gstCode": "NOT_A_SUPPLY",
+            "basG1Cents": 0,
+            "bas1ACents": 0,
+            "annualIncomeCents": 0,
+            "differenceCents": 0
+          }
+        ],
+        "confirmed": false
+      }
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "basG1Cents": 0,
+      "bas1ACents": 0,
+      "basG1Minus1ACents": 0,
+      "annualIncomeCents": 0,
+      "differenceCents": 0,
+      "annualReconciliation": {
+        "basG1Cents": 0,
+        "bas1ACents": 0,
+        "basNetCents": 0,
+        "annualIncomeCents": 0,
+        "differenceCents": 0,
+        "groups": [],
+        "confirmed": false
+      }
+    }
+  ],
+  "trust": {
+    "distributableIncomeCents": 250000,
+    "distributionTotalCents": 250000,
+    "differenceCents": 0
+  },
+  "personal": {
+    "self": 125000,
+    "spouse": 125000
+  },
+  "assets": [
+    {
+      "entityId": "boyun_co",
+      "totalDepreciationCents": 200000,
+      "bookReductionCents": 200000,
+      "differenceCents": 0,
+      "rows": [
+        {
+          "assetId": 1,
+          "entityId": "boyun_co",
+          "name": "Boyun company vehicle",
+          "assetType": "vehicle",
+          "incomeYear": "FY2026-27",
+          "openingBookValueCents": 1000000,
+          "openingAccumulatedDepreciationCents": 0,
+          "totalDepreciationCents": 200000,
+          "deductibleDepreciationCents": 160000,
+          "closingBookValueCents": 800000,
+          "status": "ready",
+          "unresolvedReason": null,
+          "vehicleWarning": "私人使用可能另有 FBT 或 Div 7A 后果，尚未评估。"
+        }
+      ]
+    },
+    {
+      "entityId": "yeeliving_co",
+      "totalDepreciationCents": 800000,
+      "bookReductionCents": 800000,
+      "differenceCents": 0,
+      "rows": [
+        {
+          "assetId": 2,
+          "entityId": "yeeliving_co",
+          "name": "Yeeliving equipment",
+          "assetType": "equipment",
+          "incomeYear": "FY2026-27",
+          "openingBookValueCents": 2000000,
+          "openingAccumulatedDepreciationCents": 0,
+          "totalDepreciationCents": 800000,
+          "deductibleDepreciationCents": 800000,
+          "closingBookValueCents": 1200000,
+          "status": "ready",
+          "unresolvedReason": null,
+          "vehicleWarning": null
+        }
+      ]
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "totalDepreciationCents": 100000,
+      "bookReductionCents": 100000,
+      "differenceCents": 0,
+      "rows": [
+        {
+          "assetId": 3,
+          "entityId": "neighbourhood_co",
+          "name": "Neighbourhood equipment",
+          "assetType": "equipment",
+          "incomeYear": "FY2026-27",
+          "openingBookValueCents": 500000,
+          "openingAccumulatedDepreciationCents": 0,
+          "totalDepreciationCents": 100000,
+          "deductibleDepreciationCents": 100000,
+          "closingBookValueCents": 400000,
+          "status": "ready",
+          "unresolvedReason": null,
+          "vehicleWarning": null
+        }
+      ]
+    }
+  ],
+  "div7a": [
+    {
+      "loanId": 1,
+      "incomeYear": "FY2026-27",
+      "openingBalanceCents": 900000,
+      "interestCents": 78930,
+      "actualRepaymentCents": 0,
+      "closingBalanceCents": 978930,
+      "identityDifferenceCents": 0,
+      "schedule": [
+        {
+          "id": 1,
+          "lenderEntityId": "boyun_co",
+          "lenderEntityName": "Boyun Pty Ltd",
+          "borrower": "self",
+          "loanDate": "2026-06-30",
+          "loanIncomeYear": "FY2025-26",
+          "principalCents": 1000000,
+          "originalTermYears": 7,
+          "termYears": 7,
+          "benchmarkRate": "8.77%",
+          "legacyBenchmarkRate": "0.0877",
+          "repayments": [
+            {
+              "repaymentId": "repayment-1-2027-06-30-1",
+              "date": "2027-06-30",
+              "amountCents": 100000,
+              "reviewStatus": "unreviewed"
+            }
+          ],
+          "agreementSigned": false,
+          "agreementSignedAt": null,
+          "agreementDocumentId": null,
+          "agreementRateText": null,
+          "agreementTermsStatus": "unknown",
+          "securityType": "unsecured",
+          "assessmentIncomeYear": "FY2026-27",
+          "elapsedRepaymentYears": 1,
+          "remainingTermYears": 7,
+          "repaymentStatus": "active",
+          "isExpired": false,
+          "openingBalanceCents": 900000,
+          "balanceAtPreviousYearEndCents": 900000,
+          "interestCents": 78930,
+          "minimumRepaymentCents": 177444,
+          "actualRepaymentCents": 0,
+          "recordedRepaymentCents": 100000,
+          "repaymentValidityRisks": [
+            {
+              "repaymentId": "repayment-1-2027-06-30-1",
+              "repaymentDate": "2027-06-30",
+              "amountCents": 100000,
+              "windowDays": 30,
+              "reviewStatus": "unreviewed",
+              "relatedTransactions": [
+                {
+                  "id": 59,
+                  "date": "2027-07-01",
+                  "amountCents": 100000,
+                  "description": "New director draw after repayment for s109R screening"
+                }
+              ],
+              "relatedLoans": [],
+              "message": "还款有效性存疑 · 请核对 s109R"
+            }
+          ],
+          "closingBalanceCents": 978930,
+          "unresolvedBalanceCents": null,
+          "expiryWarning": null,
+          "shortfallCents": 177444,
+          "benchmarkRateText": "8.77%",
+          "benchmarkRateSourceUrl": "https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate",
+          "benchmarkRateRetrievedAt": "2026-08-29",
+          "unresolvedReason": null,
+          "repaymentDue": "2027-06-30",
+          "daysUntilRepaymentDue": 304
+        }
+      ],
+      "repaymentValidityRisks": [
+        {
+          "repaymentId": "repayment-1-2027-06-30-1",
+          "repaymentDate": "2027-06-30",
+          "amountCents": 100000,
+          "windowDays": 30,
+          "reviewStatus": "unreviewed",
+          "relatedTransactions": [
+            {
+              "id": 59,
+              "date": "2027-07-01",
+              "amountCents": 100000,
+              "description": "New director draw after repayment for s109R screening"
+            }
+          ],
+          "relatedLoans": [],
+          "message": "还款有效性存疑 · 请核对 s109R"
+        }
+      ]
+    },
+    {
+      "loanId": 2,
+      "incomeYear": "FY2026-27",
+      "openingBalanceCents": 450000,
+      "interestCents": 39465,
+      "actualRepaymentCents": 0,
+      "closingBalanceCents": 489465,
+      "identityDifferenceCents": 0,
+      "schedule": [
+        {
+          "id": 2,
+          "lenderEntityId": "boyun_co",
+          "lenderEntityName": "Boyun Pty Ltd",
+          "borrower": "self",
+          "loanDate": "2026-06-30",
+          "loanIncomeYear": "FY2025-26",
+          "principalCents": 500000,
+          "originalTermYears": 7,
+          "termYears": 7,
+          "benchmarkRate": "8.77%",
+          "legacyBenchmarkRate": "0.0877",
+          "repayments": [],
+          "agreementSigned": false,
+          "agreementSignedAt": null,
+          "agreementDocumentId": null,
+          "agreementRateText": null,
+          "agreementTermsStatus": "unknown",
+          "securityType": "unsecured",
+          "assessmentIncomeYear": "FY2026-27",
+          "elapsedRepaymentYears": 1,
+          "remainingTermYears": 7,
+          "repaymentStatus": "active",
+          "isExpired": false,
+          "openingBalanceCents": 450000,
+          "balanceAtPreviousYearEndCents": 450000,
+          "interestCents": 39465,
+          "minimumRepaymentCents": 88722,
+          "actualRepaymentCents": 0,
+          "recordedRepaymentCents": 0,
+          "repaymentValidityRisks": [],
+          "closingBalanceCents": 489465,
+          "unresolvedBalanceCents": null,
+          "expiryWarning": null,
+          "shortfallCents": 88722,
+          "benchmarkRateText": "8.77%",
+          "benchmarkRateSourceUrl": "https://www.ato.gov.au/tax-rates-and-codes/division-7a-benchmark-interest-rate",
+          "benchmarkRateRetrievedAt": "2026-08-29",
+          "unresolvedReason": null,
+          "repaymentDue": "2027-06-30",
+          "daysUntilRepaymentDue": 304
+        }
+      ],
+      "repaymentValidityRisks": []
+    },
+    {
+      "loanId": 3,
+      "incomeYear": "FY2026-27",
+      "openingBalanceCents": 2000000,
+      "interestCents": 0,
+      "actualRepaymentCents": 0,
+      "closingBalanceCents": 2000000,
+      "identityDifferenceCents": 0,
+      "schedule": [
+        {
+          "id": 3,
+          "lenderEntityId": "yeeliving_co",
+          "lenderEntityName": "Yeeliving Pty Ltd（易居）",
+          "borrower": "self",
+          "loanDate": "2026-07-01",
+          "loanIncomeYear": "FY2026-27",
+          "principalCents": 2000000,
+          "originalTermYears": 7,
+          "termYears": 7,
+          "benchmarkRate": "未配置",
+          "legacyBenchmarkRate": "0.0877",
+          "repayments": [],
+          "agreementSigned": false,
+          "agreementSignedAt": null,
+          "agreementDocumentId": null,
+          "agreementRateText": null,
+          "agreementTermsStatus": "unknown",
+          "securityType": "unsecured",
+          "assessmentIncomeYear": "FY2026-27",
+          "elapsedRepaymentYears": 0,
+          "remainingTermYears": 7,
+          "repaymentStatus": "origination",
+          "isExpired": false,
+          "openingBalanceCents": 2000000,
+          "balanceAtPreviousYearEndCents": 2000000,
+          "interestCents": 0,
+          "minimumRepaymentCents": 0,
+          "actualRepaymentCents": 0,
+          "recordedRepaymentCents": 0,
+          "repaymentValidityRisks": [],
+          "closingBalanceCents": 2000000,
+          "unresolvedBalanceCents": null,
+          "expiryWarning": null,
+          "shortfallCents": 0,
+          "benchmarkRateText": null,
+          "benchmarkRateSourceUrl": null,
+          "benchmarkRateRetrievedAt": null,
+          "unresolvedReason": null,
+          "repaymentDue": null,
+          "daysUntilRepaymentDue": null
+        }
+      ],
+      "repaymentValidityRisks": []
+    },
+    {
+      "loanId": 4,
+      "incomeYear": "FY2026-27",
+      "openingBalanceCents": 500000,
+      "interestCents": 0,
+      "actualRepaymentCents": 0,
+      "closingBalanceCents": 500000,
+      "identityDifferenceCents": 0,
+      "schedule": [
+        {
+          "id": 4,
+          "lenderEntityId": "neighbourhood_co",
+          "lenderEntityName": "Neighbourhood Project Pty Ltd",
+          "borrower": "self",
+          "loanDate": "2026-07-01",
+          "loanIncomeYear": "FY2026-27",
+          "principalCents": 500000,
+          "originalTermYears": 7,
+          "termYears": 7,
+          "benchmarkRate": "未配置",
+          "legacyBenchmarkRate": "0.0877",
+          "repayments": [],
+          "agreementSigned": false,
+          "agreementSignedAt": null,
+          "agreementDocumentId": null,
+          "agreementRateText": null,
+          "agreementTermsStatus": "unknown",
+          "securityType": "unsecured",
+          "assessmentIncomeYear": "FY2026-27",
+          "elapsedRepaymentYears": 0,
+          "remainingTermYears": 7,
+          "repaymentStatus": "origination",
+          "isExpired": false,
+          "openingBalanceCents": 500000,
+          "balanceAtPreviousYearEndCents": 500000,
+          "interestCents": 0,
+          "minimumRepaymentCents": 0,
+          "actualRepaymentCents": 0,
+          "recordedRepaymentCents": 0,
+          "repaymentValidityRisks": [],
+          "closingBalanceCents": 500000,
+          "unresolvedBalanceCents": null,
+          "expiryWarning": null,
+          "shortfallCents": 0,
+          "benchmarkRateText": null,
+          "benchmarkRateSourceUrl": null,
+          "benchmarkRateRetrievedAt": null,
+          "unresolvedReason": null,
+          "repaymentDue": null,
+          "daysUntilRepaymentDue": null
+        }
+      ],
+      "repaymentValidityRisks": []
+    }
+  ],
+  "obligationCounts": {
+    "fy2026_27": {
+      "count": 30
+    },
+    "fy2027_28": {
+      "count": 30
+    },
+    "bas2026_27": {
+      "count": 12
+    },
+    "bas2027_28": {
+      "count": 12
+    }
+  },
+  "backup": {
+    "archiveEntries": [
+      "app.db",
+      "manifest.json",
+      "files/",
+      "files/gate8-proof.txt"
+    ],
+    "diffExitCode": 0,
+    "filesEqual": true,
+    "rowsBefore": {
+      "entities": 6,
+      "transactions": 59,
+      "obligations": 60,
+      "bas_worksheets": 12,
+      "div7a_loans": 4,
+      "assets": 3,
+      "opening_balances": 2
+    },
+    "rowsAfter": {
+      "entities": 6,
+      "transactions": 59,
+      "obligations": 60,
+      "bas_worksheets": 12,
+      "div7a_loans": 4,
+      "assets": 3,
+      "opening_balances": 2
+    }
+  }
+}

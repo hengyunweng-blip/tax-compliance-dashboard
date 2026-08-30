@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       documentId?: number;
       entityId?: string;
       accountId?: number;
-      gstCode?: "GST_INCOME" | "GST_FREE_INCOME" | "INPUT_TAXED" | "GST_EXPENSE" | "GST_CAPITAL" | "NO_GST" | "PRIVATE";
+      gstCode?: "GST_INCOME" | "GST_FREE_INCOME" | "INPUT_TAXED" | "NOT_A_SUPPLY" | "GST_EXPENSE" | "GST_CAPITAL" | "NO_GST" | "PRIVATE";
     };
     if (body.action === "confirm_transaction") {
       if (body.transactionId === undefined || !body.entityId || body.accountId === undefined || !body.gstCode) {

@@ -1,0 +1,153 @@
+[
+  {
+    "entityId": "boyun_co",
+    "basG1Cents": 1850000,
+    "bas1ACents": 100000,
+    "basG1Minus1ACents": 1750000,
+    "annualIncomeCents": 1750000,
+    "differenceCents": 0,
+    "annualReconciliation": {
+      "basG1Cents": 1850000,
+      "bas1ACents": 100000,
+      "basNetCents": 1750000,
+      "annualIncomeCents": 1750000,
+      "differenceCents": 0,
+      "groups": [
+        {
+          "gstCode": "GST_INCOME",
+          "basG1Cents": 1100000,
+          "bas1ACents": 100000,
+          "annualIncomeCents": 1000000,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "GST_EXPENSE",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "GST_FREE_INCOME",
+          "basG1Cents": 500000,
+          "bas1ACents": 0,
+          "annualIncomeCents": 500000,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "GST_CAPITAL",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "INPUT_TAXED",
+          "basG1Cents": 250000,
+          "bas1ACents": 0,
+          "annualIncomeCents": 250000,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "NO_GST",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "NOT_A_SUPPLY",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        }
+      ],
+      "confirmed": false
+    }
+  },
+  {
+    "entityId": "yeeliving_co",
+    "basG1Cents": 3700000,
+    "bas1ACents": 200000,
+    "basG1Minus1ACents": 3500000,
+    "annualIncomeCents": 3500000,
+    "differenceCents": 0,
+    "annualReconciliation": {
+      "basG1Cents": 3700000,
+      "bas1ACents": 200000,
+      "basNetCents": 3500000,
+      "annualIncomeCents": 3500000,
+      "differenceCents": 0,
+      "groups": [
+        {
+          "gstCode": "GST_INCOME",
+          "basG1Cents": 2200000,
+          "bas1ACents": 200000,
+          "annualIncomeCents": 2000000,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "GST_EXPENSE",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "GST_FREE_INCOME",
+          "basG1Cents": 1000000,
+          "bas1ACents": 0,
+          "annualIncomeCents": 1000000,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "GST_CAPITAL",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "INPUT_TAXED",
+          "basG1Cents": 500000,
+          "bas1ACents": 0,
+          "annualIncomeCents": 500000,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "NO_GST",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        },
+        {
+          "gstCode": "NOT_A_SUPPLY",
+          "basG1Cents": 0,
+          "bas1ACents": 0,
+          "annualIncomeCents": 0,
+          "differenceCents": 0
+        }
+      ],
+      "confirmed": false
+    }
+  },
+  {
+    "entityId": "neighbourhood_co",
+    "basG1Cents": 0,
+    "bas1ACents": 0,
+    "basG1Minus1ACents": 0,
+    "annualIncomeCents": 0,
+    "differenceCents": 0,
+    "annualReconciliation": {
+      "basG1Cents": 0,
+      "bas1ACents": 0,
+      "basNetCents": 0,
+      "annualIncomeCents": 0,
+      "differenceCents": 0,
+      "groups": [],
+      "confirmed": false
+    }
+  }
+]

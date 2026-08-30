@@ -50,6 +50,7 @@ export const RULE_LABELS: Record<string, string> = {
   super_contribution: "个人可抵扣供款到账",
   super_notice: "供款抵扣意向通知",
   div7a_loan_agreement: "Div 7A 协议截止义务",
+  vic_public_holiday_calendar: "录入次年维州公众假日",
 };
 
 export const RULE_ADJUSTMENT_DIRECTIONS: Record<string, AdjustmentDirection> = {
@@ -63,6 +64,7 @@ export const RULE_ADJUSTMENT_DIRECTIONS: Record<string, AdjustmentDirection> = {
   super_contribution: "backward",
   super_notice: "forward",
   div7a_loan_agreement: "forward",
+  vic_public_holiday_calendar: "forward",
 };
 
 export const RULE_REQUIRED_FIELDS: Record<string, string[]> = {
@@ -76,6 +78,7 @@ export const RULE_REQUIRED_FIELDS: Record<string, string[]> = {
   super_contribution: [],
   super_notice: [],
   div7a_loan_agreement: [],
+  vic_public_holiday_calendar: [],
 };
 
 export const PERIOD_LABELS = {

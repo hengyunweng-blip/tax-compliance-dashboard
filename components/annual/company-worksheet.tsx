@@ -2,6 +2,7 @@ import { formatCents } from "@/lib/money";
 import type { CompanyTaxWorksheet } from "@/lib/domain/annual/company";
 import { displayIncomeYear } from "@/lib/domain/annual/labels";
 import { formatDueDate, type DateOnly } from "@/lib/time/melbourne";
+import { ReconciliationPanel } from "@/components/annual/reconciliation-panel";
 
 function annualMoney(value: number | null) {
   return value === null ? "无法判断" : formatCents(value);
@@ -27,6 +28,7 @@ export function CompanyWorksheet({ worksheet }: { worksheet: CompanyTaxWorksheet
       </div>
       {worksheet.assetDepreciationStatus === "manual_review" ? <p className="annual-independent-note danger-text">资产折旧无法判断：期初余额或人工参数未配置，系统未假设为零。</p> : null}
       {worksheet.assetDepreciationRows.some((row) => row.vehicleWarning) ? <p className="annual-independent-note">车辆提示：私人使用可能另有 FBT 或 Div 7A 后果，尚未评估；请先查看<a href="/vehicle-fact-checklist" target="_blank" rel="noreferrer">车辆事实清单</a>。</p> : null}
+      <ReconciliationPanel entityId={worksheet.entityId} incomeYear={worksheet.incomeYear} reconciliation={worksheet.reconciliation} />
       <ManualItems items={worksheet.manualItems} />
       <TransactionList transactions={worksheet.transactions} />
     </section>

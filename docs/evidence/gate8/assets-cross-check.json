@@ -1,0 +1,71 @@
+[
+  {
+    "entityId": "boyun_co",
+    "totalDepreciationCents": 200000,
+    "bookReductionCents": 200000,
+    "differenceCents": 0,
+    "rows": [
+      {
+        "assetId": 1,
+        "entityId": "boyun_co",
+        "name": "Boyun company vehicle",
+        "assetType": "vehicle",
+        "incomeYear": "FY2026-27",
+        "openingBookValueCents": 1000000,
+        "openingAccumulatedDepreciationCents": 0,
+        "totalDepreciationCents": 200000,
+        "deductibleDepreciationCents": 160000,
+        "closingBookValueCents": 800000,
+        "status": "ready",
+        "unresolvedReason": null,
+        "vehicleWarning": "私人使用可能另有 FBT 或 Div 7A 后果，尚未评估。"
+      }
+    ]
+  },
+  {
+    "entityId": "yeeliving_co",
+    "totalDepreciationCents": 800000,
+    "bookReductionCents": 800000,
+    "differenceCents": 0,
+    "rows": [
+      {
+        "assetId": 2,
+        "entityId": "yeeliving_co",
+        "name": "Yeeliving equipment",
+        "assetType": "equipment",
+        "incomeYear": "FY2026-27",
+        "openingBookValueCents": 2000000,
+        "openingAccumulatedDepreciationCents": 0,
+        "totalDepreciationCents": 800000,
+        "deductibleDepreciationCents": 800000,
+        "closingBookValueCents": 1200000,
+        "status": "ready",
+        "unresolvedReason": null,
+        "vehicleWarning": null
+      }
+    ]
+  },
+  {
+    "entityId": "neighbourhood_co",
+    "totalDepreciationCents": 100000,
+    "bookReductionCents": 100000,
+    "differenceCents": 0,
+    "rows": [
+      {
+        "assetId": 3,
+        "entityId": "neighbourhood_co",
+        "name": "Neighbourhood equipment",
+        "assetType": "equipment",
+        "incomeYear": "FY2026-27",
+        "openingBookValueCents": 500000,
+        "openingAccumulatedDepreciationCents": 0,
+        "totalDepreciationCents": 100000,
+        "deductibleDepreciationCents": 100000,
+        "closingBookValueCents": 400000,
+        "status": "ready",
+        "unresolvedReason": null,
+        "vehicleWarning": null
+      }
+    ]
+  }
+]

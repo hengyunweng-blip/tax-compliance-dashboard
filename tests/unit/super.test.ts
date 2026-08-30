@@ -4,11 +4,13 @@ import { seedDatabase } from "@/lib/db/seed";
 import { expandObligationsInDatabase } from "@/lib/domain/obligations/expand";
 import { getSuperProgress, markSuperNoticeSubmitted, recordSuperContribution } from "@/lib/domain/super/service";
 import { calculateSuperContributionDue } from "@/lib/domain/obligations/calculator";
+import { configurePublicHolidayYear } from "@/lib/time/public-holidays";
 
 beforeEach(() => {
   seedDatabase();
   const db = getRawDb();
   db.exec("DELETE FROM super_contributions; DELETE FROM reminders; DELETE FROM obligations;");
+  configurePublicHolidayYear({ year: 2029, confirmed: true, sourceUrl: "https://business.vic.gov.au/business-information/public-holidays", retrievedAt: "2026-08-30" });
   expandObligationsInDatabase({ fy: "2026-27", context: { priorYearReturnOutstanding: false } });
 });
 

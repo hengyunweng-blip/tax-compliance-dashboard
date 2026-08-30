@@ -1,6 +1,7 @@
 import { getRawDb } from "@/lib/db/client";
 import { getAssetDepreciationForEntity } from "@/lib/domain/assets/service";
 import { annualManualItemsForEntityType, annualTransactionLines, normalizeIncomeYear, sumCents, type AnnualTransactionLine } from "@/lib/domain/annual/shared";
+import { listTrustDistributions, type TrustDistribution } from "@/lib/domain/annual/trust-distributions";
 
 export type TrustDistributionDraft = {
   entityId: string;
@@ -13,7 +14,10 @@ export type TrustDistributionDraft = {
   deductibleDepreciationCents: number | null;
   assetDepreciationStatus: "ready" | "manual_review";
   assetDepreciationRows: ReturnType<typeof getAssetDepreciationForEntity>["rows"];
-  beneficiaryAllocations: Array<{ beneficiary: string; amountCents: number }>;
+  beneficiaryAllocations: Array<Pick<TrustDistribution, "beneficiaryEntityId" | "beneficiaryName" | "amountCents" | "resolutionDate" | "status" | "statusLabel" | "sourceDescription"> & { beneficiary: string }>;
+  distributionTotalCents: number;
+  distributionDifferenceCents: number | null;
+  distributionDifferenceConfirmed: boolean;
   resolutionText: string;
   manualItems: string[];
 };
@@ -31,6 +35,14 @@ export function buildTrustDistributionDraft(entityId: string, incomeYear: string
   const distributableIncomeCents = assetDepreciation.deductibleDepreciationCents === null
     ? null
     : sumCents([income, expenses, -assetDepreciation.deductibleDepreciationCents]);
+  const distributions = listTrustDistributions({ trustEntityId: entityId, incomeYear: normalizedIncomeYear });
+  const distributionTotalCents = sumCents(distributions.map((distribution) => distribution.amountCents));
+  const distributionDifferenceCents = distributableIncomeCents === null ? null : distributionTotalCents - distributableIncomeCents;
+  const distributionDifferenceConfirmed = Boolean(getRawDb().prepare(`
+    SELECT id FROM audit_log
+    WHERE target_type = 'trust_distribution_reconciliation' AND target_id = ?
+    ORDER BY id DESC LIMIT 1
+  `).get(`${entityId}:${normalizedIncomeYear}`));
 
   return {
     entityId,
@@ -43,7 +55,19 @@ export function buildTrustDistributionDraft(entityId: string, incomeYear: string
     deductibleDepreciationCents: assetDepreciation.deductibleDepreciationCents,
     assetDepreciationStatus: assetDepreciation.status,
     assetDepreciationRows: assetDepreciation.rows,
-    beneficiaryAllocations: [],
+    beneficiaryAllocations: distributions.map((distribution) => ({
+      beneficiary: distribution.beneficiaryEntityId,
+      beneficiaryEntityId: distribution.beneficiaryEntityId,
+      beneficiaryName: distribution.beneficiaryName,
+      amountCents: distribution.amountCents,
+      resolutionDate: distribution.resolutionDate,
+      status: distribution.status,
+      statusLabel: distribution.statusLabel,
+      sourceDescription: distribution.sourceDescription,
+    })),
+    distributionTotalCents,
+    distributionDifferenceCents,
+    distributionDifferenceConfirmed,
     resolutionText: `FY${normalizedIncomeYear.replace(/^FY/, "").replace("-", "–")} 信托分配决议草稿\n\n本决议须由受托人核对受益人、金额及 FTE 状态后签署并留存。系统不会自动签署或提交。`,
     manualItems: annualManualItemsForEntityType(entity.type),
   };

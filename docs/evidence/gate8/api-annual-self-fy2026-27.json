@@ -1,0 +1,47 @@
+{
+  "incomeYear": "FY2026-27",
+  "amountBasis": "GST-exclusive",
+  "worksheets": [
+    {
+      "entity": {
+        "id": "self",
+        "name": "使用者本人",
+        "type": "individual"
+      },
+      "worksheet": {
+        "entityId": "self",
+        "entityName": "使用者本人",
+        "incomeYear": "FY2026-27",
+        "transactionIds": [],
+        "transactions": [],
+        "incomeCents": 0,
+        "expenseCents": 0,
+        "depreciationCents": 0,
+        "deductibleDepreciationCents": 0,
+        "assetDepreciationStatus": "ready",
+        "assetDepreciationRows": [],
+        "trustDistributionCents": 125000,
+        "trustDistributions": [
+          {
+            "id": 1,
+            "trustEntityId": "boyun_trust",
+            "trustEntityName": "Boyun Trust",
+            "amountCents": 125000,
+            "resolutionDate": "2027-06-29",
+            "status": "signed",
+            "statusLabel": "已签署",
+            "sourceDescription": "Gate 8 signed resolution evidence"
+          }
+        ],
+        "dividendCents": 0,
+        "frankingCreditsCents": 0,
+        "concessionalContributionsCents": 1000000,
+        "noticeSubmitted": false,
+        "manualItems": [
+          "折旧",
+          "结转亏损"
+        ]
+      }
+    }
+  ]
+}

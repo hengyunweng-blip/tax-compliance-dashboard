@@ -31,7 +31,7 @@ export function AssetsPageClient({ entities, initialAssets }: { entities: Entity
   const [message, setMessage] = useState("");
 
   async function refresh() {
-    const response = await fetch("/api/assets?fy=FY2026-27");
+    const response = await fetch("/api/assets");
     const payload = await response.json() as { assets?: AssetBundle[]; error?: string };
     if (!response.ok) { setMessage(payload.error ?? "资产刷新失败"); return; }
     setAssets(payload.assets ?? []);

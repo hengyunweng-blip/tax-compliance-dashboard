@@ -1,0 +1,37 @@
+{
+  "trustDistributableIncomeCents": 250000,
+  "trustDistributionTotalCents": 250000,
+  "differenceCents": 0,
+  "trustRows": [
+    {
+      "id": 1,
+      "trustEntityId": "boyun_trust",
+      "trustEntityName": "Boyun Trust",
+      "incomeYear": "FY2026-27",
+      "beneficiaryEntityId": "self",
+      "beneficiaryName": "使用者本人",
+      "amountCents": 125000,
+      "resolutionDate": "2027-06-29",
+      "status": "signed",
+      "statusLabel": "已签署",
+      "sourceDescription": "Gate 8 signed resolution evidence",
+      "enteredBy": "self"
+    },
+    {
+      "id": 2,
+      "trustEntityId": "boyun_trust",
+      "trustEntityName": "Boyun Trust",
+      "incomeYear": "FY2026-27",
+      "beneficiaryEntityId": "spouse",
+      "beneficiaryName": "配偶",
+      "amountCents": 125000,
+      "resolutionDate": "2027-06-29",
+      "status": "signed",
+      "statusLabel": "已签署",
+      "sourceDescription": "Gate 8 signed resolution evidence",
+      "enteredBy": "self"
+    }
+  ],
+  "selfPersonalDistributionCents": 125000,
+  "spousePersonalDistributionCents": 125000
+}

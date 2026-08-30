@@ -1,8 +1,9 @@
 import { getRawDb } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import { GST_CODES, type GstCode } from "@/lib/constants/gst";
-import { listTransactions, type ClosedPeriodResolution, type Transaction } from "@/lib/ingest/transactions";
+import { getAvailableGstCodesForAccountType, listTransactions, type ClosedPeriodResolution, type Transaction } from "@/lib/ingest/transactions";
 import { ensureObligationsForFy } from "@/lib/domain/obligations/repository";
+import { currentFinancialYear } from "@/lib/domain/obligations/calculator";
 
 export type DocumentInboxItem = {
   kind: "document";
@@ -25,6 +26,21 @@ export type TransactionInboxItem = {
   gstCode: GstCode;
   accountId: number;
   reviewFlag: boolean;
+};
+
+export type GstCodeReviewInboxItem = {
+  kind: "gst_code_review";
+  id: number;
+  entityId: string;
+  entityName: string;
+  date: string;
+  description: string;
+  amountCents: number;
+  gstCode: "NO_GST";
+  accountId: number;
+  reviewFlag: true;
+  requiresManualReselection: true;
+  explanation: string;
 };
 
 export type ClosedPeriodInboxItem = Omit<TransactionInboxItem, "kind" | "reviewFlag"> & {
@@ -52,11 +68,11 @@ export type Div7aAgreementInboxItem = {
   reasons: string[];
 };
 
-export type InboxItem = DocumentInboxItem | TransactionInboxItem | ClosedPeriodInboxItem | Div7aAgreementInboxItem;
+export type InboxItem = DocumentInboxItem | TransactionInboxItem | GstCodeReviewInboxItem | ClosedPeriodInboxItem | Div7aAgreementInboxItem;
 
 export async function listInboxItems(): Promise<InboxItem[]> {
   runMigrations();
-  ensureObligationsForFy("2026-27");
+  ensureObligationsForFy(currentFinancialYear());
   const db = getRawDb();
   const documents = db.prepare(`
     SELECT id, entity_id, file_path, mime, source, status
@@ -96,12 +112,34 @@ export async function listInboxItems(): Promise<InboxItem[]> {
     closed_period_resolution: ClosedPeriodResolution | null;
     original_period_label: string;
   }>;
+  const gstCodeReviews = db.prepare(`
+    SELECT t.id, t.entity_id, e.name AS entity_name, t.date, t.description,
+      t.amount_cents, t.gst_code, t.account_id, t.review_flag
+    FROM transactions t
+    INNER JOIN entities e ON e.id = t.entity_id
+    INNER JOIN accounts a ON a.id = t.account_id
+    WHERE t.review_flag = 1 AND t.locked = 0 AND t.belongs_to_closed_period = 0
+      AND t.gst_code = 'NO_GST' AND a.type = 'income'
+    ORDER BY t.date DESC, t.id DESC
+  `).all() as Array<{
+    id: number;
+    entity_id: string;
+    entity_name: string;
+    date: string;
+    description: string;
+    amount_cents: number;
+    gst_code: "NO_GST";
+    account_id: number;
+    review_flag: number;
+  }>;
   const transactions = db.prepare(`
     SELECT t.id, t.entity_id, e.name AS entity_name, t.date, t.description,
       t.amount_cents, t.gst_code, t.account_id, t.review_flag
     FROM transactions t
     INNER JOIN entities e ON e.id = t.entity_id
+    INNER JOIN accounts a ON a.id = t.account_id
     WHERE t.review_flag = 1 AND t.locked = 0 AND t.belongs_to_closed_period = 0
+      AND NOT (t.gst_code = 'NO_GST' AND a.type = 'income')
     ORDER BY t.date DESC, t.id DESC
   `).all() as Array<{
     id: number;
@@ -157,6 +195,20 @@ export async function listInboxItems(): Promise<InboxItem[]> {
       originalPeriodLabel: transaction.original_period_label,
       closedPeriodResolution: transaction.closed_period_resolution,
     })),
+    ...gstCodeReviews.map((transaction): GstCodeReviewInboxItem => ({
+      kind: "gst_code_review",
+      id: transaction.id,
+      entityId: transaction.entity_id,
+      entityName: transaction.entity_name,
+      date: transaction.date,
+      description: transaction.description,
+      amountCents: transaction.amount_cents,
+      gstCode: transaction.gst_code,
+      accountId: transaction.account_id,
+      reviewFlag: true,
+      requiresManualReselection: true,
+      explanation: "请人工区分：GST-free / input-taxed 是不含 GST 但仍属于销售、应进 G1；NOT_A_SUPPLY 是借款、注资、主体间转账或退款等根本不是销售，不进 G1、1A、1B或年度收入。",
+    })),
     ...transactions.map((transaction): TransactionInboxItem => ({
       kind: "transaction",
       id: transaction.id,
@@ -210,6 +262,10 @@ export function confirmInboxItem({
   if (!db.prepare("SELECT id FROM entities WHERE id = ? AND active = 1").get(entityId)) throw new Error("Entity not found");
   if (!db.prepare("SELECT id FROM accounts WHERE id = ? AND entity_id = ? AND archived = 0").get(accountId, entityId)) {
     throw new Error("Account does not belong to the selected entity");
+  }
+  const account = db.prepare("SELECT id, type FROM accounts WHERE id = ? AND entity_id = ? AND archived = 0").get(accountId, entityId) as { id: number; type: string } | undefined;
+  if (!account || !getAvailableGstCodesForAccountType(account.type).includes(gstCode)) {
+    throw new Error(`GST code ${gstCode} is not available for ${account?.type ?? "selected"} accounts`);
   }
   const current = db.prepare("SELECT id, locked FROM transactions WHERE id = ?").get(transactionId) as { id: number; locked: number } | undefined;
   if (!current) throw new Error(`Transaction not found: ${transactionId}`);

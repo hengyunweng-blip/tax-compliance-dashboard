@@ -14,6 +14,7 @@ import {
   openingBalances,
   reminders,
   transactions,
+  trustDistributions,
 } from "@/lib/db/schema";
 
 export const entityRelations = relations(entities, ({ many }) => ({
@@ -24,6 +25,8 @@ export const entityRelations = relations(entities, ({ many }) => ({
   div7aLoans: many(div7aLoans),
   openingBalances: many(openingBalances),
   assets: many(assets),
+  trustDistributionsAsTrust: many(trustDistributions, { relationName: "trust" }),
+  trustDistributionsAsBeneficiary: many(trustDistributions, { relationName: "beneficiary" }),
 }));
 
 export const accountRelations = relations(accounts, ({ one, many }) => ({
@@ -72,6 +75,11 @@ export const openingBalanceRelations = relations(openingBalances, ({ one }) => (
 
 export const assetRelations = relations(assets, ({ one }) => ({
   entity: one(entities, { fields: [assets.entityId], references: [entities.id] }),
+}));
+
+export const trustDistributionRelations = relations(trustDistributions, ({ one }) => ({
+  trust: one(entities, { fields: [trustDistributions.trustEntityId], references: [entities.id], relationName: "trust" }),
+  beneficiary: one(entities, { fields: [trustDistributions.beneficiaryEntityId], references: [entities.id], relationName: "beneficiary" }),
 }));
 
 export const newsSourceRelations = relations(newsSources, ({ many }) => ({

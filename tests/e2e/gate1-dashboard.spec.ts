@@ -19,6 +19,7 @@ test("renders and verifies the twelve BAS effective dates and income years", asy
   expect(obligationsResponse.ok()).toBeTruthy();
   const payload = await obligationsResponse.json() as {
     obligations: Array<{
+      id: number;
       entityId: string;
       ruleId: string;
       periodLabel: string;
