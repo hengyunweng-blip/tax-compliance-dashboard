@@ -1,0 +1,14 @@
+-- Reconciliation source SQL: FY2026-27, GST-exclusive annual amounts.
+SELECT entity_id,
+  SUM(CASE WHEN amount_cents > 0 AND gst_code NOT IN ('PRIVATE','NOT_A_SUPPLY') AND review_flag = 0
+           THEN amount_cents - gst_cents ELSE 0 END) AS annual_income_ex_gst_cents,
+  SUM(CASE WHEN amount_cents < 0 AND gst_code NOT IN ('PRIVATE','NOT_A_SUPPLY') AND review_flag = 0
+           THEN ABS(amount_cents) - ABS(gst_cents) ELSE 0 END) AS annual_expense_ex_gst_cents
+FROM transactions
+WHERE date BETWEEN '2026-07-01' AND '2027-06-30'
+GROUP BY entity_id ORDER BY entity_id;
+
+entity_id       annual_income_ex_gst_cents  annual_expense_ex_gst_cents
+boyun_co        1750000                     1250000
+boyun_trust     300000                      50000
+yeeliving_co    3500000                     2500000
