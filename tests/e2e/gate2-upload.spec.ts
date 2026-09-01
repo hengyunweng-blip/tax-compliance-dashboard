@@ -12,7 +12,7 @@ test("uploads a file and accepts a base64 email attachment with the shared token
   });
   await page.getByRole("button", { name: "上传并进入 Inbox" }).click();
   await expect(page.getByText(/已接收 1 个文件/)).toBeVisible();
-  await page.screenshot({ path: "docs/evidence/gate2/upload-desktop.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate2-upload-desktop.png", fullPage: true });
 
   const unauthorized = await page.request.post("/api/ingest/email", {
     data: { attachments: [{ filename: "email.pdf", mime: "application/pdf", base64: Buffer.from("email").toString("base64") }] },
@@ -33,5 +33,5 @@ test("keeps the upload controls usable at a narrow responsive width", async ({ p
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
   await expect(page.getByTestId("upload-dropzone")).toBeVisible();
   await expect(page.getByLabel("选择文件")).toBeVisible();
-  await page.screenshot({ path: "docs/evidence/gate2/upload-narrow.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate2-upload-narrow.png", fullPage: true });
 });

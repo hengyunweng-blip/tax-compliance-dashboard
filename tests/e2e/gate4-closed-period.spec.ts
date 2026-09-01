@@ -47,8 +47,8 @@ test("keeps a late Q1 transaction in the closed-period Inbox and requires a Q2 d
   await page.goto("/inbox");
   await expect(page.getByTestId("closed-period-inbox")).toContainText("已关账期间补录");
   await expect(page.getByTestId(`closed-period-transaction-${createdPayload.transaction.id}`)).toContainText(lateDescription);
-  fs.mkdirSync("docs/evidence/gate4", { recursive: true });
-  await page.screenshot({ path: "docs/evidence/gate4/closed-period-inbox.png", fullPage: true });
+  fs.mkdirSync("docs/evidence/gate9/e2e", { recursive: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate4-closed-period-inbox.png", fullPage: true });
 
   await page.goto(`/bas/${q2?.id}`);
   await page.getByRole("button", { name: "生成 BAS 底稿" }).click();
@@ -59,5 +59,5 @@ test("keeps a late Q1 transaction in the closed-period Inbox and requires a Q2 d
   const q1Final = await page.request.get(`/api/bas/${q1?.id}`);
   const q1FinalPayload = await q1Final.json() as { worksheet: { g1Cents: number; a1Cents: number; b1Cents: number; statementTotalCents: number | null } };
   expect(q1FinalPayload.worksheet).toEqual(expect.objectContaining(originalAmounts));
-  await page.screenshot({ path: "docs/evidence/gate4/closed-period-q2-resolution.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate4-closed-period-q2-resolution.png", fullPage: true });
 });

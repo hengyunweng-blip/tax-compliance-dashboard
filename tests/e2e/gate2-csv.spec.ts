@@ -18,8 +18,8 @@ test("previews, maps and persists a CSV row as an Inbox transaction", async ({ p
   await expect(page.getByText("导入完成，待确认记录已进入 Inbox")).toBeVisible();
   await page.goto("/inbox");
   await expect(page.getByText(description, { exact: true })).toBeVisible();
-  await page.screenshot({ path: "docs/evidence/gate2/inbox-after-csv.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate2-inbox-after-csv.png", fullPage: true });
   await page.goto("/");
   await expect(page.getByTestId("dashboard")).toBeVisible();
-  await page.screenshot({ path: "docs/evidence/gate2/dashboard-blocked-fix.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate2-dashboard-blocked-fix.png", fullPage: true });
 });

@@ -3,13 +3,13 @@ import { expect, test } from "@playwright/test";
 test("renders six entities and persists Boyun ACN and ASIC date", async ({ page }) => {
   await page.goto("/settings");
 
-  await expect(page.getByRole("heading", { name: "设置" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "设置", exact: true })).toBeVisible();
   await expect(page.locator("[data-testid^=entity-row-]")).toHaveCount(6);
 
   const row = page.getByTestId("entity-row-boyun_co");
   await row.getByLabel("ACN").fill("123456789");
   await row.getByLabel("ASIC 周年日").fill("15/07/2026");
-  await page.getByRole("button", { name: "保存设置" }).click();
+  await page.getByRole("button", { name: "保存设置", exact: true }).click();
   await expect(page.getByText("设置已保存")).toBeVisible();
 
   await page.reload();

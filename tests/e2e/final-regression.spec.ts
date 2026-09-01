@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("Gate 5 annual, Div 7A, super and backup flows render with fixed dates", async ({ page }) => {
-  fs.mkdirSync("docs/evidence/gate5", { recursive: true });
+  fs.mkdirSync("docs/evidence/gate9/e2e", { recursive: true });
 
   await page.goto("/annual");
   await expect(page.getByTestId("annual-page")).toBeVisible();
@@ -15,7 +15,7 @@ test("Gate 5 annual, Div 7A, super and backup flows render with fixed dates", as
   const currentYearResponse = page.waitForResponse((response) => response.url().includes("/api/annual?fy=FY2026-27") && response.request().method() === "GET");
   await page.getByLabel("所属年度").selectOption("FY2026-27");
   expect((await currentYearResponse).ok()).toBe(true);
-  await page.screenshot({ path: "docs/evidence/gate5/annual-worksheets.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/annual-worksheets.png", fullPage: true });
 
   await page.goto("/div7a");
   await expect(page.getByTestId("div7a-page")).toBeVisible();
@@ -40,7 +40,7 @@ test("Gate 5 annual, Div 7A, super and backup flows render with fixed dates", as
   await expect(page.getByText(/15 May 2017/).first()).toBeVisible();
   await page.getByLabel("评估所得年度").selectOption("FY2026-27");
   await expect(page.getByText("已到期").first()).toBeVisible();
-  await page.screenshot({ path: "docs/evidence/gate5/div7a-official-baseline.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/div7a-official-baseline.png", fullPage: true });
 
   await page.goto("/super");
   await expect(page.getByTestId("super-progress")).toBeVisible();
@@ -53,7 +53,7 @@ test("Gate 5 annual, Div 7A, super and backup flows render with fixed dates", as
   expect(backup.status()).toBe(200);
   expect(backup.headers()["content-type"]).toContain("application/zip");
   expect((await backup.body()).subarray(0, 2).toString()).toBe("PK");
-  await page.screenshot({ path: "docs/evidence/gate5/super-backup.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/super-backup.png", fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
   for (const route of ["/annual", "/div7a", "/super"]) {

@@ -37,5 +37,5 @@ test("confirms a review transaction with required fields and keyboard shortcuts"
   await row.press("1");
   await row.press("Enter");
   await expect(row).toBeHidden();
-  await page.screenshot({ path: "docs/evidence/gate2/inbox-keyboard-confirmed.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate2-inbox-keyboard-confirmed.png", fullPage: true });
 });

@@ -2067,6 +2067,7 @@ textarea {
   border: 2px solid #b8cbe5;
   border-radius: 10px;
   background: #f8fbff;
+  min-width: 0;
   padding: 18px;
 }
 
@@ -2083,6 +2084,7 @@ textarea {
 }
 
 .div7a-amalgamated-loans .div7a-loan-card {
+  min-width: 0;
   padding: 18px;
 }
 

@@ -44,7 +44,7 @@ test("generates three Q1 BAS worksheets with traceable lines, Simpler BAS instru
   await page.getByRole("button", { name: "标记已递交" }).click();
   await expect(page.getByText("已记录 ATO 回执，金额已按 statementTotalCents 校验", { exact: true })).toBeVisible();
   await expect(page.getByText("lodged", { exact: true })).toBeVisible();
-  await page.screenshot({ path: "docs/evidence/gate3/bas-summary.png", fullPage: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate3-bas-summary.png", fullPage: true });
 
   await page.goto(`/bas/${q1.get("yeeliving_co")?.id}`);
   await page.getByRole("button", { name: "生成 BAS 底稿" }).click();
@@ -76,6 +76,6 @@ test("generates three Q1 BAS worksheets with traceable lines, Simpler BAS instru
   expect(pdf.headers()["content-type"]).toContain("application/pdf");
   const pdfBody = await pdf.body();
   expect(pdfBody.subarray(0, 8).toString()).toBe("%PDF-1.4");
-  fs.mkdirSync("output/pdf", { recursive: true });
-  fs.writeFileSync("output/pdf/bas-worksheet-gate3.pdf", pdfBody);
+  fs.mkdirSync("docs/evidence/gate9/e2e/pdf", { recursive: true });
+  fs.writeFileSync("docs/evidence/gate9/e2e/pdf/bas-worksheet-gate3.pdf", pdfBody);
 });

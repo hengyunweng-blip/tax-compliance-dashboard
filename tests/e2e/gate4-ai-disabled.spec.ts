@@ -35,6 +35,6 @@ test("AI disabled keeps the full desktop site flow available and does not block 
   const newsResponse = await page.goto("/news");
   expect(newsResponse?.status(), "/news should load for the AI status assertion").toBe(200);
   await expect(page.getByTestId("ai-status")).toContainText("AI 已关闭");
-  fs.mkdirSync("docs/evidence/gate4", { recursive: true });
-  await page.screenshot({ path: "docs/evidence/gate4/ai-disabled-news.png", fullPage: true });
+  fs.mkdirSync("docs/evidence/gate9/e2e", { recursive: true });
+  await page.screenshot({ path: "docs/evidence/gate9/e2e/gate4-ai-disabled-news.png", fullPage: true });
 });
