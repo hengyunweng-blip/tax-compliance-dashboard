@@ -17,13 +17,17 @@ if (!distDir || !/^\.next-e2e-[A-Za-z0-9-]+$/.test(distDir)) {
   throw new Error("E2E server requires a unique .next-e2e-* NEXT_DIST_DIR");
 }
 
+const validatedDatabasePath = databasePath;
+const validatedPort = port;
+const validatedDistDir = distDir;
+
 async function main() {
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+  fs.mkdirSync(path.dirname(validatedDatabasePath), { recursive: true });
   const { seedDatabase } = await import("../lib/db/seed");
   seedDatabase();
 
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-  const nextProcess = spawn(npmCommand, ["run", "dev", "--", "--port", port], {
+  const nextProcess = spawn(npmCommand, ["run", "dev", "--", "--port", validatedPort], {
     cwd: process.cwd(),
     env: process.env,
     stdio: "inherit",
@@ -31,9 +35,9 @@ async function main() {
 
   let shuttingDown = false;
   function cleanup() {
-    fs.rmSync(databasePath, { force: true });
-    fs.rmSync(path.dirname(databasePath), { recursive: true, force: true });
-    fs.rmSync(path.resolve(process.cwd(), distDir), { recursive: true, force: true });
+    fs.rmSync(validatedDatabasePath, { force: true });
+    fs.rmSync(path.dirname(validatedDatabasePath), { recursive: true, force: true });
+    fs.rmSync(path.resolve(process.cwd(), validatedDistDir), { recursive: true, force: true });
   }
 
   function stopNext(signal: NodeJS.Signals) {
