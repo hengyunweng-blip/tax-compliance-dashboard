@@ -1,10 +1,11 @@
 # 澳洲多主体税务合规看板：项目交接
 
-交接日期：2026-08-29（Australia/Melbourne）  
+交接日期：2026-09-01（Australia/Melbourne）
 仓库分支：`main`  
 Gate 5 原始实现与证据提交：`2cf10f8b723fce0d815ff801720e24acac149814`
 本轮三项修复提交：`a6681bafe351bd68d642e1e8e1b3e26ba8a45ec8`
-Gate 5 尚未验收，因此没有 `gate-5` 标签。
+Gate 9 验证基础设施提交：`b50cb36fa8c7fbdd3dcc555d5315db06c0026761`、`055dd79`、`89ef8c8`
+`gate-5` 与 `gate-9` 均未创建；`gate-8` 已验收并固定在 `ec6146ee22cd59839f846fc61c26ec6e88fdc5f7`。
 
 ## 1. 当前状态
 
@@ -15,7 +16,11 @@ Gate 5 尚未验收，因此没有 `gate-5` 标签。
 | Gate 2 | 已验收 | `gate-2` | `0607d4aee92e8c46f538cd1b7a5497f66daa4e50` |
 | Gate 3 | 已验收 | `gate-3` | `78e7c1762c150e7a9167c1e0fcdd654721ef0fb9` |
 | Gate 4 | 已验收 | `gate-4` | `691ba4854acdd977dc09e143101eb432e672f592` |
-| Gate 5 | 已实现并完成本地验证，待用户验收 | 无标签 | `a6681bafe351bd68d642e1e8e1b3e26ba8a45ec8` |
+| Gate 5 | 已实现；按历史协议保留无标签 | 无标签 | `a6681bafe351bd68d642e1e8e1b3e26ba8a45ec8` |
+| Gate 6 | 已验收 | `gate-6` | `3625b1493872db90db985d227758d59d7f990a1b` |
+| Gate 7 | 已验收 | `gate-7` | `a9df387fbfcd7a0ff00fce0cec94813d68f71a7e` |
+| Gate 8 | 已验收 | `gate-8` | `ec6146ee22cd59839f846fc61c26ec6e88fdc5f7` |
+| Gate 9 | 本轮验证中发现待处理项；未创建标签 | 无标签 | `89ef8c8` |
 
 Gate 5 已实现并验证：
 
@@ -28,7 +33,7 @@ Gate 5 已实现并验证：
 - 备份 ZIP 与还原流程已完成实际验证。
 - Div 7A 年度切换的前端请求乱序问题已修复。
 
-Gate 5 仍未完成的事项是用户验收，以及下方“待办与边界”中的人工或后续工作；不得在用户验收前创建 `gate-5` 标签。
+Gate 9 只修复了验证基础设施与 `/div7a` 窄屏页面；当前基线仍有顺序敏感的单元测试和 5 个 E2E 失败，详见 Gate 9 证据报告。不得创建 `gate-9` 标签，亦不得把失败改写成通过。
 
 ## 2. 不可违反的约束
 
@@ -152,11 +157,12 @@ AI_TIMEOUT_MS
 
 ## 6. 当前验证基线
 
-- Vitest：29 个单元测试文件，149 个用例，全部通过（干净 clone 普通顺序与随机顺序均通过）。
-- Playwright：9 个 E2E 文件，14 个 test declarations；Gate 5 最终回归 `1 passed`。
-- `npm run lint`：通过。
-- `npm run build`：通过，Next.js 15.5.24 production compile、lint/typecheck 和静态页面生成通过。
-- Gate 5 最终截图只写入 `docs/evidence/gate5/`：`annual-worksheets.png`、`div7a-official-baseline.png`、`super-backup.png`。
+- Vitest：36 个单元测试文件、190 个用例。干净 clone 默认顺序为 190/190；随机 seed 101 为 188/190（34/36 文件），随机 seed 202 为 187/190（33/36 文件）。失败是既有同文件顺序依赖：`tests/unit/seed.test.ts`、`tests/unit/div7a-agreement.test.ts`，以及 seed 202 下的 `tests/unit/gate8-obligations-and-trust.test.ts`；没有修改测试断言。
+- Playwright：9 个 E2E 文件、14 个 test declarations。完整套件连续两轮均为 7 passed、5 failed、2 did not run；失败集合一致，不能称为全套通过。
+- `npm run lint`：干净 clone 通过。
+- `npm run build`：干净 clone 通过，Next.js 15.5.24 production compile、lint/typecheck 和静态页面生成通过。
+- `npm ci` 当前报告 6 个依赖漏洞（5 moderate、1 high）；本轮未运行 `npm audit fix`。
+- Gate 9 当前证据写入 `docs/evidence/gate9/`，包括跨 Gate SQL/API/UI、三轮测试、完整 E2E 两轮和 390px 截图。
 
 ## 7. Backlog 与明确边界
 
@@ -164,14 +170,19 @@ AI_TIMEOUT_MS
 - 年度底稿中的折旧、结转亏损、franking account 余额、Div 7A 借款余额、信托 FTE 状态仍需用户人工补充或核对；个人追补可用额度也需以 ATO 记录输入。
 - 2027 AFL Grand Final Friday 的官方日期若公布，需要按年度更新维州公众假日数据；代码不得预先猜测。
 - 系统不负责真实 ATO/ASIC 申报、付款、签署或手机摄像头验证。
-- Gate 5 用户验收完成后，才可把当前实现 commit 打 `gate-5` 标签；在此之前保留现有 `gate-0` 至 `gate-4` 标签不变。
+- `/vehicle-fact-checklist` 在 390px 下仍存在 Markdown `<pre>` 横向溢出；本轮按范围只修复 `/div7a`，其他页面待决定。
+- 单元测试隔离已改为每文件临时数据库并验证清理，但同一测试文件内仍有顺序依赖；在修复前不得把随机顺序基线视为全绿。
+- E2E 已按 spec 独立数据库运行；当前 5 个失败属于旧 fixture/API 合约或旧断言问题，需另行决定是否修复，不能通过改断言掩盖。
+- `gate-5`、`gate-9` 按验收协议保持不存在；不得移动或覆盖既有 Gate 证据。
 
 ## 8. 仓库清单确认
 
 - `docs/superpowers/specs/`：存在。
 - `docs/superpowers/plans/`：存在。
 - `docs/evidence/gate0/` 至 `docs/evidence/gate5/`：均存在；各 Gate 使用独立证据目录。
-- 已有标签：`gate-0`、`gate-1`、`gate-2`、`gate-3`、`gate-4`。
+- 已有标签：`gate-0`、`gate-1`、`gate-2`、`gate-3`、`gate-4`、`gate-6`、`gate-7`、`gate-8`。
 - `gate-5`：按验收协议尚未创建。
+- `gate-9`：本轮审计按要求尚未创建。
+- `docs/evidence/gate9/`：本轮验证证据；不修改 `docs/evidence/gate0/` 至 `docs/evidence/gate8/`。
 - `.env.local`：未跟踪。
 - `data/*.db`：未跟踪。

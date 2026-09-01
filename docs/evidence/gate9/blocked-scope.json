@@ -1,0 +1,102 @@
+{
+  "databasePath": "/var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-gate9-blocked.1wWxlV/blocked.db",
+  "clearedEntity": "yeeliving_co",
+  "rows": [
+    {
+      "entity_id": "boyun_co",
+      "rule_id": "asic_annual_review",
+      "period_label": "FY2026-27",
+      "status": "blocked",
+      "statutory_due": null,
+      "effective_due": null
+    },
+    {
+      "entity_id": "boyun_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q1",
+      "status": "todo",
+      "statutory_due": "2026-10-28",
+      "effective_due": "2026-11-11"
+    },
+    {
+      "entity_id": "boyun_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q2",
+      "status": "todo",
+      "statutory_due": "2027-02-28",
+      "effective_due": "2027-03-01"
+    },
+    {
+      "entity_id": "boyun_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q3",
+      "status": "todo",
+      "statutory_due": "2027-04-28",
+      "effective_due": "2027-05-12"
+    },
+    {
+      "entity_id": "boyun_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q4",
+      "status": "todo",
+      "statutory_due": "2027-07-28",
+      "effective_due": "2027-08-11"
+    },
+    {
+      "entity_id": "boyun_co",
+      "rule_id": "company_tax_return",
+      "period_label": "FY2025-26",
+      "status": "todo",
+      "statutory_due": "2027-02-28",
+      "effective_due": "2027-03-01"
+    },
+    {
+      "entity_id": "yeeliving_co",
+      "rule_id": "asic_annual_review",
+      "period_label": "FY2026-27",
+      "status": "blocked",
+      "statutory_due": null,
+      "effective_due": null
+    },
+    {
+      "entity_id": "yeeliving_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q1",
+      "status": "todo",
+      "statutory_due": "2026-10-28",
+      "effective_due": "2026-11-11"
+    },
+    {
+      "entity_id": "yeeliving_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q2",
+      "status": "todo",
+      "statutory_due": "2027-02-28",
+      "effective_due": "2027-03-01"
+    },
+    {
+      "entity_id": "yeeliving_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q3",
+      "status": "todo",
+      "statutory_due": "2027-04-28",
+      "effective_due": "2027-05-12"
+    },
+    {
+      "entity_id": "yeeliving_co",
+      "rule_id": "bas_quarterly",
+      "period_label": "FY2026-27 Q4",
+      "status": "todo",
+      "statutory_due": "2027-07-28",
+      "effective_due": "2027-08-11"
+    },
+    {
+      "entity_id": "yeeliving_co",
+      "rule_id": "company_tax_return",
+      "period_label": "FY2025-26",
+      "status": "todo",
+      "statutory_due": "2027-02-28",
+      "effective_due": "2027-03-01"
+    }
+  ]
+}

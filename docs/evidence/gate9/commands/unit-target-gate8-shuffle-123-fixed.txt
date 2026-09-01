@@ -1,0 +1,50 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run tests/unit/gate8-obligations-and-trust.test.ts --sequence.shuffle --sequence.seed 123
+
+
+ RUN  v3.2.7 /Users/neilweng/Documents/ChatGPT/税务任务开发
+      Running tests with seed "123"
+
+ ❯ tests/unit/gate8-obligations-and-trust.test.ts (5 tests | 1 failed) 51ms
+   × FY2027-28 BAS dates are generated from the financial year and Q2 keeps its no-extension exception 4ms
+     → expected { incomeYear: 'FY2027-28', …(3) } to match object { statutoryDue: '2027-10-28', …(1) }
+(2 matching properties omitted from actual)
+   ✓ an unconfigured holiday year leaves effective due unknown until that year is configured 3ms
+   ✓ expanding the same financial year twice is idempotent and a new year gets its own BAS obligations 23ms
+   ✓ trust distributions appear in both individual annual summaries and reject company beneficiaries 18ms
+   ✓ proposed trust distributions are labelled as unsigned in the personal summary 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/gate8-obligations-and-trust.test.ts > FY2027-28 BAS dates are generated from the financial year and Q2 keeps its no-extension exception
+AssertionError: expected { incomeYear: 'FY2027-28', …(3) } to match object { statutoryDue: '2027-10-28', …(1) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "effectiveDue": "2027-11-11",
++   "effectiveDue": null,
+    "statutoryDue": "2027-10-28",
+  }
+
+ ❯ tests/unit/gate8-obligations-and-trust.test.ts:16:51
+     14|
+     15| test("FY2027-28 BAS dates are generated from the financial year and Q2…
+     16|   expect(calculateBasDueDates("FY2027-28", "Q1")).toMatchObject({ stat…
+       |                                                   ^
+     17|   expect(calculateBasDueDates("FY2027-28", "Q2")).toMatchObject({ stat…
+     18|   expect(calculateBasDueDates("FY2027-28", "Q2").statutoryDue).not.toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  14:27:42
+   Duration  879ms (transform 85ms, setup 182ms, collect 496ms, tests 51ms, environment 0ms, prepare 37ms)
+
+
+EXIT_CODE=1

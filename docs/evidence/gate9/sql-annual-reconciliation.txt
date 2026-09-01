@@ -1,0 +1,32 @@
+-- Actual SQL used against the independent Gate 9 audit DB.
+-- Annual amounts exclude NOT_A_SUPPLY and use amount_cents - gst_cents.
+SELECT t.entity_id,
+       SUM(CASE WHEN a.type='income' AND t.gst_code <> 'NOT_A_SUPPLY'
+                THEN t.amount_cents-t.gst_cents ELSE 0 END) AS annual_income_ex_gst,
+       SUM(CASE WHEN a.type='expense' AND t.gst_code <> 'PRIVATE'
+                THEN t.amount_cents-t.gst_cents ELSE 0 END) AS operating_expense_ex_gst,
+       SUM(CASE WHEN t.gst_code='GST_CAPITAL' OR a.code='510'
+                THEN abs(t.amount_cents-t.gst_cents) ELSE 0 END) AS capital_purchase_ex_gst
+FROM transactions t
+JOIN accounts a ON a.id=t.account_id
+WHERE t.fy='2026-27'
+GROUP BY t.entity_id ORDER BY t.entity_id;
+
+entity_id          annual_income_ex_gst  operating_expense_ex_gst  capital_purchase_ex_gst
+boyun_co            1750000              -250000                   1000000
+boyun_trust          300000               -50000                         0
+yeeliving_co        3500000              -500000                   2000000
+
+SELECT o.entity_id, SUM(w.g1_cents) AS bas_g1_cents,
+       SUM(w.a1_cents) AS bas_1a_cents,
+       SUM(w.g1_cents)-SUM(w.a1_cents) AS bas_net_cents
+FROM bas_worksheets w JOIN obligations o ON o.id=w.obligation_id
+WHERE o.rule_id='bas_quarterly' AND o.income_year='FY2026-27'
+GROUP BY o.entity_id ORDER BY o.entity_id;
+
+entity_id          bas_g1_cents  bas_1a_cents  bas_net_cents
+boyun_co            1850000      100000        1750000
+neighbourhood_co          0           0              0
+yeeliving_co        3700000      200000        3500000
+
+-- Reconciliation: bas_net_cents - annual_income_ex_gst = 0 for all three companies.

@@ -1,0 +1,21 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run tests/unit/gate8-obligations-and-trust.test.ts --sequence.shuffle --sequence.seed 123 --sequence.shuffle.tests=false
+
+file:///Users/neilweng/Documents/ChatGPT/%E7%A8%8E%E5%8A%A1%E4%BB%BB%E5%8A%A1%E5%BC%80%E5%8F%91/node_modules/vitest/dist/chunks/cac.BfaZ95xE.js:207
+    t = t[keys[i]] = transform(i === length - 1 ? val : x != null ? x : !!~keys[i + 1].indexOf(".") || !(+keys[i + 1] > -1) ? {} : []);
+                   ^
+
+TypeError: Cannot create property 'tests' on boolean 'true'
+    at setDotProp (file:///Users/neilweng/Documents/ChatGPT/%E7%A8%8E%E5%8A%A1%E4%BB%BB%E5%8A%A1%E5%BC%80%E5%8F%91/node_modules/vitest/dist/chunks/cac.BfaZ95xE.js:207:20)
+    at CAC.mri (file:///Users/neilweng/Documents/ChatGPT/%E7%A8%8E%E5%8A%A1%E4%BB%BB%E5%8A%A1%E5%BC%80%E5%8F%91/node_modules/vitest/dist/chunks/cac.BfaZ95xE.js:591:9)
+    at CAC.parse (file:///Users/neilweng/Documents/ChatGPT/%E7%A8%8E%E5%8A%A1%E4%BB%BB%E5%8A%A1%E5%BC%80%E5%8F%91/node_modules/vitest/dist/chunks/cac.BfaZ95xE.js:508:27)
+    at file:///Users/neilweng/Documents/ChatGPT/%E7%A8%8E%E5%8A%A1%E4%BB%BB%E5%8A%A1%E5%BC%80%E5%8F%91/node_modules/vitest/dist/cli.js:27:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.7.0
+
+EXIT_CODE=1

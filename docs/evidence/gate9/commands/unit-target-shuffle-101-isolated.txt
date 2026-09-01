@@ -1,0 +1,19 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run tests/unit/seed.test.ts tests/unit/div7a-agreement.test.ts tests/unit/gate8-obligations-and-trust.test.ts --sequence.shuffle --sequence.seed 101
+
+
+ RUN  v3.2.7 /Users/neilweng/Documents/ChatGPT/税务任务开发
+      Running tests with seed "101"
+
+ ✓ tests/unit/seed.test.ts (2 tests) 15ms
+ ✓ tests/unit/gate8-obligations-and-trust.test.ts (5 tests) 92ms
+ ✓ tests/unit/div7a-agreement.test.ts (8 tests) 220ms
+
+ Test Files  3 passed (3)
+      Tests  15 passed (15)
+   Start at  14:41:41
+   Duration  1.11s (transform 154ms, setup 603ms, collect 1.55s, tests 327ms, environment 0ms, prepare 116ms)
+
+
+EXIT_CODE=0

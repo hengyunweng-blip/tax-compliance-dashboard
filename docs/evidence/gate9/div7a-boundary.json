@@ -1,0 +1,100 @@
+{
+  "databasePath": "/var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-gate9-div7a.4dOTLG/boundary.db",
+  "loanId": 1,
+  "inputs": {
+    "loanDate": "15 May 2017",
+    "loanIncomeYear": "FY2016-17",
+    "principalCents": 10000000,
+    "termYears": 7,
+    "benchmarkRate": "5.30%"
+  },
+  "rows": [
+    {
+      "incomeYear": "FY2017-18",
+      "repaymentStatus": "active",
+      "minimumRepaymentCents": 1747034,
+      "openingBalanceCents": 10000000,
+      "interestCents": 530000,
+      "actualRepaymentCents": 0,
+      "closingBalanceBeforeRepaymentCents": 10530000,
+      "remainingTermYears": 7,
+      "closingBalanceAfterRepaymentCents": 8782966
+    },
+    {
+      "incomeYear": "FY2018-19",
+      "repaymentStatus": "active",
+      "minimumRepaymentCents": 1747035,
+      "openingBalanceCents": 8782966,
+      "interestCents": 465497,
+      "actualRepaymentCents": 0,
+      "closingBalanceBeforeRepaymentCents": 9248463,
+      "remainingTermYears": 6,
+      "closingBalanceAfterRepaymentCents": 7501428
+    },
+    {
+      "incomeYear": "FY2019-20",
+      "repaymentStatus": "active",
+      "minimumRepaymentCents": 1747034,
+      "openingBalanceCents": 7501428,
+      "interestCents": 397576,
+      "actualRepaymentCents": 0,
+      "closingBalanceBeforeRepaymentCents": 7899004,
+      "remainingTermYears": 5,
+      "closingBalanceAfterRepaymentCents": 6151970
+    },
+    {
+      "incomeYear": "FY2020-21",
+      "repaymentStatus": "active",
+      "minimumRepaymentCents": 1747035,
+      "openingBalanceCents": 6151970,
+      "interestCents": 326054,
+      "actualRepaymentCents": 0,
+      "closingBalanceBeforeRepaymentCents": 6478024,
+      "remainingTermYears": 4,
+      "closingBalanceAfterRepaymentCents": 4730989
+    },
+    {
+      "incomeYear": "FY2021-22",
+      "repaymentStatus": "active",
+      "minimumRepaymentCents": 1747034,
+      "openingBalanceCents": 4730989,
+      "interestCents": 250742,
+      "actualRepaymentCents": 0,
+      "closingBalanceBeforeRepaymentCents": 4981731,
+      "remainingTermYears": 3,
+      "closingBalanceAfterRepaymentCents": 3234697
+    },
+    {
+      "incomeYear": "FY2022-23",
+      "repaymentStatus": "active",
+      "minimumRepaymentCents": 1747034,
+      "openingBalanceCents": 3234697,
+      "interestCents": 171439,
+      "actualRepaymentCents": 0,
+      "closingBalanceBeforeRepaymentCents": 3406136,
+      "remainingTermYears": 2,
+      "closingBalanceAfterRepaymentCents": 1659102
+    },
+    {
+      "incomeYear": "FY2023-24",
+      "repaymentStatus": "active",
+      "minimumRepaymentCents": 1747034,
+      "openingBalanceCents": 1659102,
+      "interestCents": 87932,
+      "actualRepaymentCents": 0,
+      "closingBalanceBeforeRepaymentCents": 1747034,
+      "remainingTermYears": 1,
+      "closingBalanceAfterRepaymentCents": 0
+    }
+  ],
+  "expired": {
+    "incomeYear": "FY2024-25",
+    "repaymentStatus": "expired",
+    "minimumRepaymentCents": 0,
+    "remainingTermYears": 0,
+    "openingBalanceCents": 0,
+    "closingBalanceCents": 0,
+    "unresolvedBalanceCents": null,
+    "expiryWarning": null
+  }
+}

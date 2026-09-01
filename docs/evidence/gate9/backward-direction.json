@@ -1,0 +1,20 @@
+{
+  "sourceTestRun": "npm test -- --run tests/unit/obligation-calculator.test.ts tests/unit/super.test.ts",
+  "testFiles": 2,
+  "testsPassed": 16,
+  "date": "2029-06-30",
+  "configuredCalendar": {
+    "year": 2029,
+    "confirmed": true,
+    "sourceUrl": "https://business.vic.gov.au/business-information/public-holidays",
+    "retrievedAt": "2026-08-30"
+  },
+  "superContribution": {
+    "statutoryDue": "2029-06-30",
+    "effectiveDue": "2029-06-29"
+  },
+  "trustDistribution": {
+    "statutoryDue": "2029-06-30",
+    "effectiveDue": "2029-06-29"
+  }
+}

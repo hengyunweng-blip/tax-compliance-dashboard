@@ -1,0 +1,93 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run --sequence.shuffle --sequence.seed 101
+
+
+ RUN  v3.2.7 /Users/neilweng/Documents/ChatGPT/税务任务开发
+      Running tests with seed "101"
+
+ ✓ tests/unit/classification.test.ts (2 tests) 2ms
+ ✓ tests/unit/health.test.ts (1 test) 5ms
+ ✓ tests/unit/money.test.ts (11 tests) 12ms
+ ✓ tests/unit/div7a-amalgamated.test.ts (2 tests) 4ms
+ ✓ tests/unit/reminders.test.ts (2 tests) 3ms
+ ✓ tests/unit/ics.test.ts (2 tests) 8ms
+ ✓ tests/unit/melbourne-foundation.test.ts (2 tests) 3ms
+ ✓ tests/unit/email-ingest.test.ts (4 tests) 34ms
+ ✓ tests/unit/csv-import.test.ts (7 tests) 38ms
+ ✓ tests/unit/backup.test.ts (2 tests) 102ms
+ ✓ tests/unit/news.test.ts (16 tests) 72ms
+ ✓ tests/unit/bas-generator.test.ts (6 tests) 276ms
+ ✓ tests/unit/div7a-opening.test.ts (3 tests) 35ms
+ ✓ tests/unit/gst-bas-mapping.test.ts (17 tests) 83ms
+ ✓ tests/unit/bas-instructions.test.ts (1 test) 1ms
+ ✓ tests/unit/div7a-repayment-validity.test.ts (3 tests) 31ms
+ ✓ tests/unit/assets.test.ts (6 tests) 34ms
+ ❯ tests/unit/seed.test.ts (2 tests | 1 failed) 24ms
+   ✓ seed creates six entities and three GST-registered companies without obligations 13ms
+   × seeds required fields per obligation rule instead of per entity 7ms
+     → no such table: obligation_rules
+ ✓ tests/unit/ai-adapter.test.ts (5 tests) 43ms
+ ✓ tests/unit/obligation-calculator.test.ts (11 tests) 141ms
+ ✓ tests/unit/settings.test.ts (7 tests) 40ms
+ ✓ tests/unit/super.test.ts (5 tests) 233ms
+ ✓ tests/unit/db-schema.test.ts (7 tests) 22ms
+ ✓ tests/unit/documents.test.ts (3 tests) 44ms
+ ✓ tests/unit/bas-correction-policy.test.ts (4 tests) 7ms
+ ✓ tests/unit/annual-worksheets.test.ts (7 tests) 40ms
+ ✓ tests/unit/div7a-rates.test.ts (4 tests) 22ms
+ ❯ tests/unit/div7a-agreement.test.ts (8 tests | 1 failed) 385ms
+   ✓ uses the earlier actual lodgment date and never defaults to today 21ms
+   ✓ blocks an unclear agreement and rejects a signed date after lodgment day 1ms
+   ✓ creates one scoped agreement obligation for each loan 106ms
+   ✓ agreement input produces an exact unshifted lodgment-day obligation 4ms
+   ✓ refreshes the loan agreement deadline after a user-entered company tax lodgment date 113ms
+   × keeps an unknown security type blocked instead of assuming a seven-year agreement 6ms
+     → FOREIGN KEY constraint failed
+   ✓ creates reminder coverage and exposes the agreement separately in Inbox 86ms
+   ✓ exports each loan agreement obligation to the calendar independently 38ms
+ ✓ tests/unit/bas-export.test.ts (1 test) 76ms
+ ✓ tests/unit/melbourne-dates.test.ts (6 tests) 7ms
+ ✓ tests/unit/inbox.test.ts (3 tests) 59ms
+ ✓ tests/unit/gate8-obligations-and-trust.test.ts (5 tests) 125ms
+ ✓ tests/unit/transactions.test.ts (4 tests) 21ms
+ ✓ tests/unit/div7a.test.ts (11 tests) 173ms
+ ✓ tests/unit/obligation-state.test.ts (6 tests) 208ms
+ ✓ tests/unit/closed-period-transactions.test.ts (4 tests) 171ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/div7a-agreement.test.ts > keeps an unknown security type blocked instead of assuming a seven-year agreement
+SqliteError: FOREIGN KEY constraint failed
+ ❯ createDiv7aLoan lib/domain/div7a/service.ts:337:6
+    335|       , agreement_rate_text
+    336|     ) VALUES (?, ?, ?, ?, ?, ?, 0, '[]', ?, ?, ?, ?, ?, ?, ?)
+    337|   `).run(
+       |      ^
+    338|     input.lenderEntityId,
+    339|     input.borrower.trim(),
+ ❯ tests/unit/div7a-agreement.test.ts:137:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/unit/seed.test.ts > seeds required fields per obligation rule instead of per entity
+SqliteError: no such table: obligation_rules
+ ❯ Database.prepare node_modules/better-sqlite3/lib/methods/wrappers.js:5:21
+ ❯ tests/unit/seed.test.ts:40:27
+     38|
+     39| test("seeds required fields per obligation rule instead of per entity"…
+     40|   const rows = getRawDb().prepare(`
+       |                           ^
+     41|     SELECT id, required_fields
+     42|     FROM obligation_rules
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 34 passed (36)
+      Tests  2 failed | 188 passed (190)
+   Start at  14:40:49
+   Duration  4.51s (transform 878ms, setup 11.16s, collect 25.77s, tests 2.58s, environment 3ms, prepare 1.59s)
+
+
+EXIT_CODE=1

@@ -1,0 +1,16 @@
+-- SELECT entity_id, period_label, statutory_due, effective_due
+-- FROM obligations WHERE rule_id='bas_quarterly' AND income_year='FY2026-27'
+-- ORDER BY entity_id, period_label;
+-- status is included below as an additional audit field.
+{"entity_id":"boyun_co","period_label":"FY2026-27 Q1","statutory_due":"2026-10-28","effective_due":"2026-11-11","status":"paid"}
+{"entity_id":"boyun_co","period_label":"FY2026-27 Q2","statutory_due":"2027-02-28","effective_due":"2027-03-01","status":"paid"}
+{"entity_id":"boyun_co","period_label":"FY2026-27 Q3","statutory_due":"2027-04-28","effective_due":"2027-05-12","status":"paid"}
+{"entity_id":"boyun_co","period_label":"FY2026-27 Q4","statutory_due":"2027-07-28","effective_due":"2027-08-11","status":"paid"}
+{"entity_id":"neighbourhood_co","period_label":"FY2026-27 Q1","statutory_due":"2026-10-28","effective_due":"2026-11-11","status":"paid"}
+{"entity_id":"neighbourhood_co","period_label":"FY2026-27 Q2","statutory_due":"2027-02-28","effective_due":"2027-03-01","status":"paid"}
+{"entity_id":"neighbourhood_co","period_label":"FY2026-27 Q3","statutory_due":"2027-04-28","effective_due":"2027-05-12","status":"paid"}
+{"entity_id":"neighbourhood_co","period_label":"FY2026-27 Q4","statutory_due":"2027-07-28","effective_due":"2027-08-11","status":"paid"}
+{"entity_id":"yeeliving_co","period_label":"FY2026-27 Q1","statutory_due":"2026-10-28","effective_due":"2026-11-11","status":"paid"}
+{"entity_id":"yeeliving_co","period_label":"FY2026-27 Q2","statutory_due":"2027-02-28","effective_due":"2027-03-01","status":"paid"}
+{"entity_id":"yeeliving_co","period_label":"FY2026-27 Q3","statutory_due":"2027-04-28","effective_due":"2027-05-12","status":"paid"}
+{"entity_id":"yeeliving_co","period_label":"FY2026-27 Q4","statutory_due":"2027-07-28","effective_due":"2027-08-11","status":"paid"}

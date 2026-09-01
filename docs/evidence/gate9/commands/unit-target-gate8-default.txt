@@ -1,0 +1,16 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run tests/unit/gate8-obligations-and-trust.test.ts
+
+
+ RUN  v3.2.7 /Users/neilweng/Documents/ChatGPT/税务任务开发
+
+ ✓ tests/unit/gate8-obligations-and-trust.test.ts (5 tests) 84ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  14:26:31
+   Duration  914ms (transform 85ms, setup 182ms, collect 492ms, tests 84ms, environment 0ms, prepare 29ms)
+
+
+EXIT_CODE=0

@@ -1,0 +1,7 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run tests/unit/gate8-obligations-and-trust.test.ts --sequence.shuffle --sequence.seed 123
+
+
+ RUN  v3.2.7 /Users/neilweng/Documents/ChatGPT/税务任务开发
+      Running tests with seed "123"

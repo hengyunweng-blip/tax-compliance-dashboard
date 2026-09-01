@@ -1,0 +1,4 @@
+-- SELECT * FROM assets;
+{"id":1,"entity_id":"boyun_co","name":"Boyun company vehicle","asset_type":"vehicle","purchase_date":"2026-07-01","cost_ex_gst_cents":1000000,"useful_life_years":5,"method":"prime_cost","private_use_percent":20}
+{"id":2,"entity_id":"yeeliving_co","name":"Yeeliving equipment","asset_type":"equipment","purchase_date":"2026-07-01","cost_ex_gst_cents":2000000,"useful_life_years":5,"method":"diminishing_value","private_use_percent":0}
+{"id":3,"entity_id":"neighbourhood_co","name":"Neighbourhood equipment","asset_type":"equipment","purchase_date":"2026-07-01","cost_ex_gst_cents":500000,"useful_life_years":5,"method":"prime_cost","private_use_percent":0}

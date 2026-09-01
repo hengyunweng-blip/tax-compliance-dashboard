@@ -1,0 +1,12 @@
+
+> tax-compliance-dashboard@0.1.0 test:e2e
+> playwright test
+
+[e2e-gate0-settings] (node:24735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate0-settings] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate0-settings] (node:24736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate0-settings] (Use `node --trace-warnings ...` to show where the warning was created)
+Error: Timed out waiting 120000ms from config.webServer.
+
+
+EXIT_CODE=1

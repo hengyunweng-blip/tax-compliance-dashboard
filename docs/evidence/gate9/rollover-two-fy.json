@@ -1,0 +1,99 @@
+{
+  "firstCount": 30,
+  "secondCount": 30,
+  "nextCountBeforeReensure": 30,
+  "nextCountAfterReensure": 30,
+  "nextBas": [
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2027-28 Q2",
+      "statutoryDue": "2028-02-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2027-28 Q3",
+      "statutoryDue": "2028-04-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2027-28 Q4",
+      "statutoryDue": "2028-07-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2027-28 Q2",
+      "statutoryDue": "2028-02-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2027-28 Q3",
+      "statutoryDue": "2028-04-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2027-28 Q4",
+      "statutoryDue": "2028-07-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2027-28 Q2",
+      "statutoryDue": "2028-02-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2027-28 Q3",
+      "statutoryDue": "2028-04-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2027-28 Q4",
+      "statutoryDue": "2028-07-28",
+      "effectiveDue": null,
+      "status": "todo"
+    },
+    {
+      "entityId": "boyun_co",
+      "periodLabel": "FY2027-28 Q1",
+      "statutoryDue": "2027-10-28",
+      "effectiveDue": "2027-11-11",
+      "status": "todo"
+    },
+    {
+      "entityId": "yeeliving_co",
+      "periodLabel": "FY2027-28 Q1",
+      "statutoryDue": "2027-10-28",
+      "effectiveDue": "2027-11-11",
+      "status": "todo"
+    },
+    {
+      "entityId": "neighbourhood_co",
+      "periodLabel": "FY2027-28 Q1",
+      "statutoryDue": "2027-10-28",
+      "effectiveDue": "2027-11-11",
+      "status": "todo"
+    }
+  ],
+  "q2BeforeHolidayConfig": {
+    "incomeYear": "FY2027-28",
+    "deadlineFy": "FY2027-28",
+    "statutoryDue": "2028-02-28",
+    "effectiveDue": null
+  },
+  "apiResponse": {}
+}

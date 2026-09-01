@@ -1,0 +1,5 @@
+-- SELECT * FROM div7a_loans;
+{"id":1,"lender_entity_id":"boyun_co","borrower":"self","loan_date":"2026-06-30","principal_cents":1000000,"original_income_year":"FY2025-26","term_years":7,"security_type":"unsecured"}
+{"id":2,"lender_entity_id":"boyun_co","borrower":"self","loan_date":"2026-06-30","principal_cents":500000,"original_income_year":"FY2025-26","term_years":7,"security_type":"unsecured"}
+{"id":3,"lender_entity_id":"yeeliving_co","borrower":"self","loan_date":"2026-07-01","principal_cents":2000000,"original_income_year":"FY2026-27","term_years":7,"security_type":"unsecured"}
+{"id":4,"lender_entity_id":"neighbourhood_co","borrower":"self","loan_date":"2026-07-01","principal_cents":500000,"original_income_year":"FY2026-27","term_years":7,"security_type":"unsecured"}

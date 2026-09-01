@@ -1,0 +1,85 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run --sequence.shuffle --sequence.seed 123
+
+
+ RUN  v3.2.7 /Users/neilweng/Documents/ChatGPT/税务任务开发
+      Running tests with seed "123"
+
+ ✓ tests/unit/div7a-amalgamated.test.ts (2 tests) 2ms
+ ✓ tests/unit/reminders.test.ts (2 tests) 4ms
+ ✓ tests/unit/melbourne-dates.test.ts (6 tests) 4ms
+ ✓ tests/unit/transactions.test.ts (4 tests) 19ms
+ ✓ tests/unit/email-ingest.test.ts (4 tests) 26ms
+ ✓ tests/unit/assets.test.ts (6 tests) 27ms
+ ✓ tests/unit/div7a-opening.test.ts (3 tests) 28ms
+ ✓ tests/unit/settings.test.ts (7 tests) 35ms
+ ✓ tests/unit/annual-worksheets.test.ts (7 tests) 36ms
+ ✓ tests/unit/backup.test.ts (2 tests) 158ms
+ ✓ tests/unit/gst-bas-mapping.test.ts (17 tests) 109ms
+ ✓ tests/unit/bas-export.test.ts (1 test) 76ms
+ ✓ tests/unit/classification.test.ts (2 tests) 4ms
+ ✓ tests/unit/melbourne-foundation.test.ts (2 tests) 3ms
+ ✓ tests/unit/seed.test.ts (2 tests) 12ms
+ ✓ tests/unit/inbox.test.ts (3 tests) 61ms
+ ✓ tests/unit/ics.test.ts (2 tests) 3ms
+ ✓ tests/unit/ai-adapter.test.ts (5 tests) 44ms
+ ✓ tests/unit/csv-import.test.ts (7 tests) 29ms
+ ✓ tests/unit/documents.test.ts (3 tests) 44ms
+ ✓ tests/unit/obligation-state.test.ts (6 tests) 362ms
+ ✓ tests/unit/health.test.ts (1 test) 6ms
+ ✓ tests/unit/div7a-repayment-validity.test.ts (3 tests) 31ms
+ ✓ tests/unit/div7a-agreement.test.ts (8 tests) 428ms
+ ✓ tests/unit/div7a-rates.test.ts (4 tests) 26ms
+ ✓ tests/unit/money.test.ts (11 tests) 29ms
+ ✓ tests/unit/bas-instructions.test.ts (1 test) 3ms
+ ✓ tests/unit/db-schema.test.ts (7 tests) 30ms
+ ✓ tests/unit/news.test.ts (16 tests) 62ms
+ ✓ tests/unit/div7a.test.ts (11 tests) 232ms
+ ✓ tests/unit/bas-generator.test.ts (6 tests) 288ms
+ ✓ tests/unit/bas-correction-policy.test.ts (4 tests) 4ms
+ ✓ tests/unit/obligation-calculator.test.ts (11 tests) 107ms
+ ❯ tests/unit/gate8-obligations-and-trust.test.ts (5 tests | 1 failed) 123ms
+   × FY2027-28 BAS dates are generated from the financial year and Q2 keeps its no-extension exception 5ms
+     → expected { incomeYear: 'FY2027-28', …(3) } to match object { statutoryDue: '2028-02-28', …(1) }
+(2 matching properties omitted from actual)
+   ✓ an unconfigured holiday year leaves effective due unknown until that year is configured 2ms
+   ✓ expanding the same financial year twice is idempotent and a new year gets its own BAS obligations 89ms
+   ✓ trust distributions appear in both individual annual summaries and reject company beneficiaries 21ms
+   ✓ proposed trust distributions are labelled as unsigned in the personal summary 2ms
+ ✓ tests/unit/closed-period-transactions.test.ts (4 tests) 195ms
+ ✓ tests/unit/super.test.ts (5 tests) 155ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/gate8-obligations-and-trust.test.ts > FY2027-28 BAS dates are generated from the financial year and Q2 keeps its no-extension exception
+AssertionError: expected { incomeYear: 'FY2027-28', …(3) } to match object { statutoryDue: '2028-02-28', …(1) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "effectiveDue": null,
++   "effectiveDue": "2028-02-28",
+    "statutoryDue": "2028-02-28",
+  }
+
+ ❯ tests/unit/gate8-obligations-and-trust.test.ts:17:51
+     15| test("FY2027-28 BAS dates are generated from the financial year and Q2…
+     16|   expect(calculateBasDueDates("FY2027-28", "Q1")).toMatchObject({ stat…
+     17|   expect(calculateBasDueDates("FY2027-28", "Q2")).toMatchObject({ stat…
+       |                                                   ^
+     18|   expect(calculateBasDueDates("FY2027-28", "Q2").statutoryDue).not.toB…
+     19| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 35 passed (36)
+      Tests  1 failed | 189 passed (190)
+   Start at  14:25:04
+   Duration  4.64s (transform 901ms, setup 11.69s, collect 25.01s, tests 2.80s, environment 3ms, prepare 1.69s)
+
+
+EXIT_CODE=1

@@ -1,0 +1,14 @@
+-- Actual asset rows and the independently captured book-reduction comparison.
+SELECT id, entity_id, name, cost_ex_gst_cents, useful_life_years, method,
+       private_use_percent
+FROM assets ORDER BY id;
+
+id  entity_id          name                    cost_ex_gst_cents  useful_life_years  method              private_use_percent
+1   boyun_co            Boyun company vehicle   1000000            5                  prime_cost          20
+2   yeeliving_co        Yeeliving equipment     2000000            5                  diminishing_value   0
+3   neighbourhood_co    Neighbourhood equipment 500000             5                  prime_cost          0
+
+entity_id          total_depreciation_cents  book_reduction_cents  difference_cents
+boyun_co            200000                  200000                0
+yeeliving_co        800000                  800000                0
+neighbourhood_co    100000                  100000                0

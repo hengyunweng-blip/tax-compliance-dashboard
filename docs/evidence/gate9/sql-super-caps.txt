@@ -1,0 +1,68 @@
+[
+  {
+    "income_year": "2021-22",
+    "concessional_cap_cents": 2750000,
+    "non_concessional_cap_cents": 11000000,
+    "concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+    "concessional_retrieved_at": "2026-08-29",
+    "non_concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+    "non_concessional_retrieved_at": "2026-08-29",
+    "created_at": "2026-09-01 04:24:18",
+    "updated_at": "2026-09-01 04:24:18"
+  },
+  {
+    "income_year": "2022-23",
+    "concessional_cap_cents": 2750000,
+    "non_concessional_cap_cents": 11000000,
+    "concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+    "concessional_retrieved_at": "2026-08-29",
+    "non_concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+    "non_concessional_retrieved_at": "2026-08-29",
+    "created_at": "2026-09-01 04:24:18",
+    "updated_at": "2026-09-01 04:24:18"
+  },
+  {
+    "income_year": "2023-24",
+    "concessional_cap_cents": 2750000,
+    "non_concessional_cap_cents": 11000000,
+    "concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+    "concessional_retrieved_at": "2026-08-29",
+    "non_concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+    "non_concessional_retrieved_at": "2026-08-29",
+    "created_at": "2026-09-01 04:24:18",
+    "updated_at": "2026-09-01 04:24:18"
+  },
+  {
+    "income_year": "2024-25",
+    "concessional_cap_cents": 3000000,
+    "non_concessional_cap_cents": 12000000,
+    "concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+    "concessional_retrieved_at": "2026-08-29",
+    "non_concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+    "non_concessional_retrieved_at": "2026-08-29",
+    "created_at": "2026-09-01 04:24:18",
+    "updated_at": "2026-09-01 04:24:18"
+  },
+  {
+    "income_year": "2025-26",
+    "concessional_cap_cents": 3000000,
+    "non_concessional_cap_cents": 12000000,
+    "concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+    "concessional_retrieved_at": "2026-08-29",
+    "non_concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+    "non_concessional_retrieved_at": "2026-08-29",
+    "created_at": "2026-09-01 04:24:18",
+    "updated_at": "2026-09-01 04:24:18"
+  },
+  {
+    "income_year": "2026-27",
+    "concessional_cap_cents": 3250000,
+    "non_concessional_cap_cents": 13000000,
+    "concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/concessional-contributions-cap",
+    "concessional_retrieved_at": "2026-08-29",
+    "non_concessional_source_url": "https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/non-concessional-contributions-cap",
+    "non_concessional_retrieved_at": "2026-08-29",
+    "created_at": "2026-09-01 04:24:18",
+    "updated_at": "2026-09-01 04:24:18"
+  }
+]
