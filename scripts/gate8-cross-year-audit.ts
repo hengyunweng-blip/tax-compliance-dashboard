@@ -24,7 +24,7 @@ import { GET as annualGet } from "@/app/api/annual/route";
 import { GET as obligationsGet } from "@/app/api/obligations/route";
 import { groupDiv7aLoans } from "@/lib/domain/div7a/amalgamated";
 
-const EVIDENCE_DIR = path.resolve(process.cwd(), "docs/evidence/gate8");
+const EVIDENCE_DIR = path.resolve(process.cwd(), process.env.EVIDENCE_DIR ?? "docs/evidence/gate8");
 const FY = "FY2026-27";
 const NEXT_FY = "FY2027-28";
 const COMPANY_IDS = ["boyun_co", "yeeliving_co", "neighbourhood_co"] as const;
