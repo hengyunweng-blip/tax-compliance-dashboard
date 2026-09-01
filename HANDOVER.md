@@ -5,6 +5,7 @@
 Gate 5 原始实现与证据提交：`2cf10f8b723fce0d815ff801720e24acac149814`
 本轮三项修复提交：`a6681bafe351bd68d642e1e8e1b3e26ba8a45ec8`
 Gate 9 验证基础设施提交：`b50cb36fa8c7fbdd3dcc555d5315db06c0026761`、`055dd79`、`89ef8c8`
+Gate 9 后续测试 fixture 补充提交：`bda24f295ab82d3f59696b1db59a0843fa29d714`
 `gate-5` 与 `gate-9` 均未创建；`gate-8` 已验收并固定在 `ec6146ee22cd59839f846fc61c26ec6e88fdc5f7`。
 
 ## 1. 当前状态
@@ -33,7 +34,7 @@ Gate 5 已实现并验证：
 - 备份 ZIP 与还原流程已完成实际验证。
 - Div 7A 年度切换的前端请求乱序问题已修复。
 
-Gate 9 只修复了验证基础设施与 `/div7a` 窄屏页面；当前基线仍有顺序敏感的单元测试和 5 个 E2E 失败，详见 Gate 9 证据报告。不得创建 `gate-9` 标签，亦不得把失败改写成通过。
+Gate 9 报告记录了验证基础设施修复后的原始状态；后续提交 `bda24f2` 只补充独立 fixture 初始化和测试产物忽略规则，没有修改断言或业务逻辑。当前单元测试随机顺序已重新验证为全绿，但仍有 5 个 E2E 失败，详见 Gate 9 证据报告。不得创建 `gate-9` 标签，亦不得把失败改写成通过。
 
 ## 2. 不可违反的约束
 
@@ -157,7 +158,7 @@ AI_TIMEOUT_MS
 
 ## 6. 当前验证基线
 
-- Vitest：36 个单元测试文件、190 个用例。干净 clone 默认顺序为 190/190；随机 seed 101 为 188/190（34/36 文件），随机 seed 202 为 187/190（33/36 文件）。失败是既有同文件顺序依赖：`tests/unit/seed.test.ts`、`tests/unit/div7a-agreement.test.ts`，以及 seed 202 下的 `tests/unit/gate8-obligations-and-trust.test.ts`；没有修改测试断言。
+- Vitest：36 个单元测试文件、190 个用例。提交 `bda24f2` 后，默认顺序及随机 seed 101、202 均为 36/36 文件、190/190 用例通过；修复只补充测试 fixture/初始化，没有修改断言。
 - Playwright：9 个 E2E 文件、14 个 test declarations。完整套件连续两轮均为 7 passed、5 failed、2 did not run；失败集合一致，不能称为全套通过。
 - `npm run lint`：干净 clone 通过。
 - `npm run build`：干净 clone 通过，Next.js 15.5.24 production compile、lint/typecheck 和静态页面生成通过。
@@ -171,7 +172,7 @@ AI_TIMEOUT_MS
 - 2027 AFL Grand Final Friday 的官方日期若公布，需要按年度更新维州公众假日数据；代码不得预先猜测。
 - 系统不负责真实 ATO/ASIC 申报、付款、签署或手机摄像头验证。
 - `/vehicle-fact-checklist` 在 390px 下仍存在 Markdown `<pre>` 横向溢出；本轮按范围只修复 `/div7a`，其他页面待决定。
-- 单元测试隔离已改为每文件临时数据库并验证清理，但同一测试文件内仍有顺序依赖；在修复前不得把随机顺序基线视为全绿。
+- 单元测试隔离已改为每文件临时数据库并验证清理；同文件 fixture 顺序问题已在 `bda24f2` 中补齐，当前三轮随机/默认单元测试均通过。
 - E2E 已按 spec 独立数据库运行；当前 5 个失败属于旧 fixture/API 合约或旧断言问题，需另行决定是否修复，不能通过改断言掩盖。
 - `gate-5`、`gate-9` 按验收协议保持不存在；不得移动或覆盖既有 Gate 证据。
 

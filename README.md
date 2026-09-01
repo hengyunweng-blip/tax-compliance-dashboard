@@ -120,18 +120,18 @@ npm run build
 npm run test:e2e
 ```
 
-当前 Gate 9 干净 clone 的真实基线：
+当前验证基线（含 Gate 9 后续测试 fixture 补充）：
 
 | 检查 | 结果 |
 |---|---|
 | Vitest 默认顺序 | 36 文件，190/190 通过 |
-| Vitest shuffle seed 101 | 34/36 文件，188/190 通过 |
-| Vitest shuffle seed 202 | 33/36 文件，187/190 通过 |
+| Vitest shuffle seed 101 | 36/36 文件，190/190 通过 |
+| Vitest shuffle seed 202 | 36/36 文件，190/190 通过 |
 | Playwright 完整套件 | 两轮均 7 passed / 5 failed / 2 did not run（14 declarations） |
 | lint | 通过 |
 | build | 通过 |
 
-随机测试剩余失败是同文件测试顺序/fixture 依赖；E2E 剩余失败是旧日期数量断言、科目 fixture/API 合约和缺少 `lodgedAt`。它们已记录在 [`docs/evidence/gate9/report.md`](docs/evidence/gate9/report.md)，不能把当前状态描述为全套测试通过。
+Gate 9 报告保留了测试 fixture 修复前的历史失败记录；当前提交已补齐不改变断言的独立 fixture 初始化，三轮单元测试均通过。E2E 仍有报告中列出的未解决失败，不能把当前状态描述为全套浏览器测试通过。
 
 ## 证据、设计与交接
 
