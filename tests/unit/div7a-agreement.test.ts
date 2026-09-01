@@ -13,7 +13,8 @@ const ATO_RATE_URL = "https://www.ato.gov.au/tax-rates-and-codes/division-7a-ben
 
 beforeEach(() => {
   seedDatabase();
-  getRawDb().exec("DELETE FROM reminders; DELETE FROM obligations; DELETE FROM div7a_loans; DELETE FROM div7a_benchmark_rates; DELETE FROM opening_balances; DELETE FROM audit_log;");
+  getRawDb().exec("DELETE FROM reminders; DELETE FROM obligations; DELETE FROM div7a_loans; DELETE FROM documents; DELETE FROM div7a_benchmark_rates; DELETE FROM opening_balances; DELETE FROM audit_log;");
+  getRawDb().prepare("INSERT INTO documents (id, entity_id, file_path, mime, sha256, source, status) VALUES (1, 'boyun_co', 'agreement-fixture.pdf', 'application/pdf', 'agreement-fixture', 'test', 'confirmed')").run();
   saveBenchmarkRate({ incomeYear: "FY2026-27", rateText: "8.77%", sourceUrl: ATO_RATE_URL, retrievedAt: "2026-08-29" });
 });
 

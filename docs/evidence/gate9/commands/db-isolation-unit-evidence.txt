@@ -1,0 +1,35 @@
+
+> tax-compliance-dashboard@0.1.0 test
+> vitest run --run tests/unit/gate8-obligations-and-trust.test.ts tests/unit/div7a-agreement.test.ts tests/unit/seed.test.ts --sequence.shuffle --sequence.seed 909
+
+
+ RUN  v3.2.7 /Users/neilweng/Documents/ChatGPT/税务任务开发
+      Running tests with seed "909"
+
+stdout | tests/unit/seed.test.ts
+[gate9-db] opened /var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-vitest-z510EV/test.db
+
+stdout | tests/unit/seed.test.ts
+[gate9-db] removed /var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-vitest-z510EV
+
+ ✓ tests/unit/seed.test.ts (2 tests) 14ms
+stdout | tests/unit/div7a-agreement.test.ts
+[gate9-db] opened /var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-vitest-KBG0Di/test.db
+
+stdout | tests/unit/gate8-obligations-and-trust.test.ts
+[gate9-db] opened /var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-vitest-DZbbN2/test.db
+
+stdout | tests/unit/gate8-obligations-and-trust.test.ts
+[gate9-db] removed /var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-vitest-DZbbN2
+
+ ✓ tests/unit/gate8-obligations-and-trust.test.ts (5 tests) 94ms
+stdout | tests/unit/div7a-agreement.test.ts
+[gate9-db] removed /var/folders/vn/n8trtj0x74j5ggwrwlx1n6pm0000gn/T/tax-compliance-vitest-KBG0Di
+
+ ✓ tests/unit/div7a-agreement.test.ts (8 tests) 222ms
+
+ Test Files  3 passed (3)
+      Tests  15 passed (15)
+   Start at  14:54:55
+   Duration  1.12s (transform 154ms, setup 580ms, collect 1.58s, tests 331ms, environment 0ms, prepare 101ms)
+

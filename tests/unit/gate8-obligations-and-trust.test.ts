@@ -9,7 +9,7 @@ import { GET as annualGet } from "@/app/api/annual/route";
 
 beforeEach(() => {
   seedDatabase();
-  getRawDb().exec("DELETE FROM reminders; DELETE FROM bas_worksheets; DELETE FROM trust_distributions; DELETE FROM transactions; DELETE FROM obligations; DELETE FROM audit_log;");
+  getRawDb().exec("DELETE FROM reminders; DELETE FROM bas_worksheets; DELETE FROM trust_distributions; DELETE FROM transactions; DELETE FROM obligations; DELETE FROM audit_log; DELETE FROM victorian_public_holidays WHERE year > 2027; DELETE FROM public_holiday_years WHERE year > 2027;");
 });
 
 test("FY2027-28 BAS dates are generated from the financial year and Q2 keeps its no-extension exception", () => {

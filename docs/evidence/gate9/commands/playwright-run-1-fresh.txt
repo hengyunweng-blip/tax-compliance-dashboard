@@ -1,0 +1,339 @@
+
+> tax-compliance-dashboard@0.1.0 test:e2e
+> playwright test
+
+[e2e-gate0-settings] (node:26763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate0-settings] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate0-settings] (node:26764) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate0-settings] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate0-settings] (node:26817) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate0-settings] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate0-settings] (node:26818) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate0-settings] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate1-dashboard] (node:26973) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate1-dashboard] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate1-dashboard] (node:26974) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate1-dashboard] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate1-dashboard] (node:27028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate1-dashboard] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate1-dashboard] (node:27029) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate1-dashboard] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-csv] (node:27053) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-csv] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-csv] (node:27054) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-csv] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-csv] (node:27108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-csv] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-csv] (node:27109) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-csv] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-inbox] (node:27131) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-inbox] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-inbox] (node:27132) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-inbox] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-inbox] (node:27186) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-inbox] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-inbox] (node:27187) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-inbox] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-upload] (node:27209) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-upload] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-upload] (node:27210) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-upload] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-upload] (node:27266) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-upload] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-upload] (node:27267) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate2-upload] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate3-bas] (node:27292) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate3-bas] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate3-bas] (node:27293) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate3-bas] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate3-bas] (node:27347) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate3-bas] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate3-bas] (node:27348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate3-bas] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-ai-disabled] (node:27372) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-ai-disabled] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-ai-disabled] (node:27373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-ai-disabled] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-ai-disabled] (node:27427) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-ai-disabled] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-ai-disabled] (node:27430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-ai-disabled] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-closed-period] (node:27453) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-closed-period] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-closed-period] (node:27454) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-closed-period] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-closed-period] (node:27510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-closed-period] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-closed-period] (node:27511) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-closed-period] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-final-regression] (node:27531) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-final-regression] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-final-regression] (node:27534) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-final-regression] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-final-regression] (node:27588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-final-regression] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-final-regression] (node:27589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-final-regression] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 14 tests using 6 workers
+
+(node:27596) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27594) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27598) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27593) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27595) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27597) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 [gate2-inbox] › tests/e2e/gate2-inbox.spec.ts:3:5 › confirms a review transaction with required fields and keyboard shortcuts (773ms)
+(node:27624) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate2-upload]  ⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+[e2e-gate2-upload] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[e2e-gate2-csv]  ⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+[e2e-gate2-csv] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[e2e-gate1-dashboard]  ⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+[e2e-gate1-dashboard] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+  ✘   7 [gate2-upload] › tests/e2e/gate2-upload.spec.ts:5:5 › uploads a file and accepts a base64 email attachment with the shared token (32.4s)
+  -   8 [gate2-upload] › tests/e2e/gate2-upload.spec.ts:30:5 › keeps the upload controls usable at a narrow responsive width
+[e2e-gate0-settings]  ⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+[e2e-gate0-settings] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+(node:27681) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [gate0-settings] › tests/e2e/gate0-settings.spec.ts:3:5 › renders six entities and persists Boyun ACN and ASIC date (33.9s)
+  ✘   1 [gate0-settings] › tests/e2e/gate0-settings.spec.ts:20:5 › settings layout has no viewport overflow at a narrow width (33.9s)
+(node:27688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27689) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [gate0-settings] › tests/e2e/gate0-settings.spec.ts:31:5 › renders only applicable entity fields and keeps the licence date on its own tab (33.9s)
+  ✘   6 [gate1-dashboard] › tests/e2e/gate1-dashboard.spec.ts:5:5 › renders and verifies the twelve BAS effective dates and income years (33.9s)
+  -  12 [gate1-dashboard] › tests/e2e/gate1-dashboard.spec.ts:114:5 › saves and reloads the licence anniversary in the licence tab
+  -  13 [gate1-dashboard] › tests/e2e/gate1-dashboard.spec.ts:127:5 › keeps the dashboard usable at a narrow responsive width
+  ✘   5 [gate2-csv] › tests/e2e/gate2-csv.spec.ts:3:5 › previews, maps and persists a CSV row as an Inbox transaction (34.0s)
+(node:27692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [gate3-bas] › tests/e2e/gate3-bas.spec.ts:4:5 › generates three Q1 BAS worksheets with traceable lines, Simpler BAS instructions and PAYG lodgement validation (987ms)
+[e2e-gate4-ai-disabled]  ⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+[e2e-gate4-ai-disabled] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[e2e-gate4-closed-period] (node:27707) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-closed-period] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-closed-period] (node:27711) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-closed-period] (Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 [gate4-closed-period] › tests/e2e/gate4-closed-period.spec.ts:4:5 › keeps a late Q1 transaction in the closed-period Inbox and requires a Q2 decision (3.9s)
+[e2e-final-regression]  ⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+[e2e-final-regression] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+  ✓  14 [final-regression] › tests/e2e/final-regression.spec.ts:4:5 › Gate 5 annual, Div 7A, super and backup flows render with fixed dates (8.7s)
+[e2e-gate4-ai-disabled] (node:27738) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-ai-disabled] (Use `node --trace-warnings ...` to show where the warning was created)
+[e2e-gate4-ai-disabled] (node:27741) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[e2e-gate4-ai-disabled] (Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 [gate4-ai-disabled] › tests/e2e/gate4-ai-disabled.spec.ts:4:5 › AI disabled keeps the full desktop site flow available and does not block the dashboard (14.9s)
+
+
+  1) [gate0-settings] › tests/e2e/gate0-settings.spec.ts:3:5 › renders six entities and persists Boyun ACN and ASIC date 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  getByText('设置已保存')
+    Expected: visible
+    Received: undefined
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('设置已保存')
+      - Protocol error (Runtime.callFunctionOn): Internal server error, session closed.
+
+
+      11 |   await row.getByLabel("ASIC 周年日").fill("15/07/2026");
+      12 |   await page.getByRole("button", { name: "保存设置", exact: true }).click();
+    > 13 |   await expect(page.getByText("设置已保存")).toBeVisible();
+         |                                         ^
+      14 |
+      15 |   await page.reload();
+      16 |   await expect(page.getByTestId("entity-row-boyun_co").getByLabel("ACN")).toHaveValue("123456789");
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate0-settings.spec.ts:13:41
+
+    Error Context: test-results/gate0-settings-renders-six-77636-sts-Boyun-ACN-and-ASIC-date-gate0-settings/error-context.md
+
+  2) [gate0-settings] › tests/e2e/gate0-settings.spec.ts:20:5 › settings layout has no viewport overflow at a narrow width 
+
+    Test timeout of 30000ms exceeded.
+
+    Error Context: test-results/gate0-settings-settings-la-ba0da--overflow-at-a-narrow-width-gate0-settings/error-context.md
+
+  3) [gate0-settings] › tests/e2e/gate0-settings.spec.ts:31:5 › renders only applicable entity fields and keeps the licence date on its own tab 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  getByRole('region', { name: '牌照配置' }).getByText('牌照周年日', { exact: true })
+    Expected: visible
+    Received: undefined
+
+
+      43 |
+      44 |   await page.getByRole("tab", { name: "牌照配置" }).click();
+    > 45 |   await expect(page.getByRole("region", { name: "牌照配置" }).getByText("牌照周年日", { exact: true })).toBeVisible();
+         |                                                                                                ^
+      46 | });
+      47 |
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate0-settings.spec.ts:45:96
+
+    Error Context: test-results/gate0-settings-renders-onl-59f2f-licence-date-on-its-own-tab-gate0-settings/error-context.md
+
+  4) [gate1-dashboard] › tests/e2e/gate1-dashboard.spec.ts:5:5 › renders and verifies the twelve BAS effective dates and income years 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByText('实际工作日：02 Nov 2026', { exact: true })
+    Expected: 3
+    Received: 5
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for getByText('实际工作日：02 Nov 2026', { exact: true })
+        4 × locator resolved to 5 elements
+          - unexpected value "5"
+      - Test timeout of 30000ms exceeded.
+
+
+      81 |   await expect(page.getByText("FY2025–26 信托税表 · 截止 31 Oct 2026", { exact: true })).toBeVisible();
+      82 |   await expect(page.getByText("FY2025–26 公司税表 · 截止 28 Feb 2027", { exact: true }).first()).toBeVisible();
+    > 83 |   await expect(page.getByText("实际工作日：02 Nov 2026", { exact: true })).toHaveCount(3);
+         |                                                                      ^
+      84 |   await expect(page.getByText("实际工作日：01 Mar 2027", { exact: true }).first()).toBeVisible();
+      85 |   await expect(page.locator('[data-rule-id="asic_annual_review"]').filter({ hasText: "日期待配置" })).toHaveCount(2);
+      86 |   for (const entityId of ["boyun_co", "yeeliving_co", "neighbourhood_co"]) {
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate1-dashboard.spec.ts:83:70
+
+    Error Context: test-results/gate1-dashboard-renders-an-b91f4-tive-dates-and-income-years-gate1-dashboard/error-context.md
+
+  5) [gate2-csv] › tests/e2e/gate2-csv.spec.ts:3:5 › previews, maps and persists a CSV row as an Inbox transaction 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/1 行/)
+    Expected: visible
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/1 行/)
+      - Test timeout of 30000ms exceeded.
+
+
+      11 |   });
+      12 |   await page.getByRole("button", { name: "1. 生成预览" }).click();
+    > 13 |   await expect(page.getByText(/1 行/)).toBeVisible();
+         |                                       ^
+      14 |   await expect(page.getByLabel("日期格式")).toHaveValue("DD/MM/YYYY");
+      15 |   await expect(page.getByText("02 Jul 2026", { exact: true })).toBeVisible();
+      16 |   await page.getByLabel("科目").selectOption({ index: 1 });
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate2-csv.spec.ts:13:39
+
+    Error Context: test-results/gate2-csv-previews-maps-an-7c77b-row-as-an-Inbox-transaction-gate2-csv/error-context.md
+
+  6) [gate2-inbox] › tests/e2e/gate2-inbox.spec.ts:3:5 › confirms a review transaction with required fields and keyboard shortcuts 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 400
+
+      20 |     },
+      21 |   });
+    > 22 |   expect(created.status()).toBe(201);
+         |                            ^
+      23 |   const persisted = await page.request.get(`/api/transactions?entityId=boyun_co&fy=2026-27&quarter=Q1`);
+      24 |   expect(persisted.status()).toBe(200);
+      25 |   expect((await persisted.json()).transactions).toEqual(expect.arrayContaining([
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate2-inbox.spec.ts:22:28
+
+    Error Context: test-results/gate2-inbox-confirms-a-rev-bc396-elds-and-keyboard-shortcuts-gate2-inbox/error-context.md
+
+  7) [gate2-upload] › tests/e2e/gate2-upload.spec.ts:5:5 › uploads a file and accepts a base64 email attachment with the shared token 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/已接收 1 个文件/)
+    Expected: visible
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/已接收 1 个文件/)
+      - Test timeout of 30000ms exceeded.
+
+
+      12 |   });
+      13 |   await page.getByRole("button", { name: "上传并进入 Inbox" }).click();
+    > 14 |   await expect(page.getByText(/已接收 1 个文件/)).toBeVisible();
+         |                                             ^
+      15 |   await page.screenshot({ path: "docs/evidence/gate9/e2e/gate2-upload-desktop.png", fullPage: true });
+      16 |
+      17 |   const unauthorized = await page.request.post("/api/ingest/email", {
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate2-upload.spec.ts:14:45
+
+    Error Context: test-results/gate2-upload-uploads-a-fil-57bab-hment-with-the-shared-token-gate2-upload/error-context.md
+
+  8) [gate3-bas] › tests/e2e/gate3-bas.spec.ts:4:5 › generates three Q1 BAS worksheets with traceable lines, Simpler BAS instructions and PAYG lodgement validation 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 400
+
+      15 |       data: { ...value, date: "2026-07-04", accountId: account?.id, gstCode: "GST_INCOME", reviewFlag: false, source: "gate3-test" },
+      16 |     });
+    > 17 |     expect(response.status()).toBe(201);
+         |                               ^
+      18 |   }
+      19 |
+      20 |   const obligationsResponse = await page.request.get("/api/obligations?fy=2026-27");
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate3-bas.spec.ts:17:31
+
+    Error Context: test-results/gate3-bas-generates-three--5674e-d-PAYG-lodgement-validation-gate3-bas/error-context.md
+
+  9) [gate4-closed-period] › tests/e2e/gate4-closed-period.spec.ts:4:5 › keeps a late Q1 transaction in the closed-period Inbox and requires a Q2 decision 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      28 |     expect(q1Payload.worksheet.statementTotalCents).not.toBeNull();
+      29 |     const lodged = await page.request.post(`/api/bas/${q1?.id}`, { data: { action: "lodge", receiptNumber: `ATO-GATE4-${Date.now()}`, lodgedAmountCents: q1Payload.worksheet.statementTotalCents } });
+    > 30 |     expect(lodged.ok()).toBeTruthy();
+         |                         ^
+      31 |   }
+      32 |   const originalAmounts = { g1Cents: q1Payload.worksheet.g1Cents, a1Cents: q1Payload.worksheet.a1Cents, b1Cents: q1Payload.worksheet.b1Cents, statementTotalCents: q1Payload.worksheet.statementTotalCents };
+      33 |
+        at /Users/neilweng/Documents/ChatGPT/税务任务开发/tests/e2e/gate4-closed-period.spec.ts:30:25
+
+    Error Context: test-results/gate4-closed-period-keeps--611f8--and-requires-a-Q2-decision-gate4-closed-period/error-context.md
+
+  9 failed
+    [gate0-settings] › tests/e2e/gate0-settings.spec.ts:3:5 › renders six entities and persists Boyun ACN and ASIC date 
+    [gate0-settings] › tests/e2e/gate0-settings.spec.ts:20:5 › settings layout has no viewport overflow at a narrow width 
+    [gate0-settings] › tests/e2e/gate0-settings.spec.ts:31:5 › renders only applicable entity fields and keeps the licence date on its own tab 
+    [gate1-dashboard] › tests/e2e/gate1-dashboard.spec.ts:5:5 › renders and verifies the twelve BAS effective dates and income years 
+    [gate2-csv] › tests/e2e/gate2-csv.spec.ts:3:5 › previews, maps and persists a CSV row as an Inbox transaction 
+    [gate2-inbox] › tests/e2e/gate2-inbox.spec.ts:3:5 › confirms a review transaction with required fields and keyboard shortcuts 
+    [gate2-upload] › tests/e2e/gate2-upload.spec.ts:5:5 › uploads a file and accepts a base64 email attachment with the shared token 
+    [gate3-bas] › tests/e2e/gate3-bas.spec.ts:4:5 › generates three Q1 BAS worksheets with traceable lines, Simpler BAS instructions and PAYG lodgement validation 
+    [gate4-closed-period] › tests/e2e/gate4-closed-period.spec.ts:4:5 › keeps a late Q1 transaction in the closed-period Inbox and requires a Q2 decision 
+  3 did not run
+  2 passed (2.5m)

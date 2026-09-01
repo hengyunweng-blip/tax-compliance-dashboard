@@ -2,6 +2,8 @@
 
 这是一个面向自主管理的澳大利亚多主体记账与税务准备系统。它把银行/发票资料整理成交易账本、BAS 底稿、年度税务底稿、Div 7A、养老金和到期提醒，最终由用户在 ATO、ASIC 或其他监管网站手动提交。
 
+GitHub 仓库：[tax-compliance-dashboard](https://github.com/hengyunweng-blip/tax-compliance-dashboard)
+
 > 本项目不自动向 ATO 或 ASIC 申报、付款或签署，也不替代注册税务代理或法律意见。AI 只提供待确认的分析建议；未经用户确认，不会写入交易、义务或申报金额。
 
 ## 当前包含的功能

@@ -1,6 +1,12 @@
-import { expect, test } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 import { getRawDb } from "@/lib/db/client";
 import { seedDatabase } from "@/lib/db/seed";
+
+beforeEach(() => {
+  // Each test in this file must be valid when Vitest shuffles tests within
+  // the file; seedDatabase is idempotent and restores the seeded lookup rows.
+  seedDatabase();
+});
 
 test("seed creates six entities and three GST-registered companies without obligations", () => {
   seedDatabase();
